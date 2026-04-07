@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读：Drop the Hierarchy and Roles</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Protocol diagram */
+    .protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .proto-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .proto-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .proto-card.exo::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .proto-card.hybrid::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .proto-card.signal::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .proto-card.endo::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .proto-card .proto-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .proto-card .proto-type { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .proto-card .proto-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Spectrum bar */
+    .spectrum { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 16px 0 24px; }
+    .spectrum-bar { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--red), var(--orange), var(--yellow), var(--green), var(--cyan)); margin: 12px 0; position: relative; }
+    .spectrum-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .spectrum-marker { position: absolute; top: -6px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #0f1117; transform: translateX(-50%); }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .protocol-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Drop the Hierarchy and Roles</h1>
+  <p class="sub">深度解读：自组织 LLM 智能体如何超越人工设计结构 —— 内生性悖论与多智能体协调架构的系统性实证研究</p>
+  <div class="paper-ref"><a href="https://arxiv.org/abs/2603.28990" target="_blank">arxiv 2603.28990</a> &middot; March 2026 &middot; Victoria Dochkina</div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#s1">一、论文概览</a>
+    <a href="#s2">二、问题背景</a>
+    <a href="#s3">三、实验设计</a>
+    <a href="#s4">四、内生性悖论</a>
+    <a href="#s5">五、关键结果</a>
+    <a href="#s6">六、局限性</a>
+    <a href="#s7">七、小镇关联</a>
+  </div>
+</nav>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1: 论文概览 ===== -->
+  <div class="section" id="s1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文概览</h2>
+    </div>
+
+    <div class="card">
+      <p><strong>论文：</strong>Drop the Hierarchy and Roles: How Self-Organizing LLM Agents Outperform Designed Structures</p>
+      <p><strong>来源：</strong><a href="https://arxiv.org/abs/2603.28990" target="_blank">arxiv 2603.28990</a>，2026 年 3 月</p>
+      <p><strong>作者：</strong>Victoria Dochkina</p>
+    </div>
+
+    <h3>核心问题</h3>
+    <p>什么样的<span class="hl">协调架构</span>（coordination architecture）能最大化多智能体 LLM 系统的任务表现？</p>
+
+    <h3>核心发现：内生性悖论（Endogeneity Paradox）</h3>
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心结论</div>
+      最优协调既不是<span class="hl">最大控制</span>也不是<span class="hl">最大自主</span>，而是 <strong>"最小结构 + 完全角色自主"</strong>（minimal structure + full role autonomy）。
+    </div>
+
+    <p>这一发现彻底挑战了目前主流多智能体框架中预先分配固定角色的设计范式，揭示了一条从外生协调（exogenous coordination）走向内生协调（endogenous coordination）的最优路径。</p>
+  </div>
+
+  <!-- ===== Section 2: 问题背景 ===== -->
+  <div class="section" id="s2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>问题背景</h2>
+    </div>
+
+    <p>现有主流框架 —— <span class="hl"><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev</a></span>、<span class="hl"><a href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT</a></span>、<span class="hl"><a href="https://arxiv.org/abs/2308.08155" target="_blank">AutoGen</a></span>、<span class="hl"><a href="https://github.com/OpenBMB/AgentVerse" target="_blank">AgentVerse</a></span> —— 均依赖<strong>外生协调</strong>（exogenous coordination）：角色在任务执行之前就已经固定。这种设计存在三大系统性失败：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>失败类型</th>
+            <th>具体表现</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--red);font-weight:600;">规模局限（Scale Limitation）</td>
+            <td>先前系统最多测试约 <span class="hl">12 个智能体</span>，缺乏大规模验证</td>
+          </tr>
+          <tr>
+            <td style="color:var(--orange);font-weight:600;">单协议刚性（Single-Protocol Rigidity）</td>
+            <td>每个框架仅使用一种固定机制，从未进行过系统性的协议横向对比</td>
+          </tr>
+          <tr>
+            <td style="color:var(--yellow);font-weight:600;">理论空白（Theoretical Void）</td>
+            <td>没有任何框架刻画了从外生到内生的完整协调频谱</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键洞察</div>
+      "为 LLM 智能体预先分配固定角色是一种<span class="hl">反模式</span>（anti-pattern），它将人类的局限性复制到了不具有这些局限性的实体之上。"
+    </div>
+
+    <p>人类需要职位头衔和角色分工是因为我们的认知带宽有限、上下文切换成本高。但 LLM 并不受这些约束。强行将人类的组织模式映射到 LLM 系统上，是对 LLM 能力的浪费。</p>
+  </div>
+
+  <!-- ===== Section 3: 实验设计 ===== -->
+  <div class="section" id="s3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">3</div>
+      <h2>实验设计</h2>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">25,000+</div>
+        <div class="stat-label">总任务运行次数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">3</div>
+        <div class="stat-label">实验系列</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">8</div>
+        <div class="stat-label">协调协议</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">256</div>
+        <div class="stat-label">最大智能体数</div>
+      </div>
+    </div>
+
+    <h3>三大实验系列</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>系列</th>
+            <th>目标</th>
+            <th>任务数</th>
+            <th>模型</th>
+            <th>智能体规模</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Series 1（基础）</strong></td>
+            <td>Foundation</td>
+            <td>660</td>
+            <td>GPT-4o</td>
+            <td>4 agents</td>
+          </tr>
+          <tr>
+            <td><strong>Series 2（扩展）</strong></td>
+            <td>Scaling</td>
+            <td>8,020</td>
+            <td>GPT-4.1-mini</td>
+            <td>4 - 64 agents</td>
+          </tr>
+          <tr>
+            <td><strong>Series 3（多模型）</strong></td>
+            <td>Multi-model</td>
+            <td>12,130</td>
+            <td>8 种模型</td>
+            <td>8 - 256 agents</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>八大协调协议（从最外生到最内生）</h3>
+
+    <div class="spectrum">
+      <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:8px;">协调频谱：外生 (Exogenous) &rarr; 内生 (Endogenous)</div>
+      <div class="spectrum-bar">
+        <div class="spectrum-marker" style="left:12%;background:var(--red);">C</div>
+        <div class="spectrum-marker" style="left:37%;background:var(--orange);">S</div>
+        <div class="spectrum-marker" style="left:62%;background:var(--yellow);">B</div>
+        <div class="spectrum-marker" style="left:87%;background:var(--green);">Sh</div>
+      </div>
+      <div class="spectrum-labels">
+        <span>最大控制</span>
+        <span>最大自主</span>
+      </div>
+    </div>
+
+    <div class="protocol-grid">
+      <div class="proto-card exo">
+        <div class="proto-name">1. Coordinator（中心化）</div>
+        <div class="proto-type" style="color:var(--red);">最外生</div>
+        <div class="proto-desc">Agent 0 分配角色，其他智能体并行执行。调用次数：<span class="hl">N+1</span> 次。单点决策瓶颈。</div>
+      </div>
+      <div class="proto-card hybrid">
+        <div class="proto-name">2. Sequential（混合式）</div>
+        <div class="proto-type" style="color:var(--orange);">混合</div>
+        <div class="proto-desc">固定顺序执行，每个智能体可以看到前序智能体的<strong>实际完成输出</strong>，自主选择角色。调用次数：<span class="hl">N 次串行</span>。类比"选秀抽签"。</div>
+      </div>
+      <div class="proto-card signal">
+        <div class="proto-name">3. Broadcast（信号式）</div>
+        <div class="proto-type" style="color:var(--yellow);">信号驱动</div>
+        <div class="proto-desc">两轮交互：第一轮广播意图（intentions），第二轮做最终决策。调用次数：<span class="hl">2N</span> 次。</div>
+      </div>
+      <div class="proto-card endo">
+        <div class="proto-name">4. Shared（完全自主）</div>
+        <div class="proto-type" style="color:var(--green);">最内生</div>
+        <div class="proto-desc">共享角色历史记忆，所有智能体同时决策。调用次数：<span class="hl">N 次并行</span>。无信息交换导致角色重复。</div>
+      </div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;">此外还有 4 种生物启发协议：Morphogenetic、Clonal、Stigmergic、Ripple（详见配套论文）。</p>
+
+    <h3>四级任务复杂度</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>级别</th>
+            <th>描述</th>
+            <th>特征</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="hl">L1</span></td>
+            <td>单领域任务</td>
+            <td>3-5 步</td>
+          </tr>
+          <tr>
+            <td><span class="hl">L2</span></td>
+            <td>跨领域任务</td>
+            <td>5-10 步</td>
+          </tr>
+          <tr>
+            <td><span class="hl">L3</span></td>
+            <td>多阶段任务</td>
+            <td>3+ 领域，10-20 步</td>
+          </tr>
+          <tr>
+            <td><span class="hl">L4</span></td>
+            <td>对抗性任务</td>
+            <td>利益冲突的利益方，不完整信息</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>评估体系</h3>
+    <p>五维评分：<span class="hl">准确性</span>（Accuracy）、<span class="hl">完整性</span>（Completeness）、<span class="hl">连贯性</span>（Coherence）、<span class="hl">可行性</span>（Actionability）、<span class="hl">任务相关性</span>（Mission Relevance），每项 4 分制。</p>
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">质量分数公式</div>
+      <code style="color:var(--cyan);font-size:15px;">Q<sub>t</sub> = (sum of 4 scores) / 16</code>，取值范围 <span class="hl">[0.25, 1.0]</span>
+    </div>
+  </div>
+
+  <!-- ===== Section 4: 内生性悖论 ===== -->
+  <div class="section" id="s4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">4</div>
+      <h2>内生性悖论（核心发现）</h2>
+    </div>
+
+    <p>论文的最核心发现被称为<span class="hl">内生性悖论</span>（Endogeneity Paradox）：两个极端都会失败，最优解在中间。</p>
+
+    <h3>为什么两个极端都失败？</h3>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">极端一：最大控制（Coordinator）</div>
+      瓶颈在于单个智能体的判断力。Coordinator 协议中，Agent 0 必须理解整个任务并合理分配所有角色 —— 这是对单智能体能力的过度依赖。
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">极端二：最大自主（Shared）</div>
+      智能体彼此不了解其他人在做什么，导致<span class="hl">角色重复</span>（role duplication）。自由不等于协调。
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">最优解：Sequential（混合式）</div>
+      每个智能体能看到前序智能体的<strong>实际已完成工作</strong>（不是意图、不是计划、不是历史记录），然后据此自主选择角色。这提供了恰到好处的信息量：既有坐标参照，又保留完全的角色决定权。
+    </div>
+
+    <h3>关键条件：能力阈值（Capability Threshold）</h3>
+
+    <p>内生性悖论有一个<strong>至关重要的限定条件</strong>：它只在模型能力超过某个阈值时才成立。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>模型类别</th>
+            <th>代表模型</th>
+            <th>自主性效果</th>
+            <th>关键数据</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--green);font-weight:600;">强模型</td>
+            <td>Claude Sonnet 4.6, GPT-5.4, DeepSeek v3.2</td>
+            <td>自主性带来收益</td>
+            <td>Claude 使用自由角色时质量 <span class="hl">+3.5%</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--red);font-weight:600;">弱模型</td>
+            <td>GLM-5</td>
+            <td>自主性造成损害</td>
+            <td>GLM-5 质量 <span class="hl">-9.6%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">决定性发现</div>
+      在强模型群体中，<span class="hl">协议选择</span>解释了 <strong>44%</strong> 的质量变异；而<span class="hl">模型选择</span>仅解释约 <strong>14%</strong>。换言之，<em>你怎么组织智能体</em>比<em>你用什么模型</em>重要 3 倍。
+    </div>
+  </div>
+
+  <!-- ===== Section 5: 关键实验结果 ===== -->
+  <div class="section" id="s5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);color:#0f1117;">5</div>
+      <h2>关键实验结果</h2>
+    </div>
+
+    <h3>角色爆发与创造性</h3>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">5,006</div>
+        <div class="stat-label">8 个智能体创造的唯一角色数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">0</div>
+        <div class="stat-label">角色稳定性指数（RSI）收敛值</div>
+      </div>
+    </div>
+
+    <p><span class="hl">角色稳定性指数</span>（Role Stability Index, RSI）收敛至零 —— 意味着智能体<strong>每次任务都会重新发明专业化分工</strong>，而非固守某个角色身份。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>智能体数量</th>
+            <th>唯一角色比例</th>
+            <th>仅使用一次的角色</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>N = 4</td>
+            <td><span class="hl">75%</span> 唯一</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>N = 64</td>
+            <td><span class="hl">91%</span> 唯一</td>
+            <td><span class="hl">54%</span> 仅使用一次</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>值得注意的是，从 8 个智能体扩展到 64 个智能体，仅多产生了 <span class="hl">4 个</span>新的唯一角色 —— 角色多样性已经<strong>饱和</strong>。</p>
+
+    <h3>亚线性扩展至 256 智能体</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>智能体数</th>
+            <th>质量分数 Q</th>
+            <th>统计检验</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>N = 64</td>
+            <td><strong>Q = 0.964 &plusmn; 0.039</strong></td>
+            <td rowspan="2">Kruskal-Wallis: <span class="hl">H=1.84, p=0.61</span><br>（无显著退化）</td>
+          </tr>
+          <tr>
+            <td>N = 256</td>
+            <td><strong>Q = 0.967 &plusmn; 0.032</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">自愿弃权机制</div>
+      在 N=256 时，<span class="hl">45%</span> 的智能体通过<strong>自愿自我弃权</strong>（voluntary self-abstention）变为闲置状态。系统自发地"裁员"了将近一半的智能体。
+    </div>
+
+    <h3>模型性能对比（N=16, L3, Sequential）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>质量分数 Q</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--green);font-weight:600;">Claude Sonnet 4.6</td>
+            <td><strong>Q = 0.875</strong></td>
+            <td>最高分</td>
+          </tr>
+          <tr>
+            <td style="color:var(--blue);font-weight:600;">DeepSeek v3.2</td>
+            <td><strong>Q = 0.829</strong></td>
+            <td>达到 Claude 95% 水平，成本低 <span class="hl">24 倍</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--orange);font-weight:600;">GLM-5</td>
+            <td><strong>Q = 0.800</strong></td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--muted);text-align:center;font-size:12px;">最佳与最差模型之间的总差距：<span class="hl">174%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>自愿弃权 vs 强制分配</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>协议</th>
+            <th>弃权方式</th>
+            <th>弃权率</th>
+            <th>质量 Q</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sequential</td>
+            <td>自愿弃权</td>
+            <td><span class="hl">38%</span></td>
+            <td style="color:var(--green);font-weight:600;">0.875</td>
+          </tr>
+          <tr>
+            <td>Coordinator</td>
+            <td>协调者指定</td>
+            <td>100% 协调者决定</td>
+            <td style="color:var(--red);font-weight:600;">0.767</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>更高的自愿弃权率与更好的质量相关：<span class="hl">0.875 vs 0.767</span>。智能体"知道何时不做"与"知道做什么"同样重要。</p>
+
+    <h3>层级深度自发涌现</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>条件</th>
+            <th>层级深度 (HD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2">任务复杂度</td>
+            <td>L1（简单）</td>
+            <td>HD = 1.220（扁平）</td>
+          </tr>
+          <tr>
+            <td>L4（对抗性）</td>
+            <td>HD = 1.558（略深）</td>
+          </tr>
+          <tr>
+            <td rowspan="2">智能体数量</td>
+            <td>4 agents</td>
+            <td>HD = 1.0</td>
+          </tr>
+          <tr>
+            <td>64 agents</td>
+            <td>HD = 2.0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">关键模式</div>
+      系统<strong>自发偏好扁平结构</strong>。即使面对复杂任务和大规模团队，层级深度也仅从 1.0 增长到 2.0 —— 远低于人类组织中通常观察到的层级深度。
+    </div>
+  </div>
+
+  <!-- ===== Section 6: 局限性 ===== -->
+  <div class="section" id="s6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">6</div>
+      <h2>局限性</h2>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">诚实面对不足</div>
+      <ul style="margin-top:8px;">
+        <li><strong>LLM-as-Judge 评估：</strong>全部使用 LLM 作为评判者，没有人类评估者参与</li>
+        <li><strong>评判模型不一致：</strong>不同实验系列之间更换了评判模型</li>
+        <li><strong>合成任务：</strong>所有任务均为合成生成，未在真实世界任务上验证</li>
+        <li><strong>Sequential 延迟：</strong><span class="hl">O(N)</span> 的串行延迟在极大规模下可能令人望而却步</li>
+        <li><strong>部分内容延后发表：</strong>生物启发协议和完整拓扑比较推迟至配套论文</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== Section 7: 与斯坦福小镇的关联 ===== -->
+  <div class="section" id="s7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">7</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p><a href="https://arxiv.org/abs/2304.03442" target="_blank">斯坦福小镇（Smallville）</a>为每个智能体分配了<span class="hl">固定人设</span>：Isabella 是咖啡馆老板，Klaus 是教授。本论文的发现对此提出了直接挑战。</p>
+
+    <div class="sv-link">
+      <ul style="margin:0;padding-left:18px;">
+        <li>固定角色被明确定义为<span class="hl">"反模式"</span> —— 对于有能力的模型而言，预设角色限制了系统的潜力</li>
+        <li>仅 8 个智能体就自发创造了 <span class="hl">5,006 个角色</span> —— 远比人工设计的角色库丰富几个数量级</li>
+        <li><span class="hl">Sequential 协议</span>天然映射到社会模拟场景：智能体通过<strong>观察社区</strong>来形成身份认同，正如 Smallville 中角色通过观察他人行为来调整自己的行动</li>
+      </ul>
+    </div>
+
+    <h3>重要注意事项</h3>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">不可直接套用的两个原因</div>
+      <p><strong>1. 目标差异：</strong>Smallville 追求的是<span class="hl">可信度</span>（believability），而非任务质量（task quality）。固定人设对于构建令人信服的社会模拟可能是不可或缺的。角色的"效率"与角色的"真实感"是两个截然不同的优化目标。</p>
+      <p><strong>2. 能力阈值：</strong>Smallville 使用的是 <span class="hl">GPT-3.5/4 时代</span>的模型 —— 可能低于论文发现的能力阈值。对于弱模型（如 GLM-5 下降 9.6%），自主性反而有害。</p>
+    </div>
+
+    <h3>展望：下一代 Smallville</h3>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">延伸思考</div>
+      "下一代 Smallville"可以让智能体<strong>通过观察自发发现人设</strong>（self-discover personas through observation），而非预先指定。想象一个小镇中：
+      <ul style="margin-top:8px;">
+        <li>智能体初始时没有固定身份</li>
+        <li>通过 Sequential 式的社会互动，逐渐形成自己的角色定位</li>
+        <li>角色随时间和环境变化而自然演化</li>
+        <li>RSI 趋近于零 —— 每天都可能发现新的自我</li>
+      </ul>
+      这将是从"编剧型模拟"到"真正涌现型社会"的范式跳跃。
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Deep Dive 系列 &middot; 基于 <a href="https://arxiv.org/abs/2603.28990" target="_blank">arxiv 2603.28990</a> (Dochkina, 2026) &middot; <a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents</a> 研究项目
+</div>
+
+</body>
+</html>

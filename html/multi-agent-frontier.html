@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多 Agent 前沿论文与斯坦福小镇的关联</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    p { margin-bottom: 10px; font-size: 14.5px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+
+    /* Paper card */
+    .paper { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; padding: 18px 22px; transition: border-color .2s; }
+    .paper:hover { border-color: var(--accent); }
+    .paper-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .paper-title a { color: var(--text); }
+    .paper-title a:hover { color: var(--blue); }
+    .paper-venue { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .paper-venue .yr { color: var(--orange); font-weight: 600; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 500; }
+    .tag-k { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .tag-n { background: rgba(167,139,250,0.1); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.2); }
+    .paper-body { font-size: 13.5px; color: #c9d1d9; line-height: 1.75; }
+    .paper-body .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
+
+    /* Smallville connection box */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 10px; font-size: 13px; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* Evolution diagram */
+    .evo { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; font-size: 14px; line-height: 2.2; text-align: center; overflow-x: auto; }
+    .evo .arrow { color: var(--muted); }
+    .evo .phase { display: inline-block; padding: 4px 14px; border-radius: 8px; margin: 2px 4px; font-weight: 500; }
+    .evo .p1 { background: rgba(167,139,250,0.15); color: var(--accent); }
+    .evo .p2 { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .evo .p3 { background: rgba(34,211,238,0.1); color: var(--cyan); }
+    .evo .p4 { background: rgba(52,211,153,0.12); color: var(--green); }
+    .evo .p5 { background: rgba(251,191,36,0.12); color: var(--yellow); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) { .hero { padding: 36px 16px 28px; } .container { padding: 20px 12px 60px; } .paper { padding: 14px 16px; } }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>多 Agent 前沿论文与斯坦福小镇的关联</h1>
+  <p class="sub">2025-2026 年多 Agent 研究进入爆发期。本文梳理 6 大前沿方向、20+ 篇核心论文，并逐一分析它们与 Generative Agents（Park et al., 2023）的思想传承、概念延伸和范式转变。</p>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#thesis">核心论点</a>
+    <a href="#t1">一、涌现合作</a>
+    <a href="#t2">二、自组织</a>
+    <a href="#t3">三、社会规范</a>
+    <a href="#t4">四、协议标准</a>
+    <a href="#t5">五、评测基准</a>
+    <a href="#t6">六、共同进化</a>
+    <a href="#map">演进脉络</a>
+    <a href="#table">论文总表</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ══ Thesis ══ -->
+<section class="section" id="thesis">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">?</span>
+    <h2>核心论点：Smallville 埋下了什么种子</h2>
+  </div>
+
+  <p>Park et al. 2023 年的论文做了一件看似简单的事：给 25 个 LLM Agent 各自配上记忆、反思、规划三个模块，然后放进一个沙盒小镇里让它们自由运行。论文的核心发现不是这些模块本身，而是<strong>涌现</strong>——Agent 自发组织了情人节派对、建立了社交关系、传播了信息。</p>
+
+  <p>这个发现看上去像一篇 demo 论文，但它实际上提出了一个深刻的问题：</p>
+
+  <div class="callout callout-key">
+    <strong>如果给 LLM Agent 足够的认知架构（记忆+反思+规划）和交互空间，复杂的社会行为是否会自发涌现？涌现的边界在哪里？可以被工程化控制吗？</strong>
+  </div>
+
+  <p>2025-2026 年的多 Agent 论文几乎都在回答这个问题的某个侧面。我把它们归为六个方向：</p>
+
+  <div class="evo">
+    <span class="phase p1">Smallville 2023<br>观察涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p2">博弈论分析<br>解释涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p3">自组织研究<br>量化涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p4">规范与协议<br>约束涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p5">共同进化<br>工程化涌现</span>
+  </div>
+</section>
+
+<!-- ══ T1: Emergent Cooperation ══ -->
+<section class="section" id="t1">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--blue)">1</span>
+    <h2>涌现合作与博弈论分析</h2>
+  </div>
+
+  <p>Smallville 观察到了涌现的合作行为（派对组织、信息传播），但<strong>没有解释为什么会合作</strong>。2025-2026 年的一批论文用博弈论框架回答了这个问题。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.07360" target="_blank">The Yerkes-Dodson Curve for AI Agents: Emergent Cooperation Under Environmental Pressure</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Stress-Performance Inverted-U</span>
+      <span class="tag tag-k">Environmental Pressure</span>
+      <span class="tag tag-n">Grid-world Survival Arena</span>
+      <span class="tag tag-n">Resource Scarcity</span>
+    </div>
+    <div class="paper-body">
+      <p>首次系统研究 LLM 多 Agent 系统中的<span class="hl">压力-绩效关系</span>。在生存场景中调整环境压力（资源稀缺度），发现合作行为遵循<span class="hl">倒 U 形曲线</span>：中等压力下交易互动最多（29 次），压力过低（无需合作）或过高（忙于生存）都会降低合作。</p>
+    </div>
+    <div class="sv-link">Smallville 的环境压力接近零（和平小镇），所以观察到的合作是"社交驱动"的。这篇论文揭示了另一种合作来源——<strong>生存压力驱动</strong>。暗示 Smallville 如果加入资源竞争，涌现行为可能完全不同。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2512.07462" target="_blank">Understanding LLM Agent Behaviours via Game Theory: Strategy Recognition, Biases and Multi-Agent Dynamics</a></div>
+    <div class="paper-venue"><span class="yr">2025.12</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Prisoner's Dilemma</span>
+      <span class="tag tag-k">Public Goods Game</span>
+      <span class="tag tag-n">End-game Defection</span>
+      <span class="tag tag-n">Cross-linguistic Divergence</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">囚徒困境</span>和<span class="hl">公共品博弈</span>系统评估 LLM Agent 的策略行为。关键发现：(1) 所有模型在终局都趋向背叛；(2) <span class="hl">不同语言</span>下 Agent 策略显著不同（文化偏差嵌入在训练数据中）；(3) 激励强度影响合作意愿。</p>
+    </div>
+    <div class="sv-link">Smallville 的 Agent 全部使用英语、同一个 LLM（ChatGPT）。这篇论文表明如果用不同语言/不同模型初始化 Agent，<strong>涌现出的社会结构可能截然不同</strong>——这是 Smallville 未曾探索的维度。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2604.00487" target="_blank">Competition and Cooperation of LLM Agents in Games</a></div>
+    <div class="paper-venue"><span class="yr">2026.04</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Multi-round Cooperation</span>
+      <span class="tag tag-n">Fairness Reasoning</span>
+      <span class="tag tag-n">Non-zero-sum Context</span>
+    </div>
+    <div class="paper-body">
+      <p>发现 LLM Agent 在<span class="hl">多轮非零和博弈</span>中倾向合作，且<span class="hl">公平推理</span>是驱动合作的核心机制——Agent 不是因为"利益最大化"合作，而是因为"觉得应该公平"。</p>
+    </div>
+    <div class="sv-link">这解释了 Smallville 中为什么 Agent 会"邀请所有人"参加派对而不是只邀请亲密朋友——LLM 内置的<strong>公平偏好</strong>驱动了包容性的社交行为。这不是"涌现"，而是<strong>训练数据中的价值观泄漏</strong>。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2501.16173" target="_blank">Will Systems of LLM Agents Cooperate: An Investigation into a Social Dilemma</a></div>
+    <div class="paper-venue"><span class="yr">2025.01</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Evolutionary Game Theory</span>
+      <span class="tag tag-n">Strategic Dispositions</span>
+      <span class="tag tag-n">Population Dynamics</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">演化博弈论</span>模拟 LLM Agent 群体的策略演化。不同 LLM 表现出不同的策略偏好——有的偏攻击性，有的偏合作。群体中策略的成功取决于<span class="hl">群体组成而非个体能力</span>。</p>
+    </div>
+    <div class="sv-link">Smallville 用同一个模型，所以所有 Agent 的"性格底色"相同。这篇论文指出：如果用<strong>异构模型</strong>构建 Agent 社会，群体动态会更丰富——这是 AgentSociety 等后续工作已经在做的事。</div>
+  </div>
+</section>
+
+<!-- ══ T2: Self-Organization ══ -->
+<section class="section" id="t2">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--green)">2</span>
+    <h2>自组织与涌现分工</h2>
+  </div>
+
+  <p>Smallville 预设了每个 Agent 的角色（药剂师、教授、学生）。但如果<strong>不预设角色</strong>，Agent 能自发分工吗？这是 2025-2026 年最重要的发现之一。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy and Roles: How Self-Organizing LLM Agents Outperform Designed Structures</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Endogeneity Paradox</span>
+      <span class="tag tag-k">Emergent Specialization</span>
+      <span class="tag tag-k">25,000 Task Runs</span>
+      <span class="tag tag-n">4-256 Agents</span>
+      <span class="tag tag-n">5,006 Unique Roles</span>
+    </div>
+    <div class="paper-body">
+      <p><strong>本领域最重要的实证论文之一。</strong>超过 <span class="hl">25,000 次任务运行</span>，跨 8 个模型、4-256 个 Agent、8 种协议。核心发现——<span class="hl">内生性悖论</span>：最优协调不来自最大控制，也不来自最大自治，而来自<span class="hl">最小结构脚手架 + 完全角色自治</span>的混合体。</p>
+      <p>8 个 Agent 自发产生了 <span class="hl">5,006 个独特角色</span>。系统可以<span class="hl">亚线性扩展到 256 个 Agent</span> 而质量不下降。</p>
+    </div>
+    <div class="sv-link">这篇论文直接挑战了 Smallville 的设计：Park 为每个 Agent 预设了身份和人设（"Isabella 是咖啡店老板"），但这可能是<strong>多余的</strong>。给 Agent 最小的结构约束，让它们自己决定"我是谁"，产出反而更好。这意味着 Smallville 的"角色预设"可能限制了涌现的潜力。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2510.05174" target="_blank">Emergent Coordination in Multi-Agent Language Models</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv (updated 2026.03)</div>
+    <div class="tags">
+      <span class="tag tag-k">Dynamical Emergence</span>
+      <span class="tag tag-n">Cross-agent Synergy</span>
+      <span class="tag tag-n">Prompt Steering</span>
+    </div>
+    <div class="paper-body">
+      <p>测量多 Agent LLM 系统中是否存在<span class="hl">动态涌现</span>（而不仅是统计巧合）。通过 Prompt 设计，可以将 Agent 从"独立个体"引导为"高阶集体"。区分了<span class="hl">虚假的时序耦合</span>和<span class="hl">真正的跨 Agent 协同</span>。</p>
+    </div>
+    <div class="sv-link">Smallville 声称观察到了"涌现"，但没有严格区分这是真正的跨 Agent 协同还是各自独立决策恰好看起来协调。这篇论文提供了<strong>科学验证涌现</strong>的方法论——Smallville 的后续研究需要这种严谨性。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2604.01020" target="_blank">OrgAgent: Organize Your Multi-Agent System like a Company</a></div>
+    <div class="paper-venue"><span class="yr">2026.04</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Organizational Structure</span>
+      <span class="tag tag-n">Company Metaphor</span>
+      <span class="tag tag-n">Structural Forms</span>
+    </div>
+    <div class="paper-body">
+      <p>将<span class="hl">组织管理学</span>引入多 Agent 系统：不同组织结构（扁平/层级/矩阵）如何影响 Agent 的协调效率和专业化程度。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是扁平结构，没有层级。这篇论文提示：如果引入<strong>组织结构</strong>（比如让某个 Agent 成为"镇长"），可能会产生完全不同的社会动态。</div>
+  </div>
+</section>
+
+<!-- ══ T3: Social Norms ══ -->
+<section class="section" id="t3">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--pink)">3</span>
+    <h2>社会规范与集体智能</h2>
+  </div>
+
+  <p>Smallville 的 Agent 没有显式的"社会规范"——它们的行为完全由个体的记忆/反思/规划驱动。但在更大规模的仿真中，<strong>规范会自发形成吗？</strong></p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2510.14401" target="_blank">The Role of Social Learning and Collective Norm Formation in Fostering Cooperation in LLM Multi-Agent Systems</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Social Learning</span>
+      <span class="tag tag-k">Collective Norm Formation</span>
+      <span class="tag tag-n">Normative Reasoning</span>
+    </div>
+    <div class="paper-body">
+      <p>研究 LLM Agent 能否通过<span class="hl">社会学习</span>形成集体规范。在虚拟社会和博弈论环境中，Agent 通过观察他人行为逐渐形成<span class="hl">共享的行为规范</span>，且这些规范反过来促进合作。</p>
+    </div>
+    <div class="sv-link">Smallville 中 Agent 的"规范"其实是 Prompt 预设的（"你是一个友善的人"）。这篇论文展示了规范可以从<strong>底层交互中自发涌现</strong>——这是比 Smallville 更深层次的涌现。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2512.10665" target="_blank">On the Dynamics of Multi-Agent LLM Communities Driven by Value Diversity</a></div>
+    <div class="paper-venue"><span class="yr">2025.12</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Value Diversity</span>
+      <span class="tag tag-k">Heterogeneous > Homogeneous</span>
+      <span class="tag tag-n">Collective Intelligence</span>
+    </div>
+    <div class="paper-body">
+      <p>关键发现：<span class="hl">价值观异质的 Agent 群体</span>在集体智能上显著优于同质群体。多样性带来更多涌现性问题解决和规范发展。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 由同一个 LLM 驱动，本质上是<strong>价值观同质</strong>的（都继承了 ChatGPT 的价值取向）。这篇论文暗示：Smallville 如果用不同价值观的模型驱动不同 Agent，涌现的社会结构会更丰富、更接近真实社会。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2506.01839v1" target="_blank">Beyond Static Responses: Multi-Agent LLM Systems as a New Paradigm for Social Science Research</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Complex Adaptive Systems</span>
+      <span class="tag tag-k">Artificial Leviathan</span>
+      <span class="tag tag-n">Cultural Evolution</span>
+      <span class="tag tag-n">Institutional Change</span>
+    </div>
+    <div class="paper-body">
+      <p>提出多 Agent LLM 系统作为社会科学研究的新范式。最高级别（Level 5）是<span class="hl">复杂自适应系统</span>：自组织、规范形成、系统性适应。<span class="hl">Artificial Leviathan</span> 框架探索合作规范和治理结构的涌现——Agent 从竞争逐渐演化为有组织的合作社会。</p>
+    </div>
+    <div class="sv-link">这篇论文将 Smallville 定位为 Level 2-3 的工作（单环境多 Agent 交互），并指出了通向 Level 5（文化演化、制度变迁）的路径。Smallville 是<strong>起点</strong>，不是终点。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2506.06366" target="_blank">AI Agent Behavioral Science</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Agent Behavioral Science</span>
+      <span class="tag tag-n">Cognitive Biases in LLM Agents</span>
+    </div>
+    <div class="paper-body">
+      <p>提出将<span class="hl">行为科学</span>方法系统应用于 AI Agent 研究：量化 Agent 的认知偏差、社会偏好、决策模式。</p>
+    </div>
+    <div class="sv-link">Smallville 的评估主要靠人类评审打分（"这个行为看起来像人吗"）。这篇论文提供了<strong>科学的评估框架</strong>，可以定量分析 Smallville Agent 的认知偏差和社会偏好。</div>
+  </div>
+</section>
+
+<!-- ══ T4: Protocols ══ -->
+<section class="section" id="t4">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--orange)">4</span>
+    <h2>通信协议与编排标准</h2>
+  </div>
+
+  <p>Smallville 的 Agent 通过自然语言对话交互，没有结构化的通信协议。当 Agent 数量从 25 扩展到 10,000+，这种方式无法持续。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2601.13671" target="_blank">The Orchestration of Multi-Agent Systems: Architectures, Protocols, and Enterprise Adoption</a></div>
+    <div class="paper-venue"><span class="yr">2026.01</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">MCP / A2A / ACP / ANP</span>
+      <span class="tag tag-k">Enterprise Orchestration</span>
+      <span class="tag tag-n">Architecture Taxonomy</span>
+    </div>
+    <div class="paper-body">
+      <p>系统梳理多 Agent 编排的<span class="hl">架构、协议和企业落地</span>。覆盖 MCP（Anthropic）、A2A（Google）、ACP、ANP 等标准，以及 SAFEFLOW 等安全增强框架。</p>
+    </div>
+    <div class="sv-link">Smallville 的通信是"两个 Agent 碰面就聊天"，这种设计无法工程化。本文梳理的协议栈是从 Smallville 走向<strong>生产级多 Agent 系统</strong>的必经之路。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2506.12508" target="_blank">AgentOrchestra: Orchestrating Hierarchical Multi-Agent Intelligence with the TEA Protocol</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">TEA Protocol</span>
+      <span class="tag tag-n">Tool-Environment-Agent</span>
+      <span class="tag tag-n">Hierarchical Orchestration</span>
+    </div>
+    <div class="paper-body">
+      <p>提出 <span class="hl">TEA（Tool-Environment-Agent）</span>协议，将工具、环境和 Agent 三者的关系标准化，实现层级式多 Agent 编排。</p>
+    </div>
+    <div class="sv-link">Smallville 的沙盒环境是硬编码的 Phaser.js 游戏地图。TEA 协议提供了一种<strong>通用方式</strong>来定义 Agent-环境交互，使 Smallville 式的仿真可以在任意环境中运行。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.08616" target="_blank">AgentsNet: Coordination and Collaborative Reasoning in Multi-Agent LLMs</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">100 Agents Scaling</span>
+      <span class="tag tag-n">Collaborative Reasoning</span>
+    </div>
+    <div class="paper-body">
+      <p>可扩展到 <span class="hl">100 个 Agent</span> 的协调推理框架，且能随 LLM 新一代模型升级而提升。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是硬上限。AgentsNet 展示了在保持协调质量的前提下<strong>扩展 Agent 数量</strong>的工程路径。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2602.08009" target="_blank">Towards Adaptive, Scalable, and Robust Coordination: A Dynamic Ad-Hoc Networking Perspective</a></div>
+    <div class="paper-venue"><span class="yr">2026.02</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Ad-Hoc Networking</span>
+      <span class="tag tag-n">Dynamic Topology</span>
+      <span class="tag tag-n">Adaptive Coordination</span>
+    </div>
+    <div class="paper-body">
+      <p>借鉴<span class="hl">移动自组网（MANET）</span>的思想：Agent 动态加入/退出，网络拓扑实时变化，协调机制自适应。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是静态集合，不会有人"搬走"或"新搬来"。现实社会是流动的——这篇论文解决了<strong>动态社会</strong>的工程基础。</div>
+  </div>
+</section>
+
+<!-- ══ T5: Benchmarks ══ -->
+<section class="section" id="t5">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--yellow)">5</span>
+    <h2>多 Agent 评测基准</h2>
+  </div>
+
+  <p>Smallville 的评估方式是让人类评审判断 Agent 行为"是否像人"——这太主观了。新的评测基准试图让评估变得科学。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2503.01935" target="_blank">MultiAgentBench (MARBLE): Evaluating the Collaboration and Competition of LLM Agents</a></div>
+    <div class="paper-venue"><span class="yr">2025.03</span> &middot; ACL 2025</div>
+    <div class="tags">
+      <span class="tag tag-k">Milestone-based KPI</span>
+      <span class="tag tag-k">Collaboration + Competition</span>
+      <span class="tag tag-n">Star/Chain/Tree/Graph Topologies</span>
+      <span class="tag tag-n">Cognitive Planning</span>
+    </div>
+    <div class="paper-body">
+      <p>首个系统评测多 Agent 协作与竞争的基准。使用<span class="hl">里程碑式 KPI</span>（而非仅任务完成率）评估协作质量。测试了 star/chain/tree/graph 四种拓扑和认知规划等策略。发现 <span class="hl">graph 结构最优</span>，认知规划提升里程碑达成率 3%。</p>
+    </div>
+    <div class="sv-link">Smallville 没有结构化评测——只知道"Agent 办了派对"但不知道协作效率如何。MARBLE 提供了<strong>量化多 Agent 协作质量</strong>的标准方法，可以回答"25 个 Agent 的协作到底有多好"。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.21504" target="_blank">Evaluation and Benchmarking of LLM Agents: A Survey</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-n">Agent Evaluation Taxonomy</span>
+      <span class="tag tag-n">Multi-Agent Metrics</span>
+    </div>
+    <div class="paper-body">
+      <p>Agent 评测方法的综述：单 Agent 能力评测、多 Agent 协作评测、端到端任务评测三个层次。</p>
+    </div>
+    <div class="sv-link">为 Smallville 类系统的评估提供了<strong>方法论框架</strong>。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2508.04652" target="_blank">LLM Collaboration With Multi-Agent Reinforcement Learning</a></div>
+    <div class="paper-venue"><span class="yr">2025.08</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">MAGRPO</span>
+      <span class="tag tag-k">Emergent Cooperation Schemes</span>
+      <span class="tag tag-n">Multi-Agent RL Fine-tuning</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">多 Agent 强化学习（MAGRPO）</span>微调 LLM，使 Agent 在最小约束下<span class="hl">自发涌现多样的合作方案</span>。不预设合作模式，让 RL 训练自动发现最优协作策略。</p>
+    </div>
+    <div class="sv-link">Smallville 的合作完全靠 Prompt + 记忆/反思驱动（零训练）。这篇论文展示了用<strong>RL 训练</strong>可以让合作更高效——这是 Smallville 架构的一个自然升级方向。</div>
+  </div>
+</section>
+
+<!-- ══ T6: Co-evolution ══ -->
+<section class="section" id="t6">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent)">6</span>
+    <h2>共同进化与自我改进</h2>
+  </div>
+
+  <p>Smallville 的 Agent 不会"变聪明"——运行 100 天后，它们的认知能力和第 1 天完全一样（LLM 参数没变）。但如果 Agent 能在交互中<strong>进化</strong>呢？</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2510.23595" target="_blank">Multi-Agent Evolve (MAE): LLM Self-Improve through Multi-Agent Co-evolution</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Self-Play Co-evolution</span>
+      <span class="tag tag-k">Judge-based Evaluation</span>
+      <span class="tag tag-n">General Domain Applicable</span>
+    </div>
+    <div class="paper-body">
+      <p>将<span class="hl">Self-Play 范式</span>扩展到通用领域：多个 Agent 互相对抗/协作，引入 Judge 评估（不再要求零和博弈），Agent 在交互中<span class="hl">共同进化</span>，能力持续提升。</p>
+    </div>
+    <div class="sv-link">Smallville 的 Agent 是静态的认知体——它们积累记忆但不提升能力。MAE 提出的共同进化机制如果嵌入 Smallville，Agent 可以在社交互动中<strong>变得越来越善于社交</strong>——这才是真正的"模拟人类成长"。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.21046" target="_blank">A Survey of Self-Evolving Agents: What, When, How, and Where to Evolve</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv (updated 2026.01)</div>
+    <div class="tags">
+      <span class="tag tag-k">Self-Evolving Agent Taxonomy</span>
+      <span class="tag tag-n">Lifelong Agentic Systems</span>
+      <span class="tag tag-n">Path to ASI</span>
+    </div>
+    <div class="paper-body">
+      <p>LLM 本质上是<span class="hl">静态的</span>——无法适应新任务、演化知识或动态交互。这篇综述系统梳理了让 Agent <span class="hl">自我进化</span>的路径：什么时候进化、怎么进化、在哪里进化。</p>
+    </div>
+    <div class="sv-link">这篇综述把 Smallville 定位为"静态 Agent 在动态环境中运行"的经典案例，并指出了下一步：<strong>Agent 本身也必须进化</strong>。Voyager（技能库增长）是一个方向，MAE（参数进化）是另一个。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.23875" target="_blank">Self-Evolving Multi-Agent Framework for Efficient Decision Making in Real-Time Strategy Scenarios</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">RTS Self-Evolution</span>
+      <span class="tag tag-n">Strategy Adaptation</span>
+    </div>
+    <div class="paper-body">
+      <p>在即时战略（RTS）场景中，多 Agent <span class="hl">自我进化</span>决策框架：Agent 通过对局经验自动调整策略，适应对手变化。</p>
+    </div>
+    <div class="sv-link">如果 Smallville 加入竞争要素（资源争夺、社会地位），Agent 是否也能自我进化出更复杂的社会策略？这篇论文在游戏领域验证了可行性。</div>
+  </div>
+</section>
+
+<!-- ══ Evolution Map ══ -->
+<section class="section" id="map">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">!</span>
+    <h2>从 Smallville 到多 Agent 前沿：演进脉络</h2>
+  </div>
+
+  <div class="callout callout-insight">
+    <p><strong>Smallville 的五个"未回答的问题"，以及这些论文如何回答它们：</strong></p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Smallville 的局限</th>
+          <th style="width:30%">2025-2026 的回答</th>
+          <th>代表论文</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>为什么合作？</strong><br>只观察到涌现，没解释机制</td>
+          <td>LLM 内置的<strong>公平偏好</strong>驱动合作；压力水平决定合作程度；不同模型/语言有不同策略倾向</td>
+          <td>Yerkes-Dodson Curve, Game Theory Analysis, Competition & Cooperation</td>
+        </tr>
+        <tr>
+          <td><strong>角色必须预设吗？</strong><br>25 个 Agent 都有固定人设</td>
+          <td><strong>不必要</strong>。最小结构 + 完全角色自治产出更好。8 个 Agent 自发产生 5,006 个角色</td>
+          <td>Drop the Hierarchy, Emergent Coordination</td>
+        </tr>
+        <tr>
+          <td><strong>规范从哪来？</strong><br>Agent 的"礼貌/友善"来自 Prompt</td>
+          <td>规范可以从<strong>底层交互中自发涌现</strong>；价值观多样性的群体涌现更丰富的规范</td>
+          <td>Social Learning & Norm Formation, Value Diversity</td>
+        </tr>
+        <tr>
+          <td><strong>25 个够吗？</strong><br>沙盒规模太小</td>
+          <td>可亚线性扩展到 256 Agent（Drop the Hierarchy）、100 Agent 协调推理（AgentsNet），以及标准化协议支持万级（MCP/A2A）</td>
+          <td>AgentsNet, Orchestration Survey, Ad-Hoc Networking</td>
+        </tr>
+        <tr>
+          <td><strong>Agent 会成长吗？</strong><br>记忆增长但能力不变</td>
+          <td>多 Agent 共同进化可以<strong>持续提升能力</strong>；Self-Play + Judge 评估使进化不限于零和场景</td>
+          <td>Multi-Agent Evolve, Self-Evolving Agents Survey</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>一个更深层的洞察：</strong>Smallville 的"涌现"可能有很大一部分不是真正的涌现，而是 LLM 训练数据中人类社会行为模式的<strong>重放</strong>。Emergent Coordination 论文提供了区分"真涌现"和"伪涌现"的方法；Game Theory 系列论文则证明 LLM 内置了特定的策略偏好（如公平偏好、终局背叛）。这意味着 Smallville 观察到的社会行为，部分是<strong>设计的产物</strong>（记忆+反思+规划），部分是<strong>训练数据的泄漏</strong>（LLM 的内置偏好）。未来的多 Agent 研究需要严格区分这两者。
+  </div>
+</section>
+
+<!-- ══ Table ══ -->
+<section class="section" id="table">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--muted)">+</span>
+    <h2>论文总表</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>论文</th><th>方向</th><th>年份</th><th>核心发现</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://arxiv.org/abs/2603.07360" target="_blank">Yerkes-Dodson Curve for AI Agents</a></td><td>涌现合作</td><td>2026.03</td><td>合作遵循倒 U 形压力曲线</td></tr>
+        <tr><td>2</td><td><a href="https://arxiv.org/abs/2512.07462" target="_blank">LLM Agent Behaviours via Game Theory</a></td><td>涌现合作</td><td>2025.12</td><td>跨语言策略差异、终局背叛</td></tr>
+        <tr><td>3</td><td><a href="https://arxiv.org/abs/2604.00487" target="_blank">Competition & Cooperation in Games</a></td><td>涌现合作</td><td>2026.04</td><td>公平推理驱动合作</td></tr>
+        <tr><td>4</td><td><a href="https://arxiv.org/abs/2501.16173" target="_blank">Will LLM Agents Cooperate</a></td><td>涌现合作</td><td>2025.01</td><td>演化博弈论分析策略偏好</td></tr>
+        <tr><td>5</td><td><a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy and Roles</a></td><td>自组织</td><td>2026.03</td><td>内生性悖论，5006 个自发角色</td></tr>
+        <tr><td>6</td><td><a href="https://arxiv.org/abs/2510.05174" target="_blank">Emergent Coordination in Multi-Agent LMs</a></td><td>自组织</td><td>2025.10</td><td>区分真涌现与伪涌现</td></tr>
+        <tr><td>7</td><td><a href="https://arxiv.org/abs/2604.01020" target="_blank">OrgAgent</a></td><td>自组织</td><td>2026.04</td><td>组织管理学引入 Agent 系统</td></tr>
+        <tr><td>8</td><td><a href="https://arxiv.org/html/2510.14401" target="_blank">Social Learning & Norm Formation</a></td><td>社会规范</td><td>2025.10</td><td>集体规范从交互中涌现</td></tr>
+        <tr><td>9</td><td><a href="https://arxiv.org/abs/2512.10665" target="_blank">Value Diversity in LLM Communities</a></td><td>社会规范</td><td>2025.12</td><td>异质群体 > 同质群体</td></tr>
+        <tr><td>10</td><td><a href="https://arxiv.org/html/2506.01839v1" target="_blank">Multi-Agent LLM as Social Science Paradigm</a></td><td>社会规范</td><td>2025.06</td><td>L5 复杂自适应系统，Artificial Leviathan</td></tr>
+        <tr><td>11</td><td><a href="https://arxiv.org/abs/2506.06366" target="_blank">AI Agent Behavioral Science</a></td><td>社会规范</td><td>2025.06</td><td>行为科学方法评估 Agent</td></tr>
+        <tr><td>12</td><td><a href="https://arxiv.org/abs/2601.13671" target="_blank">Orchestration of Multi-Agent Systems</a></td><td>协议标准</td><td>2026.01</td><td>MCP/A2A/ACP/ANP 协议全景</td></tr>
+        <tr><td>13</td><td><a href="https://arxiv.org/abs/2506.12508" target="_blank">AgentOrchestra (TEA Protocol)</a></td><td>协议标准</td><td>2025.06</td><td>Tool-Environment-Agent 协议</td></tr>
+        <tr><td>14</td><td><a href="https://arxiv.org/abs/2507.08616" target="_blank">AgentsNet</a></td><td>协议标准</td><td>2025.07</td><td>100 Agent 协调推理</td></tr>
+        <tr><td>15</td><td><a href="https://arxiv.org/html/2602.08009" target="_blank">Dynamic Ad-Hoc Networking for Agents</a></td><td>协议标准</td><td>2026.02</td><td>Agent 动态拓扑自组网</td></tr>
+        <tr><td>16</td><td><a href="https://arxiv.org/abs/2503.01935" target="_blank">MultiAgentBench (MARBLE)</a></td><td>评测基准</td><td>2025.03</td><td>里程碑式 KPI，graph 拓扑最优</td></tr>
+        <tr><td>17</td><td><a href="https://arxiv.org/abs/2507.21504" target="_blank">Evaluation & Benchmarking of LLM Agents</a></td><td>评测基准</td><td>2025.07</td><td>Agent 评测方法论综述</td></tr>
+        <tr><td>18</td><td><a href="https://arxiv.org/abs/2508.04652" target="_blank">LLM Collaboration with MARL (MAGRPO)</a></td><td>评测基准</td><td>2025.08</td><td>RL 微调涌现合作方案</td></tr>
+        <tr><td>19</td><td><a href="https://arxiv.org/abs/2510.23595" target="_blank">Multi-Agent Evolve (MAE)</a></td><td>共同进化</td><td>2025.10</td><td>Self-Play + Judge 共同进化</td></tr>
+        <tr><td>20</td><td><a href="https://arxiv.org/abs/2507.21046" target="_blank">Self-Evolving Agents Survey</a></td><td>共同进化</td><td>2025.07</td><td>自我进化路径综述</td></tr>
+        <tr><td>21</td><td><a href="https://arxiv.org/abs/2603.23875" target="_blank">Self-Evolving Multi-Agent for RTS</a></td><td>共同进化</td><td>2026.03</td><td>RTS 场景策略自进化</td></tr>
+        <tr><td>22</td><td><a href="https://arxiv.org/abs/2501.06322" target="_blank">Multi-Agent Collaboration Mechanisms Survey</a></td><td>综述</td><td>2025.01</td><td>协作维度分类框架</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  共 22 篇论文，覆盖 6 大方向 | 整理于 2026-04-05<br>
+  所有论文均分析了与 Stanford Generative Agents (2023) 的关联
+</div>
+
+</body>
+</html>

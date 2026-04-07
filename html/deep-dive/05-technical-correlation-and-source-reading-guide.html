@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读05：架构原理关联与源码阅读指南 —— 从Smallville到Claude Code的PRINCIPLES透视</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1a0a2e 0%, #0f1117 40%, #0a1628 70%, #0d1520 100%); padding: 60px 24px 48px; text-align: center; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 50%, rgba(167,139,250,0.04) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(96,165,250,0.03) 0%, transparent 50%); pointer-events: none; }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 34px); color: var(--cyan); margin-bottom: 14px; position: relative; }
+    .hero .sub { color: var(--muted); font-size: 14.5px; max-width: 860px; margin: 0 auto; line-height: 1.8; position: relative; }
+    .hero .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; position: relative; }
+    .hero .tag { font-size: 12px; border-radius: 8px; padding: 5px 14px; border: 1px solid; }
+    .hero .tag-purple { color: var(--accent); background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.25); }
+    .hero .tag-blue { color: var(--blue); background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.25); }
+    .hero .tag-red { color: var(--red); background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.25); }
+    .hero .tag-orange { color: var(--orange); background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.25); }
+    .hero .tag-green { color: var(--green); background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.25); }
+    .hero .tag-cyan { color: var(--cyan); background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.25); }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 56px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-accent { background: rgba(167,139,250,0.12); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .callout code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: "SF Mono", "Fira Code", monospace; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Code block */
+    .code-block { background: #141620; border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 14px 0 18px; overflow-x: auto; font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace; font-size: 13px; line-height: 1.7; color: #c9d1d9; }
+    .code-block .code-title { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .code-block .kw { color: var(--accent); }
+    .code-block .fn { color: var(--blue); }
+    .code-block .str { color: var(--green); }
+    .code-block .cmt { color: #6a737d; font-style: italic; }
+    .code-block .op { color: var(--orange); }
+    .code-block .arrow { color: var(--cyan); }
+
+    /* VS card */
+    .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin: 16px 0 24px; align-items: stretch; }
+    .vs-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .vs-card .vs-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 700; }
+    .vs-card ul { padding-left: 18px; }
+    .vs-divider { display: flex; align-items: center; justify-content: center; padding: 0 12px; font-size: 20px; font-weight: 800; color: var(--orange); }
+
+    /* Academic link */
+    .academic-link { background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .academic-link::before { content: "原理统一"; display: block; font-weight: 600; color: var(--blue); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Quote block */
+    .quote-block { background: var(--bg2); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 16px 0 20px; font-style: italic; color: #c9d1d9; font-size: 13.5px; line-height: 1.9; }
+    .quote-block .quote-src { font-style: normal; color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    /* Detail card */
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .detail-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; position: relative; overflow: hidden; }
+    .detail-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .detail-card.dc-purple::before { background: linear-gradient(90deg, var(--accent), var(--pink)); }
+    .detail-card.dc-blue::before { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .detail-card.dc-green::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .detail-card.dc-orange::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .detail-card.dc-red::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .detail-card.dc-cyan::before { background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+    .detail-card .dc-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+    .detail-card .dc-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+    .detail-card ul { padding-left: 16px; margin-top: 6px; }
+    .detail-card li { font-size: 13px; color: #c9d1d9; margin-bottom: 4px; }
+
+    /* Arrow flow */
+    .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0 20px; }
+    .flow-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 500; }
+    .flow-arrow { color: var(--accent); font-size: 18px; }
+
+    /* Evolution diagram */
+    .evo-container { margin: 24px 0 32px; }
+    .evo-era { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 0; position: relative; }
+    .evo-era:first-child { border-radius: 12px 12px 0 0; }
+    .evo-era:last-child { border-radius: 0 0 12px 12px; }
+    .evo-era:not(:last-child) { border-bottom: none; }
+    .evo-era-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .evo-era-badge { font-size: 11px; border-radius: 6px; padding: 3px 10px; font-weight: 600; }
+    .evo-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+    .evo-item { background: var(--bg3); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; }
+    .evo-item .evo-label { font-weight: 600; display: block; margin-bottom: 2px; }
+    .evo-connector { text-align: center; padding: 12px 0; background: var(--bg2); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .evo-connector-arrow { display: inline-block; width: 40px; height: 40px; line-height: 40px; border-radius: 50%; font-size: 18px; font-weight: 700; }
+
+    /* Route card */
+    .route-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; position: relative; overflow: hidden; }
+    .route-card::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+    .route-card.rc-purple::before { background: var(--accent); }
+    .route-card.rc-blue::before { background: var(--blue); }
+    .route-card.rc-green::before { background: var(--green); }
+    .route-card.rc-orange::before { background: var(--orange); }
+    .route-card.rc-cyan::before { background: var(--cyan); }
+    .route-card.rc-red::before { background: var(--red); }
+    .route-card.rc-yellow::before { background: var(--yellow); }
+    .route-card .route-num { position: absolute; top: 16px; right: 20px; font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.03); line-height: 1; }
+    .route-card .route-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .route-card .route-entry { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; font-family: "SF Mono", "Fira Code", monospace; }
+    .route-card .route-desc { font-size: 13.5px; line-height: 1.75; color: #c9d1d9; }
+    .route-card .route-focus { margin-top: 10px; }
+    .route-card .route-focus li { font-size: 13px; color: #c9d1d9; }
+    .route-card .route-sv { background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.15); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 12.5px; line-height: 1.7; color: var(--blue); }
+    .route-card .route-sv::before { content: "Smallville 对应"; display: block; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.7; }
+
+    /* Advice card */
+    .advice-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 14px; }
+    .advice-card .advice-who { font-weight: 700; font-size: 14.5px; margin-bottom: 8px; }
+    .advice-card .advice-body { font-size: 13.5px; line-height: 1.8; color: #c9d1d9; }
+    .advice-card .advice-body strong { color: var(--text); }
+
+    /* Layer diagram */
+    .layer-stack { margin: 16px 0 24px; }
+    .layer-item { display: flex; align-items: stretch; margin-bottom: 2px; }
+    .layer-badge { width: 100px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #0f1117; border-radius: 8px 0 0 8px; text-align: center; padding: 12px 8px; }
+    .layer-content { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13px; line-height: 1.7; }
+    .layer-content code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", "Fira Code", monospace; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; line-height: 1.8; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .vs-grid { grid-template-columns: 1fr; }
+      .vs-divider { padding: 8px 0; transform: rotate(90deg); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .flow { flex-direction: column; align-items: flex-start; }
+      .flow-arrow { transform: rotate(90deg); }
+      .evo-items { grid-template-columns: 1fr; }
+      .layer-item { flex-direction: column; }
+      .layer-badge { width: 100%; border-radius: 8px 8px 0 0; padding: 8px; }
+      .layer-content { border-left: 1px solid var(--border); border-radius: 0 0 8px 8px; }
+      .route-card .route-num { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>架构原理关联与源码阅读指南</h1>
+  <p class="sub">从 PRINCIPLES 视角深度分析 Stanford Smallville 与 Claude Code 的架构关联 —— 两套完全独立发展的系统如何在"感知-推理-行动-记忆"的认知循环中走向同一个抽象，以及如何以 Smallville 论文为锚点系统阅读 512,000 行 Claude Code 源码</p>
+  <div class="tags">
+    <span class="tag tag-purple">PRINCIPLES 原理对比</span>
+    <span class="tag tag-cyan">源码阅读路线图</span>
+    <span class="tag tag-blue">Agent Loop &middot; 记忆 &middot; 反思 &middot; 规划</span>
+    <span class="tag tag-orange">7条阅读路线 &middot; 5层架构</span>
+    <span class="tag tag-green">学术原型 &rarr; 工程实践</span>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#s1">一、架构原理对比</a>
+    <a href="#s1-1">1.1 Agent Loop</a>
+    <a href="#s1-2">1.2 记忆系统</a>
+    <a href="#s1-3">1.3 反思/整合</a>
+    <a href="#s1-4">1.4 规划原理</a>
+    <a href="#s1-5">1.5 多Agent协调</a>
+    <a href="#s1-6">1.6 上下文管理</a>
+    <a href="#s2">二、五层架构</a>
+    <a href="#s3">三、阅读路线图</a>
+    <a href="#s4">四、演进总图</a>
+    <a href="#s5">五、给读者的建议</a>
+  </div>
+</nav>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="s1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">1</div>
+      <h2>两套系统的架构原理对比</h2>
+    </div>
+
+    <p>Stanford <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville</a>（2023）和 Claude Code（2026）是两个完全独立发展的Agent系统。前者是学术原型，25个NPC在虚拟小镇中生活；后者是产品级编程助手，在终端中帮助开发者读写代码。但当我们剥离表面差异，深入到<span class="hl">架构原理</span>层面，会发现它们在每一个核心模块上都走向了同一个抽象。这不是巧合——这是<span class="hl-accent">认知架构的收敛</span>。</p>
+
+    <!-- 1.1 Agent Loop -->
+    <h3 id="s1-1">1.1 Agent Loop：感知-思考-行动循环</h3>
+
+    <div class="vs-grid">
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--green);">Smallville Agent Loop</div>
+        <div class="code-block" style="margin:0; border:none; padding:0; background:transparent;">
+          <span class="fn">感知环境</span> <span class="arrow">&rarr;</span> <span class="fn">检索记忆</span><span class="cmt">(RIR加权)</span> <span class="arrow">&rarr;</span> <span class="fn">反思</span><span class="cmt">(阈值触发)</span><br>
+          <span class="arrow">&rarr;</span> <span class="fn">规划</span><span class="cmt">(日程分解)</span> <span class="arrow">&rarr;</span> <span class="fn">行动</span> <span class="arrow">&rarr;</span> <span class="fn">写入记忆</span> <span class="arrow">&rarr;</span> <span class="kw">循环</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--muted); margin-top:10px;">每个Agent独立运行这个循环，每个"tick"（游戏时间步）执行一次。循环是<strong style="color:var(--green);">同步的、周期性的</strong>。</p>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--cyan);">Claude Code Agent Loop <code style="font-size:11px;">query.ts</code></div>
+        <div class="code-block" style="margin:0; border:none; padding:0; background:transparent;">
+          <span class="fn">接收输入</span> <span class="arrow">&rarr;</span> <span class="fn">构建Prompt</span><span class="cmt">(含记忆/工具定义)</span> <span class="arrow">&rarr;</span> <span class="fn">调用LLM</span><br>
+          <span class="arrow">&rarr;</span> <span class="fn">解析响应</span><span class="cmt">(文本/工具调用)</span> <span class="arrow">&rarr;</span> <span class="fn">执行工具</span> <span class="arrow">&rarr;</span> <span class="fn">收集结果</span><br>
+          <span class="arrow">&rarr;</span> <span class="fn">上下文压缩</span><span class="cmt">(如需)</span> <span class="arrow">&rarr;</span> <span class="kw">循环</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--muted); margin-top:10px;">核心是 <code>queryLoop()</code> —— 一个 <code>while(true)</code> 循环，携带State对象。循环是<strong style="color:var(--cyan);">异步的、事件驱动的</strong>。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">关键差异与共同点</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>Smallville：</strong>周期驱动（每个tick），所有Agent同步执行</li>
+        <li><strong>Claude Code：</strong>事件驱动（用户输入或KAIROS心跳），异步执行</li>
+        <li><strong style="color:var(--yellow);">共同点：</strong>都是"感知 &rarr; 推理 &rarr; 行动 &rarr; 记忆"的循环，这个抽象在两个完全不同的系统中保持不变</li>
+      </ul>
+    </div>
+
+    <!-- 1.2 记忆系统 -->
+    <h3 id="s1-2">1.2 记忆系统原理</h3>
+
+    <h4>Smallville Memory Stream</h4>
+    <div class="card">
+      <ul>
+        <li><strong>数据结构：</strong>时间排序的 <code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">(timestamp, description, importance_score, embedding)</code> 列表</li>
+        <li><strong>写入：</strong>每次观察/行动/对话都写入</li>
+        <li><strong>检索：</strong><span class="hl">score = &alpha;&middot;recency + &beta;&middot;importance + &gamma;&middot;relevance</span>（cosine similarity）</li>
+        <li><strong>容量管理：</strong>无。记忆只增不减。</li>
+      </ul>
+    </div>
+
+    <h4>Claude Code 三层记忆</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>层级</th>
+            <th>名称</th>
+            <th>特征</th>
+            <th>Smallville RIR 对应</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="color:var(--accent); font-weight:700;">L1</span></td>
+            <td>MEMORY.md（索引层）</td>
+            <td>永久加载到上下文，每行 &le;150 字符的指针。硬约束 200行/25KB。</td>
+            <td>对应 <span class="hl">importance</span> 维度 —— 只保留"重要的"</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--blue); font-weight:700;">L2</span></td>
+            <td>Topic Files（知识层）</td>
+            <td>按主题组织的详细记忆文件，按需 fetch。</td>
+            <td>对应 <span class="hl">relevance</span> 维度 —— 只加载"相关的"</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--green); font-weight:700;">L3</span></td>
+            <td>Raw Transcripts（原始层）</td>
+            <td>完整对话历史，只 grep 特定标识符。</td>
+            <td>对应 <span class="hl">recency</span> 维度的反面 —— 最旧的最不可能被完整读取</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="academic-link">
+      两者都解决同一个问题：<strong>有限上下文窗口 vs 无限增长的经验</strong>。Smallville 用一个公式（RIR加权）在<em>检索时</em>做过滤；Claude Code 用三层架构在<em>存储时</em>做分级 —— 更工程化，但本质相同。
+    </div>
+
+    <!-- 1.3 反思/整合 -->
+    <h3 id="s1-3">1.3 反思/整合原理</h3>
+
+    <div class="vs-grid">
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--green);">Smallville Reflection</div>
+        <ul>
+          <li><strong>触发：</strong><code>sum(importance_scores)</code> 超过阈值</li>
+          <li><strong>过程：</strong>用LLM对最近100条记忆生成3个高层问题 &rarr; 检索相关记忆 &rarr; 生成5条洞见</li>
+          <li><strong>存储：</strong>洞见作为新记忆写回 Memory Stream（与原始记忆同等对待）</li>
+          <li><strong>时机：</strong>行动循环中，占用推理时间</li>
+        </ul>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--cyan);">Claude Code autoDream</div>
+        <ul>
+          <li><strong>触发：</strong>4个条件同时满足（24h间隔 + 5+新会话 + 无并发 + 10min冷却）</li>
+          <li><strong>过程：</strong>Consolidate（合并观察、删除矛盾、模糊&rarr;确定）&rarr; Prune &amp; Index（保持200行、删过时指针）</li>
+          <li><strong>存储：</strong>更新 MEMORY.md 和 Topic Files（分级存储，不混同原始记忆）</li>
+          <li><strong>时机：</strong>后台空闲时运行，不占用用户交互时间</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="academic-link">
+      两者都是<strong>"将低层经验压缩为高层知识"</strong>。区别：Smallville 只做"加法"（生成新洞见），autoDream 还做"减法"（删除矛盾和过时信息）。autoDream 的"后台运行"是工程优化，但暗含一个深刻的认知科学类比：<span class="hl-cyan">人类的记忆整合也发生在睡眠中</span>。
+    </div>
+
+    <!-- 1.4 规划原理 -->
+    <h3 id="s1-4">1.4 规划原理</h3>
+
+    <div class="vs-grid">
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--green);">Smallville Planning</div>
+        <ul>
+          <li><strong>长期：</strong>每天早晨生成全天粗粒度日程（5-8块）</li>
+          <li><strong>短期：</strong>将每块分解为具体行动</li>
+          <li><strong>调整：</strong>遇到新事件时重新规划当前块</li>
+          <li><strong>本质：</strong><span class="hl">计划-执行-调整</span>的三段式</li>
+        </ul>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--cyan);">Claude Code Planning (KAIROS)</div>
+        <ul>
+          <li><strong>无显式长期规划</strong></li>
+          <li><strong>实时：</strong>每个心跳（几秒）评估"now what?"</li>
+          <li><strong>工具选择即规划：</strong>LLM在每次迭代中决定调用哪个工具</li>
+          <li><strong>本质：</strong><span class="hl-cyan">连续的推理-行动交替</span>（<a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a>范式）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="academic-link">
+      两者都将"大任务"分解为"小步骤"。Smallville 预先分解（plan-then-execute），Claude Code 实时分解（reason-then-act）。<strong>随模型能力增强，预先规划的价值在降低</strong> —— LLM足够强时，实时推理可以替代预先规划。
+    </div>
+
+    <!-- 1.5 多Agent协调 -->
+    <h3 id="s1-5">1.5 多Agent协调原理</h3>
+
+    <div class="vs-grid">
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--green);">Smallville Multi-Agent</div>
+        <ul>
+          <li><strong>协调方式：</strong>空间邻近触发（两个Agent物理上碰面 &rarr; 开始对话）</li>
+          <li><strong>信息传播：</strong>口口相传（A告诉B，B告诉C）</li>
+          <li><strong>无中心协调者</strong></li>
+          <li>25个Agent，完全平等</li>
+        </ul>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="vs-card">
+        <div class="vs-label" style="color:var(--cyan);">Claude Code Multi-Agent</div>
+        <ul>
+          <li><strong>Agent Teams：</strong>1个team lead + 2-16个worker，共享任务列表和点对点消息协调</li>
+          <li><strong>Subagent：</strong>父Agent通过Agent工具生成子Agent，子Agent有独立上下文窗口</li>
+          <li><strong>通信：</strong>Mailbox模式（SendMessageTool发送到命名信箱，接收者轮询/订阅）</li>
+          <li><strong>Coordinator模式：</strong>中心Agent分配任务，worker并行执行，Permission Queue处理危险操作</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="academic-link">
+      两者都面临同一个问题：<strong>多个Agent如何共享信息而不互相干扰</strong>。Smallville 用物理空间作为隐式协调机制（你只能和"看得到"的人说话）；Claude Code 用显式的消息传递和任务分配。<span class="hl">两者都没有全局共享内存</span> —— 信息通过"对话/消息"传递，不是直接读取对方记忆。
+    </div>
+
+    <!-- 1.6 上下文管理 -->
+    <h3 id="s1-6">1.6 上下文管理（Claude Code 独有）</h3>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">Smallville 完全没有的模块</div>
+      Claude Code 面对一个 Smallville 不需要处理的问题：<strong>LLM的上下文窗口是硬性有限的</strong>。这催生了一个精密的5级压缩瀑布。
+    </div>
+
+    <h4>5级压缩瀑布 <code style="font-size:12px; background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px;">query.ts:307-1728</code></h4>
+
+    <div class="flow">
+      <div class="flow-step" style="border-color:var(--green); color:var(--green);">L1 Tool Result Budgeting<br><span style="font-size:11px; color:var(--muted);">query.ts:379</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step" style="border-color:var(--blue); color:var(--blue);">L2 MicroCompact<br><span style="font-size:11px; color:var(--muted);">query.ts:413</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step" style="border-color:var(--accent); color:var(--accent);">L3 Context Collapse<br><span style="font-size:11px; color:var(--muted);">query.ts:440</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step" style="border-color:var(--orange); color:var(--orange);">L4 AutoCompact<br><span style="font-size:11px; color:var(--muted);">query.ts:453</span></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step" style="border-color:var(--red); color:var(--red);">L5 Full Compact</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>级别</th>
+            <th>策略</th>
+            <th>机制</th>
+            <th>API成本</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="color:var(--green); font-weight:700;">L1</span></td>
+            <td>Tool Result Budgeting</td>
+            <td>限制工具输出的token数</td>
+            <td>无</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--blue); font-weight:700;">L2</span></td>
+            <td>MicroCompact</td>
+            <td>本地编辑压缩，无需调用API</td>
+            <td>无</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--accent); font-weight:700;">L3</span></td>
+            <td>Context Collapse</td>
+            <td>feature-gated，对历史做折叠投影。压到阈值以下则跳过后续</td>
+            <td>低</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--orange); font-weight:700;">L4</span></td>
+            <td>AutoCompact</td>
+            <td>接近上限时触发，fork一个agent生成结构化摘要</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--red); font-weight:700;">L5</span></td>
+            <td>Full Compact</td>
+            <td>完整对话压缩 + 选择性文件重新注入</td>
+            <td>最高</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>消息存储机制</h4>
+    <div class="card">
+      <p>Append-only JSONL。旧消息不删除，新消息在压缩后追加。消息带标志控制API可见性：</p>
+      <div class="code-block">
+        <span class="cmt">// 消息可见性标志</span><br>
+        <span class="kw">isCompactSummary</span>: <span class="str">boolean</span>    <span class="cmt">// 是压缩摘要</span><br>
+        <span class="kw">isVisibleInTranscriptOnly</span>: <span class="str">boolean</span>  <span class="cmt">// 仅在转录中可见</span><br>
+        <span class="kw">isMeta</span>: <span class="str">boolean</span>            <span class="cmt">// 元信息</span><br>
+        <br>
+        <span class="cmt">// 关键函数：只返回压缩边界之后的消息给API</span><br>
+        <span class="fn">getMessagesAfterCompactBoundary</span>()
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">与Smallville的联系</div>
+      Smallville 也面临类似问题（记忆太多时检索变慢），但用"加权检索"优雅回避了。Claude Code 的上下文压缩本质上是<strong>"强制遗忘"</strong>—— 这正是学术界（<a href="https://arxiv.org/abs/2305.10250" target="_blank">MemoryBank</a>、<a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS</a>）在研究的问题在工程中的暴力解法。
+    </div>
+  </div>
+
+  <!-- ===== Section 2: 五层架构 ===== -->
+  <div class="section" id="s2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>五层架构与源码阅读入口</h2>
+    </div>
+
+    <p>Claude Code 的源码可以按5层架构理解。每一层有明确的职责边界和入口文件：</p>
+
+    <div class="layer-stack">
+      <div class="layer-item">
+        <div class="layer-badge" style="background: linear-gradient(135deg, var(--accent), var(--pink));">Layer 1<br>Entrypoints</div>
+        <div class="layer-content">
+          <strong style="color:var(--accent);">main.tsx</strong> &rarr; CLI入口，React Ink渲染终端UI。这是用户键入 <code>claude</code> 后第一个执行的文件。
+        </div>
+      </div>
+      <div class="layer-item">
+        <div class="layer-badge" style="background: linear-gradient(135deg, var(--blue), var(--cyan));">Layer 2<br>Runtime</div>
+        <div class="layer-content">
+          <strong style="color:var(--blue);">sessionRunner.ts</strong> &rarr; 会话管理 | <strong style="color:var(--blue);">bridgeMain.ts</strong> &rarr; 桥接层（IDE/Web/SDK统一接口）。处理不同运行环境的适配。
+        </div>
+      </div>
+      <div class="layer-item">
+        <div class="layer-badge" style="background: linear-gradient(135deg, var(--green), var(--cyan));">Layer 3<br>Engine</div>
+        <div class="layer-content">
+          <strong style="color:var(--green);">QueryEngine.ts</strong> (46,000行) &rarr; 核心引擎 | <strong style="color:var(--green);">query.ts</strong> &rarr; Agent循环。这是整个系统最核心、最复杂的层。
+        </div>
+      </div>
+      <div class="layer-item">
+        <div class="layer-badge" style="background: linear-gradient(135deg, var(--orange), var(--yellow));">Layer 4<br>Tools</div>
+        <div class="layer-content">
+          <strong style="color:var(--orange);">src/tools/</strong> &rarr; 每个工具一个模块（Read, Edit, Bash, Grep, Agent等）。工具系统是Agent能力的边界。
+        </div>
+      </div>
+      <div class="layer-item">
+        <div class="layer-badge" style="background: linear-gradient(135deg, var(--red), var(--orange));">Layer 5<br>Infra</div>
+        <div class="layer-content">
+          权限系统、MCP服务器集成、hooks、配置。支撑整个系统安全运行的基础设施层。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 3: 源码阅读路线图 ===== -->
+  <div class="section" id="s3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">3</div>
+      <h2>源码阅读路线图（从 Smallville 视角）</h2>
+    </div>
+
+    <p>推荐按以下顺序阅读，每一步对应 Smallville 的一个核心概念：</p>
+
+    <!-- Route 1 -->
+    <div class="route-card rc-purple">
+      <div class="route-num">01</div>
+      <div class="route-title" style="color:var(--accent);">路线一：Agent Loop（对应Smallville的感知-行动循环）</div>
+      <div class="route-entry">src/core/query.ts &rarr; queryLoop() 函数</div>
+      <div class="route-desc">
+        这是一个 <code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">while(true)</code> 循环，是整个系统的心脏。
+      </div>
+      <ul class="route-focus">
+        <li>State对象的结构（messages, toolUseContext, autoCompactTracking等）</li>
+        <li>每次迭代如何决定"调工具"还是"回复用户"</li>
+        <li>工具调用的执行流程（调用 &rarr; 收集结果 &rarr; 追加到messages）</li>
+      </ul>
+      <div class="route-sv">
+        这就是Agent的"一个tick" —— 感知（读取消息）&rarr; 推理（LLM调用）&rarr; 行动（工具执行）&rarr; 记忆（结果追加）
+      </div>
+    </div>
+
+    <!-- Route 2 -->
+    <div class="route-card rc-blue">
+      <div class="route-num">02</div>
+      <div class="route-title" style="color:var(--blue);">路线二：记忆系统（对应Smallville的Memory Stream）</div>
+      <div class="route-entry">src/memory/（auto memory模块）</div>
+      <div class="route-desc">Claude Code的记忆是分级的、选择性的，与Smallville的"记住一切"形成鲜明对比。</div>
+      <ul class="route-focus">
+        <li>MEMORY.md的读写逻辑：如何决定什么值得记住</li>
+        <li>Topic Files的创建和检索</li>
+        <li>记忆类型分类（user, feedback, project, reference）</li>
+        <li>写入纪律：什么条件下才写入</li>
+      </ul>
+      <div class="route-sv">
+        对比 Memory Stream 的"记住一切" vs Claude Code 的"选择性记忆"
+      </div>
+    </div>
+
+    <!-- Route 3 -->
+    <div class="route-card rc-green">
+      <div class="route-num">03</div>
+      <div class="route-title" style="color:var(--green);">路线三：上下文压缩（对应Smallville的记忆检索）</div>
+      <div class="route-entry">query.ts 中的压缩瀑布（约 L379-L453）</div>
+      <div class="route-desc">这是学术论文不会告诉你的工程核心 —— 如何在硬性有限的上下文窗口中保持最大信息量。</div>
+      <ul class="route-focus">
+        <li>5级压缩策略的触发条件和优先级</li>
+        <li>autoCompact如何fork一个子agent做摘要</li>
+        <li>压缩后消息的可见性标志</li>
+        <li><code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">getMessagesAfterCompactBoundary()</code> 的过滤逻辑</li>
+      </ul>
+      <div class="route-sv">
+        Smallville 用 RIR加权 做"软过滤"（所有记忆都在但权重不同），Claude Code 用压缩做"硬过滤"（旧内容直接不可见）
+      </div>
+    </div>
+
+    <!-- Route 4 -->
+    <div class="route-card rc-orange">
+      <div class="route-num">04</div>
+      <div class="route-title" style="color:var(--orange);">路线四：反思/整合（对应Smallville的Reflection）</div>
+      <div class="route-entry">autoDream 相关逻辑（feature flag: KAIROS）</div>
+      <div class="route-desc">Smallville的反思是实时的、阈值触发的；Claude Code的整合是后台的、条件门控的。</div>
+      <ul class="route-focus">
+        <li>触发条件的4个门控</li>
+        <li>Consolidate阶段如何合并和清理</li>
+        <li>Prune如何维持200行约束</li>
+        <li>与Memory System的交互</li>
+      </ul>
+      <div class="route-sv">
+        对比 threshold-triggered reflection vs condition-gated consolidation
+      </div>
+    </div>
+
+    <!-- Route 5 -->
+    <div class="route-card rc-cyan">
+      <div class="route-num">05</div>
+      <div class="route-title" style="color:var(--cyan);">路线五：工具系统（对应Smallville的Action）</div>
+      <div class="route-entry">src/tools/ 目录</div>
+      <div class="route-desc">Smallville的"行动"是在沙盒中移动/使用物品/对话，Claude Code的"行动"是读文件/写代码/搜索/执行命令。抽象相同，实现不同。</div>
+      <ul class="route-focus">
+        <li>每个工具的 input schema 定义</li>
+        <li>权限模型（哪些工具需要用户确认）</li>
+        <li>工具执行的隔离上下文</li>
+        <li><code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">Agent工具（src/tools/Agent.ts）</code> —— 这是多Agent的核心，一个工具就能生成子Agent</li>
+      </ul>
+      <div class="route-sv">
+        Smallville的Action是沙盒内有限的物理操作；Claude Code的Action是开放的工具调用。但两者都需要"权限门控"：Smallville靠环境规则约束，Claude Code靠显式权限系统。
+      </div>
+    </div>
+
+    <!-- Route 6 -->
+    <div class="route-card rc-red">
+      <div class="route-num">06</div>
+      <div class="route-title" style="color:var(--red);">路线六：多Agent协调（对应Smallville的Agent间交互）</div>
+      <div class="route-entry">src/tools/Agent.ts + src/bridge/bridgeMessaging.ts</div>
+      <div class="route-desc">从Smallville的25个平等NPC到Claude Code的层级化Agent Teams，多Agent协调的范式发生了根本变化。</div>
+      <ul class="route-focus">
+        <li>Agent工具如何生成子Agent（subagent_type, model选择, isolation模式）</li>
+        <li>SendMessageTool的Mailbox通信模式</li>
+        <li>Agent Teams的coordinator/worker分工</li>
+        <li>父子Agent间的上下文隔离（子Agent有独立上下文窗口，只返回结果）</li>
+      </ul>
+      <div class="route-sv">
+        Smallville 用物理空间做隐式协调，Claude Code 用显式消息传递。但两者的信息流模式相同 —— Agent不能直接读取对方的"记忆"，只能通过"对话"交换信息。
+      </div>
+    </div>
+
+    <!-- Route 7 -->
+    <div class="route-card rc-yellow">
+      <div class="route-num">07</div>
+      <div class="route-title" style="color:var(--yellow);">路线七：QueryEngine 深潜（高级）</div>
+      <div class="route-entry">src/core/QueryEngine.ts (46,000行)</div>
+      <div class="route-desc">这是Smallville论文没有讨论的<span class="hl">"工程冰山"</span> —— 如何高效可靠地调用LLM。</div>
+      <ul class="route-focus">
+        <li>Prompt构建逻辑（system prompt + 记忆 + 工具定义 + 消息历史如何拼接）</li>
+        <li>Streaming处理</li>
+        <li>Token计数和成本追踪</li>
+        <li>Prompt caching策略</li>
+        <li>重试和错误处理</li>
+      </ul>
+      <div class="route-sv">
+        Smallville论文中一句"We use GPT-3.5"背后，在生产环境中是46,000行的工程代码。
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 4: 演进总图 ===== -->
+  <div class="section" id="s4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">4</div>
+      <h2>一张总图：从学术原型到生产系统</h2>
+    </div>
+
+    <p>三个时代、五个维度，完整呈现Agent架构从学术探索到工程落地的演进路径：</p>
+
+    <div class="evo-container">
+
+      <!-- Era 1: Smallville -->
+      <div class="evo-era" style="border-top: 3px solid var(--green);">
+        <div class="evo-era-title">
+          <span class="evo-era-badge" style="background:var(--green); color:#0f1117;">2023</span>
+          <span style="color:var(--green);">Smallville 学术原型</span>
+        </div>
+        <div class="evo-items">
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--accent);">Memory</span>
+            线性列表，RIR加权检索
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--blue);">Reflection</span>
+            阈值触发，只做归纳
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--orange);">Planning</span>
+            每日日程分解
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--cyan);">Action</span>
+            沙盒内移动/对话
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--red);">Multi-Agent</span>
+            25个，空间邻近触发
+          </div>
+        </div>
+      </div>
+
+      <!-- Connector 1 -->
+      <div class="evo-connector">
+        <div class="evo-connector-arrow" style="background: linear-gradient(135deg, var(--green), var(--blue)); color:#0f1117;">&darr;</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">学术改进 (2023-2026)</div>
+      </div>
+
+      <!-- Era 2: Academic -->
+      <div class="evo-era" style="border-top: 3px solid var(--blue);">
+        <div class="evo-era-title">
+          <span class="evo-era-badge" style="background:var(--blue); color:#0f1117;">2023-2026</span>
+          <span style="color:var(--blue);">学术界改进</span>
+        </div>
+        <div class="evo-items">
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--accent);">Memory</span>
+            <a href="https://arxiv.org/abs/2404.16029" target="_blank">HiAgent</a>分层 + <a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM</a>索引 + <a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS</a>三级 + 遗忘曲线
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--blue);">Reflection</span>
+            <a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a> &rarr; 局限发现 &rarr; 多Agent辩论 &rarr; <a href="https://www.nature.com/articles/s44387-025-00045-3" target="_blank">双环元认知</a>
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--orange);">Planning</span>
+            <a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a>实时推理 + LATS树搜索
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--cyan);">Action</span>
+            工具调用 + MCP标准化
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--red);">Multi-Agent</span>
+            自组织 + 协议标准 + 共同进化
+          </div>
+        </div>
+      </div>
+
+      <!-- Connector 2 -->
+      <div class="evo-connector">
+        <div class="evo-connector-arrow" style="background: linear-gradient(135deg, var(--blue), var(--cyan)); color:#0f1117;">&darr;</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">工程化 (2026, Claude Code)</div>
+      </div>
+
+      <!-- Era 3: Claude Code -->
+      <div class="evo-era" style="border-top: 3px solid var(--cyan);">
+        <div class="evo-era-title">
+          <span class="evo-era-badge" style="background:var(--cyan); color:#0f1117;">2026</span>
+          <span style="color:var(--cyan);">Claude Code 生产系统</span>
+        </div>
+        <div class="evo-items">
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--accent);">Memory</span>
+            三层自愈 (MEMORY.md + Topic + Raw) + 5级压缩瀑布
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--blue);">Reflection</span>
+            autoDream (合并/清理/转化) + 后台运行
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--orange);">Planning</span>
+            KAIROS心跳式连续规划
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--cyan);">Action</span>
+            Tool System (权限门控 + 隔离执行 + Schema验证)
+          </div>
+          <div class="evo-item">
+            <span class="evo-label" style="color:var(--red);">Multi-Agent</span>
+            Agent Teams + Subagent + Mailbox通信
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">演进规律</div>
+      每个维度的演进方向都是一致的：从<strong>简单统一</strong>到<strong>分级分层</strong>，从<strong>同步周期</strong>到<strong>异步事件</strong>，从<strong>隐式协调</strong>到<strong>显式通信</strong>。但核心抽象 —— 感知、推理、行动、记忆的循环 —— 从未改变。
+    </div>
+  </div>
+
+  <!-- ===== Section 5: 给读者的建议 ===== -->
+  <div class="section" id="s5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>给读者的建议</h2>
+    </div>
+
+    <div class="advice-card" style="border-left: 3px solid var(--accent);">
+      <div class="advice-who" style="color:var(--accent);">如果你是研究 Smallville 的学生</div>
+      <div class="advice-body">
+        读 Claude Code 源码能帮你理解<strong>"论文中的抽象概念在生产环境中长什么样"</strong>。重点读<strong>路线一（Agent Loop）</strong>和<strong>路线二（记忆系统）</strong>，这两个模块和论文的对应最直接。当你看到 <code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">queryLoop()</code> 的 <code style="background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:13px;">while(true)</code> 循环时，你会发现它和Smallville的tick循环在抽象层面惊人地一致。
+      </div>
+    </div>
+
+    <div class="advice-card" style="border-left: 3px solid var(--blue);">
+      <div class="advice-who" style="color:var(--blue);">如果你是做 Agent 工程的开发者</div>
+      <div class="advice-body">
+        重点读<strong>路线三（上下文压缩）</strong>和<strong>路线五（工具系统）</strong>，这是学术论文不会告诉你的工程 know-how。特别是<strong>5级压缩瀑布</strong> —— 这是处理"上下文窗口有限"这个硬约束的最完整工程方案。每一级都有明确的触发条件、成本权衡和降级策略。
+      </div>
+    </div>
+
+    <div class="advice-card" style="border-left: 3px solid var(--cyan);">
+      <div class="advice-who" style="color:var(--cyan);">如果你是做多 Agent 研究的</div>
+      <div class="advice-body">
+        重点读<strong>路线六（多Agent协调）</strong>，对比 Claude Code 的 Mailbox 模式和学术论文中的各种拓扑（star/chain/tree/graph）。Claude Code 选择了 Mailbox（本质是异步消息传递），而不是共享内存或层级控制 —— 这个工程选择背后有深刻的原因：<strong>异步消息传递天然支持容错和扩展</strong>，而共享内存在分布式环境中是灾难。
+      </div>
+    </div>
+
+    <h3>关键 GitHub 仓库</h3>
+    <div class="detail-grid">
+      <div class="detail-card dc-red">
+        <div class="dc-title" style="color:var(--red);">泄漏源码镜像</div>
+        <div class="dc-desc">
+          <a href="https://github.com/yasasbanukaofficial/claude-code" target="_blank" rel="noopener">github.com/yasasbanukaofficial/claude-code</a>
+          <br><span style="font-size:12px; color:var(--muted);">注意：Anthropic 版权所有，仅供学术研究</span>
+        </div>
+      </div>
+      <div class="detail-card dc-blue">
+        <div class="dc-title" style="color:var(--blue);">架构手册</div>
+        <div class="dc-desc">
+          <a href="https://github.com/inematds/claudecode-manual" target="_blank" rel="noopener">github.com/inematds/claudecode-manual</a>
+          <br><span style="font-size:12px; color:var(--muted);">社区整理的架构解读文档</span>
+        </div>
+      </div>
+      <div class="detail-card dc-green">
+        <div class="dc-title" style="color:var(--green);">源码合集</div>
+        <div class="dc-desc">
+          <a href="https://github.com/chauncygu/collection-claude-code-source-code" target="_blank" rel="noopener">github.com/chauncygu/collection-claude-code-source-code</a>
+          <br><span style="font-size:12px; color:var(--muted);">多版本源码收集与对比</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">最后的话</div>
+      Smallville 论文发表于2023年，Claude Code 源码泄漏于2026年。三年间，一个学术原型中的核心思想 —— 感知、推理、行动、记忆的循环 —— 在一个完全独立发展的产品级系统中被重新发现并工程化。这不是模仿，而是<strong>收敛进化</strong>：当你认真解决"如何让AI Agent有效工作"这个问题时，你终将走向相同的架构原理。理解这些原理，比记住任何一个系统的具体实现，都更有价值。
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== Footer ========== -->
+<div class="footer">
+  Deep Dive 05 &middot; 架构原理关联与源码阅读指南<br>
+  Stanford <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville (Park et al., 2023)</a> &harr; Claude Code (Anthropic, 2026)<br>
+  基于公开论文与泄漏源码的技术分析 &middot; 仅供学术研究与技术讨论<br>
+  <span style="color:var(--accent);">Smallville Research Project</span> &middot; 2026
+</div>
+
+</body>
+</html>
