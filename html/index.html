@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Agents 研究导航</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0f1117;
+      --bg2:    #1a1d27;
+      --bg3:    #242837;
+      --border: #2d2d3a;
+      --text:   #e2e8f0;
+      --muted:  #8b95a5;
+      --accent: #a78bfa;
+      --blue:   #60a5fa;
+      --green:  #34d399;
+      --orange: #fb923c;
+      --cyan:   #22d3ee;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 40%, #0a1628 80%, #1b1340 100%);
+      text-align: center;
+      padding: 64px 24px 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 {
+      font-size: 32px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .hero .stats {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .hero .stat {
+      text-align: center;
+    }
+    .hero .stat-num {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .hero .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Section ── */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px 0;
+    }
+    .section-title {
+      font-size: 20px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Learning Path ── */
+    .path {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .path-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .15s, transform .1s;
+    }
+    .path-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .path-card h3 {
+      font-size: 16px;
+      color: #f0e6ff;
+      margin-bottom: 8px;
+    }
+    .path-card p {
+      font-size: 13px;
+      color: var(--muted);
+      flex: 1;
+      margin-bottom: 14px;
+    }
+    .path-card .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .path-card .links a {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: rgba(167,139,250,.1);
+      color: var(--accent);
+      border: 1px solid rgba(167,139,250,.2);
+      transition: background .15s;
+    }
+    .path-card .links a:hover {
+      background: rgba(167,139,250,.2);
+      text-decoration: none;
+    }
+
+    /* ── Deep Dive Grid ── */
+    .dd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .dd-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: border-color .15s, transform .1s;
+    }
+    .dd-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .dd-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(167,139,250,.12);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .dd-info h4 {
+      font-size: 14px;
+      color: #f0e6ff;
+      margin-bottom: 4px;
+    }
+    .dd-info h4 a { color: inherit; }
+    .dd-info h4 a:hover { color: var(--accent); text-decoration: none; }
+    .dd-info p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Footer ── */
+    footer {
+      max-width: 1100px;
+      margin: 56px auto 0;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding-bottom: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <h1>Generative Agents 研究导航</h1>
+  <p>从斯坦福小镇 (arXiv:2304.03442) 到 Agentic AI (2026)<br>系统梳理记忆、反思、规划、多智能体协调的学术脉络与工程实践</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">76+</div><div class="stat-label">篇论文</div></div>
+    <div class="stat"><div class="stat-num">17</div><div class="stat-label">个研究方向</div></div>
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">篇深度分析</div></div>
+  </div>
+</div>
+
+<!-- ── Learning Path ── -->
+<div class="section">
+  <h2 class="section-title">学习路径</h2>
+  <p class="section-sub">建议按顺序阅读，从概念全景到论文细节再到专题深挖</p>
+
+  <div class="path">
+
+    <div class="path-card">
+      <span class="step-badge" style="background:#7c3aed;">1</span>
+      <h3>概念图谱</h3>
+      <p>通过交互式 Mermaid 图了解 Generative Agents 的五大支柱、15 个核心概念及其演进关系</p>
+      <div class="links">
+        <a href="concepts-map.html">3 标签概念图</a>
+      </div>
+    </div>
+
+    <div class="path-card">
+      <span class="step-badge" style="background:#3b82f6;">2</span>
+      <h3>系统学习</h3>
+      <p>3 条学习轨道：核心架构与商业化、多智能体前沿、MetaGPT vs ChatDev 框架对比</p>
+      <div class="links">
+        <a href="study-guide.html">统一学习中心</a>
+      </div>
+    </div>
+
+    <div class="path-card">
+      <span class="step-badge" style="background:#f59e0b;">3</span>
+      <h3>论文库</h3>
+      <p>76 篇论文的完整索引，支持分类导航和关键词搜索；另有卡片式书目方便浏览发现</p>
+      <div class="links">
+        <a href="papers-reference.html">分类手册</a>
+        <a href="reading-list.html">卡片书目</a>
+      </div>
+    </div>
+
+    <div class="path-card">
+      <span class="step-badge" style="background:#22c55e;">4</span>
+      <h3>深度分析</h3>
+      <p>9 篇长文深挖特定主题：自组织实验、元认知反思、政策仿真、源码原理、竞品分析等</p>
+      <div class="links">
+        <a href="#deep-dives">查看全部 9 篇</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Deep Dives ── -->
+<div class="section" id="deep-dives">
+  <h2 class="section-title">深度分析</h2>
+  <p class="section-sub">每篇均为独立长文，可按兴趣选读</p>
+
+  <div class="dd-grid">
+
+    <div class="dd-card">
+      <span class="dd-num">01</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/01-drop-the-hierarchy.html">Drop the Hierarchy</a></h4>
+        <p>扁平化 Agent 架构 — 为什么去掉层级反而能涌现更好的协作（25,000 次实验）</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">02</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/02-dual-loop-reflection.html">双环元认知反思</a></h4>
+        <p>从单环反思失败到 RBB-LLM 架构 — 外环对比参考建库，内环检索指导推理</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">03</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/03-policysim.html">PolicySim 政策仿真</a></h4>
+        <p>LLM 社会模拟沙盒 — 部署前评估政策干预效果，替代传统 A/B 测试</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">04</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/04-claude-code-leak-vs-smallville.html">Claude Code vs Smallville</a></h4>
+        <p>当产品级 Agent 重新发现学术架构 — 6 大模块对应关系分析</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">05</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/05-technical-correlation-and-source-reading-guide.html">架构关联与源码指南</a></h4>
+        <p>从 Smallville 到 Claude Code 的技术原理映射 + 7 条源码阅读路线</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">06</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/06-claude-code-source-principles.html">8 个 Agent 设计模式</a></h4>
+        <p>从 Claude Code TypeScript 源码中提炼的 8 个可借鉴原理</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">07</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/07-competitive-analysis.html">2026 竞品分析</a></h4>
+        <p>用 Smallville 架构原理透视 Claude Code vs Cursor/Windsurf/Copilot/Codex/Devin/Augment</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">08</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/08-six-month-plan.html">多 Agent 平台改造计划</a></h4>
+        <p>基于研究成果的半年实施路线图 — 从原型到生产</p>
+      </div>
+    </div>
+
+    <div class="dd-card">
+      <span class="dd-num">09</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/09-open-source-repos.html">开源代码验证清单</a></h4>
+        <p>论文对应的开源仓库列表及可复现性验证状态</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Generative Agents Research Hub &mdash; 基于 Stanford Smallville (2023) 的系统研究 &mdash; 2026-04 更新
+</footer>
+
+</body>
+</html>
