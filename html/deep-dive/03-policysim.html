@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PolicySim 深度解析 — LLM 社会模拟沙盒与主动式策略优化</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 60px 24px 48px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 34px); color: var(--cyan); margin-bottom: 10px; letter-spacing: 0.5px; }
+    .hero .en-title { font-size: clamp(13px, 2vw, 16px); color: var(--accent); margin-bottom: 16px; font-weight: 500; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 18px; font-size: 12.5px; }
+    .hero .meta span { background: var(--bg2); border: 1px solid var(--border); padding: 4px 14px; border-radius: 20px; color: var(--muted); }
+    .hero .meta span strong { color: var(--text); font-weight: 600; }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover, .nav a.active { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 56px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); color: var(--cyan); padding: 2px 7px; border-radius: 4px; font-size: 13px; font-family: "SF Mono", "Fira Code", monospace; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-accent { background: rgba(167,139,250,0.12); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-success { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-label { font-weight: 700; margin-bottom: 4px; display: block; font-size: 13px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; padding: 20px 24px; transition: border-color .2s; }
+    .card:hover { border-color: var(--accent); }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+    td.num { text-align: right; font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; }
+    td.best { color: var(--green); font-weight: 600; }
+
+    /* Flow diagram */
+    .flow { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; margin: 20px 0; font-size: 14px; line-height: 2.4; text-align: center; overflow-x: auto; }
+    .flow .arrow { color: var(--muted); margin: 0 4px; }
+    .flow .step { display: inline-block; padding: 5px 16px; border-radius: 8px; margin: 3px 4px; font-weight: 500; font-size: 13.5px; }
+    .flow .s1 { background: rgba(167,139,250,0.15); color: var(--accent); }
+    .flow .s2 { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .flow .s3 { background: rgba(34,211,238,0.1); color: var(--cyan); }
+    .flow .s4 { background: rgba(52,211,153,0.12); color: var(--green); }
+    .flow .s5 { background: rgba(251,191,36,0.12); color: var(--yellow); }
+    .flow .s6 { background: rgba(248,113,113,0.12); color: var(--red); }
+
+    /* Formula */
+    .formula { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin: 12px 0 16px; font-family: "SF Mono", "Fira Code", monospace; font-size: 13.5px; color: var(--cyan); overflow-x: auto; white-space: nowrap; text-align: center; }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 16px 0; }
+
+    /* Tags */
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+    .tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .tag-purple { background: rgba(167,139,250,0.12); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.2); }
+    .tag-blue { background: rgba(96,165,250,0.12); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .tag-green { background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+    .tag-yellow { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+    .tag-orange { background: rgba(251,146,60,0.12); color: var(--orange); border: 1px solid rgba(251,146,60,0.2); }
+    .tag-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); border: 1px solid rgba(34,211,238,0.2); }
+    .tag-red { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+    /* Back link */
+    .back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .back:hover { color: var(--text); text-decoration: none; }
+
+    /* Separator */
+    .sep { height: 1px; background: var(--border); margin: 40px 0; }
+
+    @media (max-width: 640px) {
+      .container { padding: 20px 14px 60px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>PolicySim 深度解析</h1>
+  <div class="en-title">PolicySim: An LLM-Based Agent Social Simulation Sandbox for Proactive Policy Optimization</div>
+  <div class="sub">基于大语言模型的社交模拟沙盒，实现从「被动 A/B 测试」到「主动模拟-优化」的范式跃迁。在部署前预演平台干预策略，量化回声室效应与极化风险，并通过上下文赌博机迭代优化。</div>
+  <div class="meta">
+    <span><strong>arXiv</strong> <a href="https://arxiv.org/abs/2603.19649" target="_blank" style="color:var(--muted)">2603.19649</a></span>
+    <span><strong>会议</strong> ACM Web Conference 2026 (迪拜)</span>
+    <span><strong>日期</strong> 2026 年 3 月</span>
+    <span><strong>代码</strong> <a href="https://github.com/renH2/PolicySim" style="color:var(--green)">GitHub</a></span>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概览</a>
+    <a href="#sec2">2. 问题背景</a>
+    <a href="#sec3">3. 架构深度解析</a>
+    <a href="#sec4">4. 实验结果</a>
+    <a href="#sec5">5. 技术栈总结</a>
+    <a href="#sec6">6. 局限性</a>
+    <a href="#sec7">7. 与斯坦福小镇的关联</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <a href="../multi-agent-frontier.html" class="back">&larr; 返回论文总览</a>
+
+  <!-- ============================================================ -->
+  <!-- Section 1 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">1</div>
+      <h2>论文概览</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--cyan);">PolicySim: An LLM-Based Agent Social Simulation Sandbox for Proactive Policy Optimization</div>
+      <div class="tags">
+        <span class="tag tag-purple">LLM Agent</span>
+        <span class="tag tag-blue">社交模拟</span>
+        <span class="tag tag-green">策略优化</span>
+        <span class="tag tag-yellow">上下文赌博机</span>
+        <span class="tag tag-orange">SFT + DPO</span>
+        <span class="tag tag-cyan">回声室</span>
+      </div>
+      <p><strong>作者：</strong>Renhong Huang, Ning Tang, Jiarong Xu, Yuxuan Cao 等</p>
+      <p><strong>发表：</strong>ACM Web Conference 2026（迪拜），<a href="https://arxiv.org/abs/2603.19649" target="_blank">arXiv 2603.19649</a>，2026 年 3 月</p>
+      <p><strong>代码：</strong><a href="https://github.com/renH2/PolicySim">https://github.com/renH2/PolicySim</a></p>
+    </div>
+
+    <div class="callout callout-key">
+      <span class="callout-label" style="color:var(--accent);">核心思想</span>
+      将社交平台策略评估从<span class="hl-red">被动式 A/B 测试</span>（先部署、再发现问题）转变为<span class="hl-green">主动式模拟-优化</span>（先模拟、再部署）。PolicySim 构建了一个完整的 LLM 智能体社交模拟沙盒，能够在部署前预演推荐、内容过滤和曝光控制等干预策略，并通过上下文赌博机（Contextual Bandit）迭代优化干预参数。
+    </div>
+
+    <div class="flow">
+      <span class="step s1">真实用户数据</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s2">SFT + DPO 训练</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s3">智能体社交模拟</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s4">干预策略施加</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s5">赌博机优化</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s6">最优策略输出</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 2 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>问题背景</h2>
+    </div>
+
+    <p>社交平台部署的干预措施——推荐算法、内容过滤、曝光控制——本意是提升用户体验，但往往会<span class="hl-red">无意中放大回声室效应和群体极化</span>。用户被困在同质化信息茧房中，极端观点得到强化，跨立场对话消失。</p>
+
+    <h3>被动式 A/B 测试的三大失败</h3>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span style="color:var(--red);">1</span> &nbsp;风险识别滞后</div>
+        <p>伤害只有在策略<strong>实际部署到真实用户</strong>之后才能被发现。政治极化、虚假信息扩散等系统性风险往往需要数周甚至数月才能显现，此时已经造成了不可逆的社会影响。</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="color:var(--red);">2</span> &nbsp;回滚成本高昂</div>
+        <p>一旦发现问题，策略回滚不仅意味着巨大的运营成本，还会造成<strong>用户信任的损失</strong>。频繁的策略变更让用户感到混乱，平台声誉受损。</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="color:var(--red);">3</span> &nbsp;缺乏优化闭环</div>
+        <p>现有模拟方法（如 <a href="https://arxiv.org/abs/2411.11581" target="_blank">OASIS</a>、S3 等）侧重于<strong>观察和描述</strong>智能体行为，但<span class="hl-red">缺乏利用反馈信号迭代优化策略的原则性机制</span>。模拟完成后，策略改进仍然依赖人工经验。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <span class="callout-label" style="color:var(--cyan);">关键洞察</span>
+      PolicySim 的核心价值在于补齐了「模拟 &rarr; 优化」的最后一环。它不仅能回答「如果施加干预 X，社交网络会怎样？」，还能进一步回答<span class="hl-cyan">「最优的干预 X 是什么？」</span>——这是从描述性（descriptive）到处方性（prescriptive）的范式跃迁。
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 3 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">3</div>
+      <h2>架构深度解析</h2>
+    </div>
+
+    <p>PolicySim 的架构分为两大核心模块：<span class="hl-accent">用户智能体模块</span>（User Agent Module）和<span class="hl-green">自适应干预模块</span>（Adaptive Intervention Module），通过模拟循环（Simulation Loop）将二者耦合。</p>
+
+    <!-- 3.1 User Agent Module -->
+    <h3>3.1 用户智能体模块 (User Agent Module)</h3>
+
+    <h4>用户画像构建 (User Profile Construction)</h4>
+    <p>每个智能体基于真实平台数据构建画像，包含 <strong>4 个核心属性</strong>，记为 <code>&phi;(u_i)</code>：</p>
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <div class="card-title">Likely Identity</div>
+        <p>用户的可能身份画像——年龄段、职业方向、政治倾向等，从历史行为数据中推断。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--blue);">
+        <div class="card-title">Interested Areas</div>
+        <p>用户关注的话题领域，基于历史发帖和互动内容提取。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title">Posting Style</div>
+        <p>用户的发帖风格——语言习惯、情感基调、内容长度偏好等。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--yellow);">
+        <div class="card-title">Interaction Behavior</div>
+        <p>用户的互动行为模式——倾向于点赞还是评论、对争议话题的参与度等。</p>
+      </div>
+    </div>
+
+    <h4>行为空间 (Action Space)</h4>
+    <p>智能体每轮可执行<strong>多个动作</strong>（非互斥），行为空间包括：</p>
+    <ul>
+      <li><code>tweet</code>（发帖）、<code>retweet</code>（转发）、<code>reply</code>（回复）</li>
+      <li><code>like</code>（点赞）、<code>dislike</code>（踩）、<code>do nothing</code>（无操作）</li>
+      <li><span class="hl">follow / unfollow</span>（关注 / 取消关注）——这是 PolicySim 的<strong>关键创新</strong>，使得社交网络拓扑可以动态演化</li>
+    </ul>
+
+    <h4>动态网络 (Dynamic Network)</h4>
+    <p>社交网络建模为<span class="hl-blue">时变有向图</span>：</p>
+    <div class="formula">G<sub>t</sub> = (V, E<sub>t</sub>) &nbsp;&nbsp;&nbsp; 序列 {G<sub>1</sub>, G<sub>2</sub>, ..., G<sub>T</sub>} 捕捉网络拓扑演化</div>
+    <p>由于智能体可以执行 follow/unfollow 操作，边集 E<sub>t</sub> 随时间步变化。这意味着回声室的形成和瓦解都可以在模拟中被自然捕捉。</p>
+
+    <h4>立场追踪 (Stance Tracking)</h4>
+    <p>智能体的立场取离散值 <code>{-1, 0, 1}</code>，由 LLM 基于行为内容分类。为避免剧烈跳变，采用<span class="hl-accent">指数移动平均（EMA）</span>平滑：</p>
+    <div class="formula">stance<sub>t</sub> = &alpha; &times; stance<sub>t-1</sub> + (1 - &alpha;) &times; raw_stance<sub>t</sub> &nbsp;&nbsp;&nbsp; (&alpha; = 0.8)</div>
+
+    <h4>双层记忆系统 (Dual-Layer Memory)</h4>
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--cyan);">
+        <div class="card-title">短期记忆 (Short-term)</div>
+        <p>通过 LLM 对近期交互进行<strong>摘要处理</strong>，保留关键信息的压缩表示。类似人类对最近对话的即时记忆。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title">长期记忆 (Long-term)</div>
+        <p>基于<strong>嵌入向量 + 时间戳</strong>存储。检索时使用余弦相似度，并施加<strong>指数衰减</strong>权重（<code>&lambda; = 1</code>），使较新的记忆具有更高的检索优先级。</p>
+      </div>
+    </div>
+
+    <!-- 3.2 SFT Training -->
+    <h3>3.2 SFT 监督微调训练</h3>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--blue);">训练数据集 D<sub>SFT</sub></div>
+      <p>从目标平台采集真实数据，构建 <code>(event, user_profile, observed_action + content)</code> 三元组。每条样本将一个热点事件和用户画像映射到该用户的实际行为和发帖内容。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>参数</th>
+            <th>值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>基座模型</td><td><span class="hl-cyan">Qwen2.5-3B-Instruct</span>（32K 上下文窗口）</td></tr>
+          <tr><td>微调方法</td><td>LoRA，rank = <code>64</code></td></tr>
+          <tr><td>学习率</td><td><code>1e-6</code></td></tr>
+          <tr><td>批大小</td><td><code>256</code></td></tr>
+          <tr><td>训练轮次</td><td><code>10</code> epochs</td></tr>
+          <tr><td>硬件</td><td>12 &times; NVIDIA A100-PCIE-40GB</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3.3 DPO Training -->
+    <h3>3.3 DPO 偏好对齐训练</h3>
+
+    <p>在 SFT 模型基础上进一步应用 <span class="hl-accent">DPO（Direct Preference Optimization）</span> 对齐：</p>
+
+    <div class="card">
+      <ul>
+        <li><strong>偏好样本 y<sup>+</sup>：</strong>真实人类行为（ground truth）</li>
+        <li><strong>拒绝样本 y<sup>&minus;</sup>：</strong>模型生成的候选行为，<code>J = 3</code> 个负样本，选择与真实响应<strong>相似度最低</strong>的生成结果</li>
+        <li><strong>DPO 温度：</strong><code>&beta; = 0.5</code></li>
+        <li><strong>学习率：</strong><code>5e-7</code></li>
+      </ul>
+    </div>
+
+    <div class="callout callout-key">
+      <span class="callout-label" style="color:var(--accent);">为什么 SFT + DPO？</span>
+      单独的 SFT 能让模型学会「像人一样发帖」，但可能在边界情况下产生不自然的行为。DPO 通过偏好对齐进一步约束模型，使其在<strong>行为分布</strong>层面更贴近真实用户。消融实验证实：SFT+DPO 的完整流水线在所有指标上优于单独使用任一方法。
+    </div>
+
+    <!-- 3.4 Adaptive Intervention Module -->
+    <h3>3.4 自适应干预模块 (Adaptive Intervention Module)</h3>
+
+    <h4>推荐系统：三通道架构</h4>
+    <div class="grid-2" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="card" style="border-top: 3px solid var(--accent);">
+        <div class="card-title">关系通道 (Relational)</div>
+        <p>推荐用户<strong>已关注</strong>的人的帖子。维护社交信任链上的信息流。</p>
+      </div>
+      <div class="card" style="border-top: 3px solid var(--blue);">
+        <div class="card-title">个性化通道 (Personalized)</div>
+        <p>基于<strong>语义对齐</strong>推荐与用户兴趣匹配的内容。使用嵌入相似度排序。</p>
+      </div>
+      <div class="card" style="border-top: 3px solid var(--green);">
+        <div class="card-title">热点通道 (Headlines)</div>
+        <p>推荐<strong>热门趋势</strong>内容。确保用户能接触到平台上广泛讨论的话题。</p>
+      </div>
+    </div>
+
+    <h4>曝光控制 (Exposure Control)</h4>
+    <div class="formula">exp(u<sub>i</sub>) &isin; [0, 1] &nbsp;&mdash;&nbsp; 帖子通过内容过滤器的概率</div>
+    <p>曝光控制是一个连续值参数，决定特定帖子是否能被目标用户看到。值越低，过滤越严格。这可以用于限制虚假信息的传播。</p>
+
+    <h4>上下文赌博机 (Contextual Bandit)</h4>
+    <div class="card">
+      <p><strong>状态：</strong><code>S<sub>t</sub> = (U, G<sub>t</sub>, R)</code> —— 用户集合 U、当前网络拓扑 G<sub>t</sub>、推荐状态 R</p>
+      <p><strong>臂 (Arms)：</strong>user-post 对（推荐决策）或 user-probability 对（曝光控制）</p>
+      <p><strong>奖励函数（跨视角推荐）：</strong></p>
+    </div>
+    <div class="formula">reward = (stance divergence) &times; (engagement) &times; (toxicity penalty)</div>
+    <p>其中毒性惩罚通过 <span class="hl-red">Perspective API</span> 计算，惩罚系数 <code>&mu; = 4</code>。这确保了系统在促进跨立场对话的同时不会导致毒性内容的增加。</p>
+
+    <h4>消息传播机制 (Message Passing)</h4>
+    <div class="formula">X<sub>user</sub><sup>(k)</sup> = &gamma; &middot; X<sub>user</sub><sup>(k-1)</sup> + (1 - &gamma;) &middot; D<sup>-1</sup> &middot; A &middot; X<sub>user</sub><sup>(k-1)</sup></div>
+    <p>其中 <code>A</code> 为 G<sub>t</sub> 的邻接矩阵，<code>D</code> 为度矩阵，<code>k = 1</code> 跳。该机制捕捉网络拓扑的演化对用户状态的影响——邻居的观点会通过图结构传播并影响个体。</p>
+
+    <h4>优化：探索-利用网络</h4>
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title">利用网络 g<sub>&theta;</sub></div>
+        <p>context &rarr; reward 的直接映射。基于当前已知信息选择预期奖励最高的臂。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--yellow);">
+        <div class="card-title">探索网络 g&#770;<sub>&phi;</sub></div>
+        <p>估计每个臂的<strong>潜在增益</strong>。引导系统尝试那些不确定性高但可能具有更高回报的选择。</p>
+      </div>
+    </div>
+    <div class="formula">score(arm) = g<sub>&theta;</sub>(x) + g&#770;<sub>&phi;</sub>(&nabla;)</div>
+
+    <!-- 3.5 Simulation Loop -->
+    <h3>3.5 模拟循环 (Simulation Loop)</h3>
+
+    <div class="flow">
+      <span class="step s1">1. 初始化智能体画像 + 初始网络拓扑</span><br>
+      <span class="arrow">&darr;</span><br>
+      <span class="step s2">2. 每轮：智能体执行行为</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s3">3. 施加干预策略</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s4">4. 更新立场 + 累积记忆 + 演化网络</span><br>
+      <span class="arrow">&darr;</span><br>
+      <span class="step s5">5. 计算生态系统奖励信号</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step s6">6. 赌博机更新干预参数</span><br>
+      <span class="arrow">&darr;</span><br>
+      <span class="step s4">7. 迭代 T 轮 &rarr; 输出最优策略</span>
+    </div>
+
+    <div class="callout callout-success">
+      <span class="callout-label" style="color:var(--green);">闭环优化</span>
+      与纯观测性模拟不同，PolicySim 的模拟循环形成了一个<strong>完整的优化闭环</strong>：模拟产生数据 &rarr; 数据计算奖励 &rarr; 奖励更新策略 &rarr; 策略改变模拟 &rarr; 再次产生数据。这正是它区别于 <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville</a>、<a href="https://arxiv.org/abs/2411.11581" target="_blank">OASIS</a> 等系统的核心所在。
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 4 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>实验结果</h2>
+    </div>
+
+    <h3>数据平台</h3>
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--blue);">
+        <div class="card-title">Twitter (TwiBot-20)</div>
+        <p><span class="hl-blue">229K 用户</span>、<span class="hl-blue">3350 万条推文</span>、<span class="hl-blue">45.6 万条关注关系</span>。大规模真实社交网络数据集，涵盖多种话题和用户类型。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-title">Weibo（微博）</div>
+        <p>用于<strong>跨平台迁移验证</strong>，测试模型在不同文化和语言环境下的泛化能力。</p>
+      </div>
+    </div>
+
+    <h3>4.1 微观行为精度 (Micro-level Accuracy)</h3>
+    <p>在 TwiBot-20 数据集上，PolicySim 与基线方法的逐用户行为还原精度对比：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>Random</th>
+            <th>GLM4-light</th>
+            <th>Llama-3-8B</th>
+            <th>PolicySim</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BERTScore F1</td>
+            <td class="num">28.55</td>
+            <td class="num">46.01</td>
+            <td class="num">46.32</td>
+            <td class="num best">58.05</td>
+          </tr>
+          <tr>
+            <td>BERTSim</td>
+            <td class="num">74.42</td>
+            <td class="num">81.95</td>
+            <td class="num">85.22</td>
+            <td class="num best">88.06</td>
+          </tr>
+          <tr>
+            <td>行为对齐率 (Behavior Alignment)</td>
+            <td class="num">36.11%</td>
+            <td class="num">48.33%</td>
+            <td class="num">52.36%</td>
+            <td class="num best">65.56%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <span class="callout-label" style="color:var(--cyan);">分析</span>
+      PolicySim 在 BERTScore F1 上超出最强基线（Llama-3-8B）<span class="hl-green">+11.73</span>，行为对齐率提升 <span class="hl-green">+13.20%</span>。自一致性（Self-consistency）相比基线提升了 <span class="hl-green">10.15%</span>。SFT+DPO 的双阶段训练显著提升了模型对真实用户行为的拟合度。
+    </div>
+
+    <h3>4.2 回声室与极化效应 (Echo Chamber / Polarization)</h3>
+    <p>这是 PolicySim 最核心的实验——验证干预策略能否打破回声室并降低极化：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>立场标准差<br><small>(越高越多样)</small></th>
+            <th>毒性<br><small>(越低越好)</small></th>
+            <th>跨立场互动<br><small>(越高越好)</small></th>
+            <th>虚假信息<br><small>(越低越好)</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>无干预</td>
+            <td class="num">0.014</td>
+            <td class="num">0.0556</td>
+            <td class="num"><span style="color:var(--red);">4%</span></td>
+            <td class="num"><span style="color:var(--red);">40%</span></td>
+          </tr>
+          <tr>
+            <td>&epsilon;-greedy</td>
+            <td class="num">0.184</td>
+            <td class="num">0.0426</td>
+            <td class="num">14%</td>
+            <td class="num">26%</td>
+          </tr>
+          <tr>
+            <td>UCB</td>
+            <td class="num">0.026</td>
+            <td class="num"><span style="color:var(--red);">0.0628</span></td>
+            <td class="num">50%</td>
+            <td class="num">30%</td>
+          </tr>
+          <tr style="background: rgba(52,211,153,0.05);">
+            <td><strong>PolicySim</strong></td>
+            <td class="num best">0.376</td>
+            <td class="num best">0.0386</td>
+            <td class="num best">56%</td>
+            <td class="num best">24%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>关键发现</h4>
+
+    <div class="grid-2">
+      <div class="callout callout-key" style="margin:0;">
+        <span class="callout-label" style="color:var(--accent);">回声室被有效打破</span>
+        无干预时，跨立场互动仅 <span class="hl-red">4%</span>（强回声室效应）。PolicySim 将其提升至 <span class="hl-green">56%</span>，增长了 <strong>14 倍</strong>。
+      </div>
+      <div class="callout callout-success" style="margin:0;">
+        <span class="callout-label" style="color:var(--green);">多样性不需要毒性</span>
+        PolicySim 的毒性水平为 <span class="hl-green">0.0386</span>，是所有方法中<strong>最低</strong>的。证明促进观点多样性与控制毒性并不矛盾。
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px;">
+      <div class="callout callout-warn" style="margin:0;">
+        <span class="callout-label" style="color:var(--orange);">UCB 的代价</span>
+        UCB 也实现了 50% 的跨立场互动，但其毒性水平为 <span class="hl-red">0.0628</span>——所有方法中<strong>最高</strong>。PolicySim 在更好的多样性下实现了更低的毒性。
+      </div>
+      <div class="callout callout-insight" style="margin:0;">
+        <span class="callout-label" style="color:var(--cyan);">虚假信息抑制</span>
+        虚假信息占比从无干预的 <span class="hl-red">40%</span> 降至 PolicySim 的 <span class="hl-green">24%</span>。曝光控制机制有效限制了虚假内容的传播。
+      </div>
+    </div>
+
+    <h3>4.3 规模性能</h3>
+    <p>运行时间与智能体数量呈<span class="hl-green">线性关系</span>（<code>r = 0.9904</code>），测试规模达 <strong>1,000 个智能体</strong>。这意味着系统在工程上可扩展，尽管绝对规模仍有限。</p>
+
+    <h3>4.4 消融实验 (Ablation)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>变体</th>
+            <th>说明</th>
+            <th>效果</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>PolicySim-&phi;</code></td>
+            <td>移除用户画像</td>
+            <td><span style="color:var(--red);">所有指标大幅下降</span> —— 画像是行为拟真的关键</td>
+          </tr>
+          <tr>
+            <td><code>PolicySim-DPO</code></td>
+            <td>仅 DPO，无 SFT</td>
+            <td><span style="color:var(--orange);">弱于 PolicySim-SFT</span> —— 无监督基础的偏好对齐效果有限</td>
+          </tr>
+          <tr>
+            <td><code>PolicySim-SFT</code></td>
+            <td>仅 SFT，无 DPO</td>
+            <td><span style="color:var(--yellow);">表现良好但不及完整流水线</span> —— DPO 提供了额外的行为校准</td>
+          </tr>
+          <tr>
+            <td><strong>PolicySim (完整)</strong></td>
+            <td>SFT + DPO + 画像</td>
+            <td><span style="color:var(--green);">所有指标最优</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.5 策略场景实验 (Policy Scenarios)</h3>
+
+    <div class="grid-2">
+      <div class="card" style="border-top: 3px solid var(--red);">
+        <div class="card-title">场景一：反堕胎立法</div>
+        <p>基于 2022 年 6 月（Roe v. Wade 被推翻后）的 <strong>10 条触发性新闻</strong>。模拟了跨视角内容推荐如何影响围绕堕胎议题的观点分布和互动模式。PolicySim 的干预策略成功促进了对立阵营之间的对话，而不是将用户推向更极端的位置。</p>
+      </div>
+      <div class="card" style="border-top: 3px solid var(--orange);">
+        <div class="card-title">场景二：虚假信息传播</div>
+        <p>初始化 <strong>20% 的用户</strong>携带宣传性虚假推文。通过曝光控制机制限制虚假信息的传播范围。实验验证了适当的曝光控制参数能够在不过度审查的前提下有效抑制虚假信息的扩散。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 5 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow); color:#1a1d27;">5</div>
+      <h2>技术栈总结</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>组件</th>
+            <th>选择</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>基座 LLM</td><td><span class="hl-cyan">Qwen2.5-3B-Instruct</span></td><td>32K 上下文窗口，3B 参数量平衡了性能与效率</td></tr>
+          <tr><td>微调方法</td><td>LoRA rank = <code>64</code></td><td>参数高效微调，避免全量训练的成本</td></tr>
+          <tr><td>SFT 学习率</td><td><code>1e-6</code></td><td>10 epochs，batch 256</td></tr>
+          <tr><td>DPO 参数</td><td><code>&beta; = 0.5</code>，lr = <code>5e-7</code></td><td>J=3 负样本，选择低相似度生成结果</td></tr>
+          <tr><td>硬件</td><td>12 &times; A100-PCIE-40GB</td><td>总计 480GB GPU 显存</td></tr>
+          <tr><td>立场平滑</td><td>EMA <code>&alpha; = 0.8</code></td><td>抑制立场跳变</td></tr>
+          <tr><td>记忆衰减</td><td><code>&lambda; = 1</code></td><td>指数衰减权重，越新的记忆权重越高</td></tr>
+          <tr><td>图传播</td><td>Message Passing <code>k = 1</code></td><td>单跳邻居影响传播</td></tr>
+          <tr><td>毒性检测</td><td>Perspective API</td><td>惩罚系数 &mu; = 4</td></tr>
+          <tr><td>优化器</td><td>Neural Contextual Bandit</td><td>利用网络 + 探索网络双头结构</td></tr>
+          <tr><td>文本嵌入</td><td>BERT Embeddings</td><td>用于语义相似度计算和记忆检索</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 6 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">6</div>
+      <h2>局限性</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--red);">
+        <div class="card-title">规模受限</div>
+        <p>测试规模上限约 <span class="hl-red">1,000 个智能体</span>，而 <a href="https://arxiv.org/abs/2411.11581" target="_blank">OASIS</a> 等系统已达到 100 万。对于需要模拟大规模网络效应的场景，当前规模可能不足。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--red);">
+        <div class="card-title">算力需求</div>
+        <p>训练需要 <span class="hl-red">12 块 A100 GPU</span>，即使选择了相对较小的 3B 模型，硬件门槛仍然很高，限制了研究的可复现性。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--orange);">
+        <div class="card-title">行为一致性假设</div>
+        <p>模型假设用户的历史行为模式在面对<strong>全新策略</strong>时仍然成立。但对于前所未有的干预措施，用户可能产生完全出乎预料的行为反应。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--orange);">
+        <div class="card-title">干预类型有限</div>
+        <p>目前仅支持推荐和曝光控制两种干预方式。<span class="hl">不支持 UI 提示（nudges）</span>、透明度工具、限流（rate limiting）等现实平台常用的治理手段。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--yellow);">
+        <div class="card-title">奖励设计的主观性</div>
+        <p>跨视角推荐的奖励函数（立场分歧 &times; 参与度 &times; 毒性惩罚）的设计和参数选择具有主观性。不同的奖励设计可能导致截然不同的最优策略。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--yellow);">
+        <div class="card-title">离散立场的粗糙性</div>
+        <p>立场取 <code>{-1, 0, 1}</code> 三个离散值过于粗糙。现实中的观点是<strong>连续且多维</strong>的，三值编码无法捕捉观点的细微差异和演化。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--muted);">
+        <div class="card-title">Perspective API 偏差</div>
+        <p>毒性检测依赖 Perspective API，而该 API 已知对某些方言、语言和文化背景存在系统性偏差，可能影响奖励信号的公平性。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--muted);">
+        <div class="card-title">缺乏真实部署验证</div>
+        <p>所有实验均在<strong>模拟环境</strong>中完成。模拟中的最优策略是否在真实平台上同样有效，尚未得到验证。模拟与现实之间的 sim-to-real gap 仍是开放问题。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7 -->
+  <!-- ============================================================ -->
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">7</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>PolicySim 与 <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville（斯坦福小镇）</a>代表了 LLM 智能体模拟的<strong>两种不同范式</strong>。理解它们之间的差异和演进关系，有助于把握该领域的发展脉络。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th style="color:var(--accent);">Smallville（斯坦福小镇）</th>
+            <th style="color:var(--cyan);">PolicySim</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>目的</strong></td>
+            <td>观察涌现行为</td>
+            <td><span class="hl-green">工程化干预策略并优化</span></td>
+          </tr>
+          <tr>
+            <td><strong>环境</strong></td>
+            <td>物理小镇（2D 地图）</td>
+            <td>社交媒体平台</td>
+          </tr>
+          <tr>
+            <td><strong>智能体基础</strong></td>
+            <td>手写传记（biography）</td>
+            <td><span class="hl-cyan">SFT + DPO 对齐真实用户数据</span></td>
+          </tr>
+          <tr>
+            <td><strong>社交网络</strong></td>
+            <td>隐式（基于空间邻近性）</td>
+            <td><span class="hl-blue">显式有向图，支持动态演化</span></td>
+          </tr>
+          <tr>
+            <td><strong>平台角色</strong></td>
+            <td>不存在</td>
+            <td><span class="hl-accent">主动中介者</span>（推荐 + 曝光控制）</td>
+          </tr>
+          <tr>
+            <td><strong>优化机制</strong></td>
+            <td>无（纯观测）</td>
+            <td><span class="hl-green">上下文赌博机迭代优化</span></td>
+          </tr>
+          <tr>
+            <td><strong>规模</strong></td>
+            <td>25 个智能体</td>
+            <td>最多 1,000 个智能体</td>
+          </tr>
+          <tr>
+            <td><strong>记忆架构</strong></td>
+            <td>反思-检索-规划（Reflect-Retrieve-Plan）</td>
+            <td>双层记忆（短期摘要 + 长期嵌入 + 时间衰减）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <span class="callout-label" style="color:var(--accent);">概念跃迁</span>
+      Smallville 回答的问题是：<em>「当智能体自由互动时会发生什么？」</em><br>
+      PolicySim 回答的问题是：<em>「当<strong>平台</strong>介入干预时会发生什么？我们如何<strong>优化</strong>这些干预？」</em><br><br>
+      这代表了从<span class="hl-accent">描述性范式（Descriptive）</span>到<span class="hl-green">处方性范式（Prescriptive）</span>的根本性转变。PolicySim 不满足于观察和记录——它的目标是在部署前确定最优干预策略。
+    </div>
+
+    <div class="card" style="border: 1px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.04);">
+      <div class="card-title" style="color:var(--accent);">从 Smallville 到 PolicySim 的演进路径</div>
+      <div class="flow" style="background:transparent; border:none; padding: 12px 0;">
+        <span class="step s1">Smallville (2023)<br><small>涌现行为观察</small></span>
+        <span class="arrow">&rarr;</span>
+        <span class="step s2">S3 / OASIS<br><small>社交平台模拟</small></span>
+        <span class="arrow">&rarr;</span>
+        <span class="step s3">PolicySim (2026)<br><small>模拟 + 优化闭环</small></span>
+      </div>
+      <p style="font-size:13.5px; color:var(--muted);">Smallville 证明了 LLM 智能体可以产生可信的社会行为；S3、OASIS 等工作将模拟环境从物理小镇拓展到社交平台；PolicySim 在此基础上补齐了<strong>优化闭环</strong>，完成了从「能模拟」到「能优化」的最后一步。</p>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <p style="text-align:center; color:var(--muted); font-size:12.5px;">
+    PolicySim 深度解析 &mdash; 基于 <a href="https://arxiv.org/abs/2603.19649" target="_blank">arXiv 2603.19649</a> &mdash; ACM Web Conference 2026<br>
+    生成日期：2026-04-05
+  </p>
+
+</div>
+
+</body>
+</html>

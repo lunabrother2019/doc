@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Agents 统一学习中心</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --bg2:      #1a1d27;
+      --bg3:      #242837;
+      --border:   #2d2d3a;
+      --text:     #e2e8f0;
+      --muted:    #8b95a5;
+      --accent:   #a78bfa;
+      --accent2:  #818cf8;
+      --blue:     #60a5fa;
+      --green:    #34d399;
+      --red:      #f87171;
+      --orange:   #fb923c;
+      --yellow:   #fbbf24;
+      --cyan:     #22d3ee;
+      --pink:     #f472b6;
+      --meta:     #3b82f6;
+      --chat:     #22c55e;
+      --meta-bg:  #1e3a5f;
+      --chat-bg:  #1a3a2a;
+      --warn:     #f59e0b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.75;
+      padding: 0;
+      font-size: 14px;
+    }
+
+    /* ══════════════════════════════════════
+       GLOBAL HEADER
+       ══════════════════════════════════════ */
+    .global-hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 40%, #0a1628 80%, #1b1340 100%);
+      padding: 48px 24px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .global-hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      color: var(--accent);
+      margin-bottom: 12px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .global-hero .subtitle {
+      max-width: 780px;
+      margin: 0 auto 20px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .global-hero .subtitle a { color: var(--blue); text-decoration: none; }
+    .global-hero .subtitle a:hover { text-decoration: underline; }
+
+    /* ══════════════════════════════════════
+       TRACK TABS
+       ══════════════════════════════════════ */
+    .track-bar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: rgba(15, 17, 23, 0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .track-bar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .track-tab {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .track-tab:hover {
+      color: var(--text);
+      background: rgba(167,139,250,0.04);
+    }
+    .track-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .track-tab .track-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .track-tab.active .track-label {
+      color: var(--accent);
+      opacity: 0.7;
+    }
+
+    /* ══════════════════════════════════════
+       TRACK PANELS
+       ══════════════════════════════════════ */
+    .track-panel {
+      display: none;
+    }
+    .track-panel.active {
+      display: block;
+    }
+
+    /* ══════════════════════════════════════
+       TRACK A — Study Guide styles
+       ══════════════════════════════════════ */
+    #track-a .toc {
+      position: sticky;
+      top: 52px;
+      z-index: 100;
+      background: rgba(15, 17, 23, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    #track-a .toc-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      gap: 4px;
+      padding: 8px 0;
+    }
+    #track-a .toc a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: all .2s;
+      flex-shrink: 0;
+    }
+    #track-a .toc a:hover { color: var(--text); background: var(--bg3); }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Sections */
+    .section { margin-bottom: 56px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+    .section-num {
+      background: var(--accent);
+      color: #0f1117;
+      font-weight: 700;
+      font-size: 14px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 22px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 17px;
+      color: var(--accent);
+      margin: 32px 0 12px;
+      font-weight: 600;
+    }
+    h4 {
+      font-size: 15px;
+      color: var(--cyan);
+      margin: 24px 0 8px;
+      font-weight: 600;
+    }
+
+    p { margin-bottom: 12px; color: var(--text); font-size: 15px; }
+    strong { color: var(--text); }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Flow diagram */
+    .flow {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 20px 0 24px;
+      font-family: "Fira Code", "SF Mono", "Cascadia Code", monospace;
+      font-size: 14px;
+      line-height: 2;
+      color: var(--green);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .flow .arrow { color: var(--muted); }
+    .flow .label { color: var(--muted); font-size: 12px; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      background: var(--bg3);
+      color: var(--accent);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167, 139, 250, 0.04); }
+
+    /* Callout boxes */
+    .callout {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0 20px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .callout-insight {
+      background: rgba(96, 165, 250, 0.08);
+      border-left: 3px solid var(--blue);
+    }
+    .callout-warning {
+      background: rgba(251, 146, 60, 0.08);
+      border-left: 3px solid var(--orange);
+    }
+    .callout-key {
+      background: rgba(167, 139, 250, 0.08);
+      border-left: 3px solid var(--accent);
+    }
+    .callout-warn {
+      background: rgba(251,146,60,0.08);
+      border-left: 3px solid var(--orange);
+    }
+
+    /* Stage timeline */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+      margin: 16px 0 24px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--border);
+    }
+    .stage {
+      position: relative;
+      margin-bottom: 24px;
+      padding: 16px 20px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .stage::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 20px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+    }
+    .stage.watershed::before { background: var(--red); box-shadow: 0 0 8px rgba(248,113,113,0.5); }
+    .stage-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .stage-title .year { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+    .stage p { font-size: 14px; margin-bottom: 6px; }
+    .stage ul { margin: 6px 0 0 18px; font-size: 14px; }
+    .stage li { margin-bottom: 4px; }
+
+    /* Company cards */
+    .company-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .company-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color .2s;
+    }
+    .company-card:hover { border-color: var(--accent); }
+    .company-card h4 { margin: 0 0 4px; font-size: 17px; }
+    .company-card .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .company-card ul { margin: 8px 0 0 18px; font-size: 14px; }
+    .company-card li { margin-bottom: 4px; }
+    .card-inworld { border-top: 3px solid var(--green); }
+    .card-inworld .tag { background: rgba(52,211,153,0.15); color: var(--green); }
+    .card-charai { border-top: 3px solid var(--accent); }
+    .card-charai .tag { background: rgba(167,139,250,0.15); color: var(--accent); }
+    .card-soul { border-top: 3px solid var(--red); }
+    .card-soul .tag { background: rgba(248,113,113,0.15); color: var(--red); }
+
+    /* Priority stars */
+    .star3 { color: var(--yellow); }
+    .star2 { color: var(--orange); }
+    .star1 { color: var(--muted); }
+
+    /* Numbered list */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 20px;
+    }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 10px 0 10px 42px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--bg3);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Summary arrow */
+    .evolution-arrow {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 24px;
+      margin: 16px 0 20px;
+      font-size: 14px;
+      text-align: center;
+      color: var(--green);
+      letter-spacing: 0.3px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════
+       TRACK B — Multi-Agent Frontier styles
+       ══════════════════════════════════════ */
+    #track-b .nav {
+      position: sticky;
+      top: 52px;
+      z-index: 100;
+      background: rgba(15,17,23,0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    #track-b .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      gap: 2px;
+      padding: 6px 0;
+    }
+    #track-b .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: all .2s;
+      flex-shrink: 0;
+    }
+    #track-b .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    #track-b .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    #track-b .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    #track-b .sec-head h2 { font-size: 20px; font-weight: 600; }
+    #track-b h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    #track-b p { margin-bottom: 10px; font-size: 14.5px; }
+
+    /* Paper card */
+    .paper { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; padding: 18px 22px; transition: border-color .2s; }
+    .paper:hover { border-color: var(--accent); }
+    .paper-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .paper-title a { color: var(--text); }
+    .paper-title a:hover { color: var(--blue); }
+    .paper-venue { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .paper-venue .yr { color: var(--orange); font-weight: 600; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .tag-k { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .tag-n { background: rgba(167,139,250,0.1); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.2); }
+    .tags .tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 500; }
+    .paper-body { font-size: 13.5px; color: #c9d1d9; line-height: 1.75; }
+    .paper-body .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
+
+    /* Smallville connection box */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 10px; font-size: 13px; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+
+    /* Evolution diagram */
+    .evo { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; font-size: 14px; line-height: 2.2; text-align: center; overflow-x: auto; }
+    .evo .arrow { color: var(--muted); }
+    .evo .phase { display: inline-block; padding: 4px 14px; border-radius: 8px; margin: 2px 4px; font-weight: 500; }
+    .evo .p1 { background: rgba(167,139,250,0.15); color: var(--accent); }
+    .evo .p2 { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .evo .p3 { background: rgba(34,211,238,0.1); color: var(--cyan); }
+    .evo .p4 { background: rgba(52,211,153,0.12); color: var(--green); }
+    .evo .p5 { background: rgba(251,191,36,0.12); color: var(--yellow); }
+
+    /* ══════════════════════════════════════
+       TRACK C — MetaGPT vs ChatDev styles
+       ══════════════════════════════════════ */
+    #track-c header {
+      max-width: 960px;
+      margin: 0 auto 40px;
+      text-align: center;
+      padding-top: 24px;
+    }
+    #track-c header h1 {
+      font-size: 28px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    #track-c header .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.meta { background: var(--meta-bg); color: #93c5fd; border: 1px solid var(--meta); }
+    .badge.chat { background: var(--chat-bg); color: #86efac; border: 1px solid var(--chat); }
+
+    #track-c nav.c-nav {
+      max-width: 960px;
+      margin: 0 auto 36px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #track-c nav.c-nav a {
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      text-decoration: none;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      transition: all .15s;
+    }
+    #track-c nav.c-nav a:hover { background: var(--bg3); border-color: var(--accent); }
+
+    #track-c .c-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+    }
+
+    #track-c section {
+      margin-bottom: 48px;
+    }
+    #track-c section h2 {
+      font-size: 20px;
+      color: var(--accent);
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Duo cards */
+    .duo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 700px) {
+      .duo { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .card.meta { border-top: 3px solid var(--meta); }
+    .card.chat { border-top: 3px solid var(--chat); }
+    .card h3 { font-size: 16px; margin-bottom: 4px; }
+    .card h3.meta-title { color: var(--meta); }
+    .card h3.chat-title { color: var(--chat); }
+    .card .pub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .card p, .card li { font-size: 13px; color: #cbd5e1; }
+    .card ul { padding-left: 18px; margin-top: 8px; }
+    .card li { margin-bottom: 6px; }
+    .card li strong { color: var(--text); }
+
+    /* Role table */
+    .role-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    .role-table th { background: var(--bg3); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .role-table td { padding: 8px 12px; border-bottom: 1px solid #1e2030; color: #cbd5e1; }
+    .role-table tr:last-child td { border-bottom: none; }
+    .role-table .role-icon { font-size: 16px; }
+
+    /* Flow steps (Track C) */
+    .flow-c {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 16px 0;
+      justify-content: center;
+    }
+    .flow-step {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .flow-arrow {
+      font-size: 18px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+    .flow-step.meta-s { background: var(--meta-bg); color: #93c5fd; border: 1px solid #2563eb; }
+    .flow-step.chat-s { background: var(--chat-bg); color: #86efac; border: 1px solid #16a34a; }
+
+    /* Comparison table */
+    .cmp-table-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+    .cmp-table { width: 100%; border-collapse: collapse; }
+    .cmp-table thead th { background: var(--bg3); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .cmp-table thead th:first-child { color: var(--accent); }
+    .cmp-table thead th:nth-child(2) { color: var(--meta); }
+    .cmp-table thead th:nth-child(3) { color: var(--chat); }
+    .cmp-table tbody td { padding: 12px 16px; border-bottom: 1px solid #1e2030; font-size: 13px; color: #cbd5e1; vertical-align: top; }
+    .cmp-table tbody td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+    .cmp-table tbody tr:hover { background: rgba(167,139,250,.04); }
+    .cmp-table tbody tr:last-child td { border-bottom: none; }
+
+    /* Metric highlight */
+    .metric { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
+    .metric.blue { background: var(--meta-bg); color: #93c5fd; }
+    .metric.green { background: var(--chat-bg); color: #86efac; }
+    .metric.amber { background: #2d2a1a; color: #fde68a; }
+
+    /* Insight box (Track C) */
+    .insight { background: linear-gradient(135deg, #1a1d27, #22263a); border-left: 4px solid var(--accent); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 24px 0; }
+    .insight p { font-size: 13px; color: #cbd5e1; margin-bottom: 8px; }
+    .insight p:last-child { margin-bottom: 0; }
+    .insight strong { color: var(--accent); }
+
+    /* Pros/cons */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+    @media (max-width: 700px) { .pros-cons { grid-template-columns: 1fr; } }
+    .pros-cons .item { background: var(--bg2); border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #cbd5e1; }
+    .pros-cons .item .label-pc { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .pros-cons .item .label-pc.pro { color: #22c55e; }
+    .pros-cons .item .label-pc.con { color: #ef4444; }
+
+    /* ══════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════ */
+    .global-footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    .global-footer a { color: var(--accent); text-decoration: none; }
+    .global-footer a:hover { text-decoration: underline; }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .global-hero { padding: 32px 16px 16px; }
+      .container { padding: 24px 16px 60px; }
+      .company-grid { grid-template-columns: 1fr; }
+      .flow { padding: 20px 16px; font-size: 13px; }
+      .paper { padding: 14px 16px; }
+      .track-tab { padding: 10px 16px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     GLOBAL HEADER
+     ════════════════════════════════════════════════════════════ -->
+<div class="global-hero">
+  <h1>Generative Agents 统一学习中心</h1>
+  <p class="subtitle">
+    三条学习路线，一站覆盖：从 <a href="https://arxiv.org/abs/2304.03442" target="_blank">Stanford Smallville</a> 基础概念到多 Agent 前沿研究，再到 MetaGPT vs ChatDev 工程实践对比。<br>
+    选择下方的学习路线，按自己的节奏深入。
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     TRACK TABS
+     ════════════════════════════════════════════════════════════ -->
+<div class="track-bar">
+  <div class="track-bar-inner">
+    <button class="track-tab active" data-track="track-a">
+      Track A: 基础学习路线
+      <span class="track-label">Memory / Reflection / Planning / 商业化</span>
+    </button>
+    <button class="track-tab" data-track="track-b">
+      Track B: 多Agent前沿
+      <span class="track-label">涌现合作 / 自组织 / 社会规范 / 共同进化</span>
+    </button>
+    <button class="track-tab" data-track="track-c">
+      Track C: MetaGPT vs ChatDev
+      <span class="track-label">SOP驱动 vs 对话链驱动 框架对比</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     TRACK A — 基础学习路线
+     ════════════════════════════════════════════════════════════ -->
+<div id="track-a" class="track-panel active">
+
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#a-part1">一、快速回顾</a>
+    <a href="#a-part2">二、核心概念深入</a>
+    <a href="#a-memory">2.1 记忆</a>
+    <a href="#a-reflection">2.2 反思</a>
+    <a href="#a-planning">2.3 规划</a>
+    <a href="#a-scale">2.4 规模化</a>
+    <a href="#a-part3">三、商业化路线</a>
+    <a href="#a-part4">四、落地指南</a>
+    <a href="#a-reading">推荐阅读</a>
+    <a href="#a-appendix">附录</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- Part 1 -->
+<section class="section" id="a-part1">
+  <div class="section-header">
+    <span class="section-num">1</span>
+    <h2>快速回顾——论文里你需要记住的骨架</h2>
+  </div>
+
+  <p>原始论文的核心是一个 <strong>感知 → 检索 → 反思 → 规划 → 行动</strong> 的循环：</p>
+
+  <div class="flow">
+    <div>感知环境</div>
+    <div class="arrow">↓</div>
+    <div>检索相关记忆 <span class="label">（Recency + Importance + Relevance 三维加权）</span></div>
+    <div class="arrow">↓</div>
+    <div>反思：对记忆做高层归纳，生成抽象洞见</div>
+    <div class="arrow">↓</div>
+    <div>制定 / 更新计划 <span class="label">（长期日程 → 短期行动）</span></div>
+    <div class="arrow">↓</div>
+    <div>执行行动 / 与其他 Agent 交互</div>
+    <div class="arrow">↓</div>
+    <div>新经历写入记忆流 → 回到感知</div>
+  </div>
+
+  <p><strong>25 个 Agent</strong> 在沙盒小镇 Smallville 里运行这个循环，涌现出了自发组织派对、建立社交关系等社会行为——没有人写死这些行为，它们是架构的副产品。</p>
+
+  <div class="callout callout-key">
+    记住这五个模块和它们的连接方式。后面所有的演进，都是在某个模块上做文章。
+  </div>
+</section>
+
+<!-- Part 2 -->
+<section class="section" id="a-part2">
+  <div class="section-header">
+    <span class="section-num">2</span>
+    <h2>核心概念深入——每个模块这几年怎么变的</h2>
+  </div>
+
+  <!-- 2.1 Memory -->
+  <h3 id="a-memory">2.1 记忆系统：从线性日志到知识网络</h3>
+  <p>原版的记忆流是一条按时间排列的列表，检索靠三维加权评分。记忆多了之后检索效率下降，也无法表达记忆之间的关联。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>演进方向</th><th>代表工作</th><th>核心思路</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>分层记忆</strong></td>
+          <td><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent</a></td>
+          <td>用子目标切分记忆，完成后压缩成摘要，保留层级结构</td>
+        </tr>
+        <tr>
+          <td><strong>关联记忆网络</strong></td>
+          <td><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM</a>（2025）</td>
+          <td>受 Zettelkasten 卡片笔记启发，每条记忆带关键词/标签，与相关记忆动态建立语义链接</td>
+        </tr>
+        <tr>
+          <td><strong>跨注意力检索</strong></td>
+          <td><a href="https://www.frontiersin.org/articles/10.3389/fpsyg.2025.1591618/full" target="_blank">Frontiers 2025</a></td>
+          <td>用 LLM 训练的 Cross-Attention 网络替代原版的加权评分检索</td>
+        </tr>
+        <tr>
+          <td><strong>多 Agent 共享记忆</strong></td>
+          <td>TechRxiv MAS Memory Survey</td>
+          <td>集体记忆、共识形成、记忆冲突解决</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <strong>关键洞察</strong>：记忆系统的趋势是从"平面日志"走向"结构化知识图谱"。如果你要实现一个 Agent，记忆的组织方式决定了它的上限。
+  </div>
+
+  <!-- 2.2 Reflection -->
+  <h3 id="a-reflection">2.2 反思机制：最重要的演进线，也是最多坑的地方</h3>
+  <p>反思是这个领域争议最大、进展最快的模块。<strong>这是你需要花最多时间理解的部分。</strong></p>
+
+  <div class="timeline">
+    <div class="stage">
+      <div class="stage-title">阶段 1：原版——内部积累触发 <span class="year">2023</span></div>
+      <ul>
+        <li>记忆重要性评分累计超过阈值 → LLM 归纳高层次观点</li>
+        <li>局限：只反思过去，不纠错，不与外部反馈挂钩</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-title">阶段 2：语言强化学习——<a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a> <span class="year">NeurIPS 2023</span></div>
+      <ul>
+        <li>任务失败后，用<strong>自然语言</strong>写反思（而不是梯度回传）→ 存入 episodic memory → 下次重试时检索</li>
+        <li>效果：决策 +22%，HotPotQA +20%，Python 编程 +11%</li>
+        <li>核心概念：<strong>Verbal Reinforcement Learning</strong></li>
+      </ul>
+    </div>
+    <div class="stage watershed">
+      <div class="stage-title" style="color:var(--red)">阶段 3：反思被打脸——<a href="https://arxiv.org/abs/2310.01848" target="_blank">ICLR 2024</a> <span class="year">分水岭</span></div>
+      <ul>
+        <li>发现：<strong>90%+ 的自我反思是确认性的</strong>（反思完还是维持原答案），真正纠错只占 ~2%</li>
+        <li>结论：没有外部反馈时，LLM 自我反思几乎无效</li>
+        <li><strong>这篇论文迫使整个领域转向</strong></li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-title">阶段 4：多 Agent 辩论式反思 <span class="year">2024-2025</span></div>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2305.14325" target="_blank">多智能体辩论 MAD</a>：多个 Agent 互相批评对方答案，达成共识</li>
+        <li><a href="https://arxiv.org/abs/2512.20845" target="_blank">多角色反思 MAR</a>（2024）：不同 Persona 从不同视角批判失败推理</li>
+        <li>A-HMAD（2025）：异构 Agent 辩论，GSM-8K 精度 91% vs 单模型 82%</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-title">阶段 5：跨轨迹经验反思 <span class="year">2024-2025</span></div>
+      <ul>
+        <li>ExpeL（AAAI 2024）：比较成功与失败的历史轨迹，提取可复用 heuristics</li>
+        <li><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL</a>（2025）：构建可检索的策略池，Gaia2 基准 +7.8%</li>
+        <li>EMNLP 2025：任务内反思 + 任务间反思双层机制</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="stage-title">阶段 6：双环元认知反思 <span class="year">2025</span></div>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2405.06682" target="_blank">Dual-Loop Reflection</a>：</li>
+        <li><strong>外环（Extrospection）</strong>：对比自身输出与参考答案，识别差距，构建 Reflection Bank</li>
+        <li><strong>内环（Introspection）</strong>：推理时从 Reflection Bank 检索历史经验指导当前决策</li>
+        <li>灵感来源：认知科学的<strong>元认知（Metacognition）</strong>理论</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="evolution-arrow">
+    被动归纳 → 主动纠错 → 发现自我纠错无效 → 引入外部批评者 → 跨任务经验积累 → 元认知闭环
+  </div>
+
+  <!-- 2.3 Planning -->
+  <h3 id="a-planning">2.3 规划与行动：从日程表到工具调用</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>方向</th><th>代表工作</th><th>要点</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>推理+行动交替</td>
+          <td><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a></td>
+          <td>Reasoning 和 Acting 交替进行，Agent 能调用外部工具</td>
+        </tr>
+        <tr>
+          <td>多 Agent 角色分工</td>
+          <td><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev / MetaGPT</a></td>
+          <td>多个 Agent 分别扮演 PM、架构师、程序员等角色协作完成任务</td>
+        </tr>
+        <tr>
+          <td>具身智能</td>
+          <td><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">CVPR 2025</a></td>
+          <td>MLLM + World Model 双驱动：语言推理 + 物理感知</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 2.4 Scale -->
+  <h3 id="a-scale">2.4 规模化：从 25 到 10,000+</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>工作</th><th>规模</th><th>突破</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><a href="https://aclanthology.org/2025.acl-industry.94.pdf" target="_blank">OpenCity</a></td>
+          <td>10,000 Agent</td>
+          <td>并行化框架，速度提升 635x，Token 消耗降低 45%</td>
+        </tr>
+        <tr>
+          <td><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety</a></td>
+          <td>10,000+ Agent</td>
+          <td>模拟 500 万次交互，研究政治极化、谣言传播、UBI 政策效果</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <strong>关键转变</strong>：从观察个体涌现行为 → 研究群体社会系统规律。Agent 不再是抽象人物，可以从真实用户画像初始化（<strong>Population-Scale Calibration</strong>）。
+  </div>
+</section>
+
+<!-- Part 3 -->
+<section class="section" id="a-part3">
+  <div class="section-header">
+    <span class="section-num">3</span>
+    <h2>从论文到产品——三条商业化路线</h2>
+  </div>
+
+  <p>理论要落地，你需要知道业界怎么做的。目前有三条截然不同的路线：</p>
+
+  <div class="company-grid">
+    <div class="company-card card-inworld">
+      <h4 style="color:var(--green)">路线 A：Inworld AI</h4>
+      <span class="tag">B2B 游戏 NPC 引擎 · Ubisoft / Xbox / NetEase</span>
+      <p><strong>思路</strong>：工程化显式实现 Memory / Reflection / Planning</p>
+      <ul>
+        <li><strong>Character Brain</strong>：格局本体论 + 40+ ML 模型编排</li>
+        <li><strong>Contextual Mesh</strong> ★：4th Wall 幻觉抑制 + 关系系统 + 叙事控制</li>
+        <li><strong>Real-Time AI</strong>：C++ 图执行引擎，&lt; 250ms</li>
+        <li><strong>Director Layer</strong> ★：2-5 NPC 群组对话协调</li>
+        <li>成本优化：AI 成本降 90%</li>
+      </ul>
+      <p style="margin-top:12px;font-size:13px;color:var(--muted)">融资 $117M / 估值 $500M</p>
+    </div>
+    <div class="company-card card-charai">
+      <h4 style="color:var(--accent)">路线 B：Character.AI</h4>
+      <span class="tag">C 端社交平台 · 月活 2000 万</span>
+      <p><strong>思路</strong>：把 Memory / Reflection / Planning 全部压进模型权重</p>
+      <ul>
+        <li>记忆 → 滚动窗口 + 摘要 + <strong>Personality Embeddings</strong> ★</li>
+        <li>反思 → 隐含在 RLHF 连续在线优化中</li>
+        <li>规划 → 隐含在 next-token 预测中</li>
+        <li><strong>AvatarFX / TalkingMachines</strong> ★：视频生成 + 实时音频驱动</li>
+      </ul>
+      <p style="margin-top:12px;font-size:13px;color:var(--muted)">$193M + Google $2.7B 许可</p>
+    </div>
+    <div class="company-card card-soul">
+      <h4 style="color:var(--red)">路线 C：Soul Machines</h4>
+      <span class="tag">B2B 企业数字人 · 医疗 / HR / 销售</span>
+      <p><strong>思路</strong>：放弃 LLM 范式，用神经系统模拟替代</p>
+      <ul>
+        <li><strong>Biological AI</strong> ★：感觉/运动/自主神经系统模拟（多巴胺等）</li>
+        <li>自主动画引擎：无需动捕，实时生成面部+肢体</li>
+        <li>核心专利：US Patent 10181213B2</li>
+        <li>ServiceNow 集成，Digital Workforce 平台</li>
+      </ul>
+      <p style="margin-top:12px;font-size:13px;color:var(--red)">2025.02 进入 receivership，$8.9M 年收入</p>
+    </div>
+  </div>
+
+  <h3>三条路线横向对比</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>维度</th><th style="color:var(--green)">Inworld AI</th><th style="color:var(--accent)">Character.AI</th><th style="color:var(--red)">Soul Machines</th></tr></thead>
+      <tbody>
+        <tr><td>记忆</td><td>显式（事件+关系图）</td><td>半显式（摘要+嵌入）</td><td>黑盒（神经激活）</td></tr>
+        <tr><td>反思</td><td>显式（阈值+定时）</td><td>隐含（RLHF）</td><td>隐含（神经前向传播）</td></tr>
+        <tr><td>规划</td><td>显式（递归分解）</td><td>隐含（next-token）</td><td>隐含（神经系统）</td></tr>
+        <tr><td>幻觉控制</td><td>强（Contextual Mesh）</td><td>中（RLHF 约束）</td><td>未验证</td></tr>
+        <tr><td>延迟</td><td>&lt; 250ms</td><td>实时</td><td>&lt; 100ms</td></tr>
+        <tr><td>融资</td><td>$117M / $500M</td><td>$193M + $2.7B</td><td>$70M / 财困</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-key">
+    <strong>核心结论</strong>：显式架构（Inworld）可控性最好，适合精确控制场景；参数化（Character.AI）规模最大但可解释性差；生物学路线（Soul Machines）是另一个维度的尝试，目前商业验证不足。
+  </div>
+</section>
+
+<!-- Part 4 -->
+<section class="section" id="a-part4">
+  <div class="section-header">
+    <span class="section-num">4</span>
+    <h2>落地实践指南</h2>
+  </div>
+
+  <h3>4.1 如果你想动手复现 / 实验</h3>
+  <p><strong>起步推荐：</strong></p>
+  <ol class="steps">
+    <li>先跑通原版代码 → <a href="https://github.com/joonspk-research/generative_agents" target="_blank">joonspk-research/generative_agents</a></li>
+    <li>如果没有 OpenAI API，用 Llama2 复现 → <a href="https://github.com/mikeyang01/stanford_town" target="_blank">mikeyang01/stanford_town</a></li>
+    <li>用 <a href="https://github.com/py499372727/AgentSims" target="_blank">AgentSims</a> 做评测基础设施</li>
+  </ol>
+
+  <div class="callout callout-insight">
+    <strong>第一个改进实验建议</strong>：改记忆检索。原版的三维加权评分是最容易改进的模块——把权重从固定值改为可学习的，或直接用向量数据库（Chroma / Qdrant）替代手工评分，对比改进前后 Agent 行为的合理性。
+  </div>
+
+  <h3>4.2 如果你想做研究方向选择</h3>
+  <p><strong>最有价值的方向</strong>（按投入产出比排序）：</p>
+  <ol class="steps">
+    <li><strong>反思机制改进</strong> — 争议大、进展快、论文好发。重点关注：自我反思局限性（ICLR 2024 必读）、多 Agent 辩论、跨轨迹经验积累（Reflection Bank / 策略池）</li>
+    <li><strong>记忆系统</strong> — 工程味重但影响大。关联记忆网络（A-MEM）和分层记忆（HiAgent）是当前热点</li>
+    <li><strong>大规模仿真</strong> — 如果你有算力。社会科学交叉方向，容易出有影响力的工作</li>
+    <li><strong>具身智能</strong> — 长期方向，门槛高（需要视觉/机器人基础），但天花板也最高</li>
+  </ol>
+
+  <h3>4.3 如果你想做工程落地 / 创业</h3>
+  <ol class="steps">
+    <li><strong>学 Inworld 的架构思路</strong>：显式 Memory / Reflection / Planning 模块 + 幻觉控制层，这是目前工程上最成熟的路线</li>
+    <li><strong>不要忽视延迟</strong>：学术 demo 可以慢慢算，产品必须 &lt; 500ms。Inworld 用 C++ 图执行引擎解决</li>
+    <li><strong>幻觉是最大的工程挑战</strong>：4th Wall 概念（限制 Agent 只知道它该知道的事）是从论文到产品必须解决的第一个问题</li>
+    <li><strong>成本控制</strong>：每次决策都调 LLM，成本会爆炸。参考"40+ 专用小模型编排"思路——不是所有决策都需要大模型</li>
+    <li><strong>多 Agent 协调</strong>：原论文没解决。如果场景需要多 Agent 协作，Director Layer 思路值得借鉴</li>
+  </ol>
+
+  <h3 id="a-reading">4.4 推荐阅读顺序</h3>
+  <p>如果你只有有限时间，按这个优先级读：</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>优先级</th><th>论文</th><th>为什么读</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="star3">★★★</span></td>
+          <td><a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents 原始论文</a></td>
+          <td>你已经读了，再翻一遍代码</td>
+        </tr>
+        <tr>
+          <td><span class="star3">★★★</span></td>
+          <td><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a></td>
+          <td>理解"语言强化学习"这个核心概念</td>
+        </tr>
+        <tr>
+          <td><span class="star3">★★★</span></td>
+          <td><a href="https://arxiv.org/abs/2310.01848" target="_blank">反思局限 ICLR 2024</a></td>
+          <td>理解自我反思为什么不 work，这是分水岭</td>
+        </tr>
+        <tr>
+          <td><span class="star2">★★☆</span></td>
+          <td><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a></td>
+          <td>理解推理+行动交替的范式</td>
+        </tr>
+        <tr>
+          <td><span class="star2">★★☆</span></td>
+          <td><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM</a></td>
+          <td>记忆系统最新进展</td>
+        </tr>
+        <tr>
+          <td><span class="star2">★★☆</span></td>
+          <td><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety</a></td>
+          <td>大规模仿真最新代表作</td>
+        </tr>
+        <tr>
+          <td><span class="star1">★☆☆</span></td>
+          <td><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev</a></td>
+          <td>多 Agent 协作</td>
+        </tr>
+        <tr>
+          <td><span class="star1">★☆☆</span></td>
+          <td><a href="https://arxiv.org/abs/2405.06682" target="_blank">双环元认知 Dual-Loop</a></td>
+          <td>反思的最新形态</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Appendix -->
+<section class="section" id="a-appendix">
+  <div class="section-header">
+    <span class="section-num" style="background:var(--muted)">+</span>
+    <h2>附录：本地参考资料</h2>
+  </div>
+  <p>以下 HTML 文件可在浏览器中打开查看：</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>文件</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>generative-agents-concept-map.html</code></td><td>Mermaid 概念关联图（学术演进 + 商业落地两张图，节点可点击跳转论文）</td></tr>
+        <tr><td><code>papers-table.html</code></td><td>39 篇论文分 17 类的表格（含中文摘要和概念标签）</td></tr>
+        <tr><td><code>reading-list.html</code></td><td>64 张卡片的可筛选书目（颜色分类 + 可点击 URL）</td></tr>
+        <tr><td><code>top15-concepts-graph.html</code></td><td>Top 15 核心概念关联图</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div><!-- .container -->
+
+<div class="global-footer">
+  整理于 2026-04-05，基于 2026-04-03 三次研讨会话的完整记录。
+</div>
+
+</div><!-- #track-a -->
+
+
+<!-- ════════════════════════════════════════════════════════════
+     TRACK B — 多Agent前沿
+     ════════════════════════════════════════════════════════════ -->
+<div id="track-b" class="track-panel">
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#b-thesis">核心论点</a>
+    <a href="#b-t1">一、涌现合作</a>
+    <a href="#b-t2">二、自组织</a>
+    <a href="#b-t3">三、社会规范</a>
+    <a href="#b-t4">四、协议标准</a>
+    <a href="#b-t5">五、评测基准</a>
+    <a href="#b-t6">六、共同进化</a>
+    <a href="#b-map">演进脉络</a>
+    <a href="#b-table">论文总表</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- Thesis -->
+<section class="section" id="b-thesis">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">?</span>
+    <h2>核心论点：Smallville 埋下了什么种子</h2>
+  </div>
+
+  <p>Park et al. 2023 年的论文做了一件看似简单的事：给 25 个 LLM Agent 各自配上记忆、反思、规划三个模块，然后放进一个沙盒小镇里让它们自由运行。论文的核心发现不是这些模块本身，而是<strong>涌现</strong>——Agent 自发组织了情人节派对、建立了社交关系、传播了信息。</p>
+
+  <p>这个发现看上去像一篇 demo 论文，但它实际上提出了一个深刻的问题：</p>
+
+  <div class="callout callout-key">
+    <strong>如果给 LLM Agent 足够的认知架构（记忆+反思+规划）和交互空间，复杂的社会行为是否会自发涌现？涌现的边界在哪里？可以被工程化控制吗？</strong>
+  </div>
+
+  <p>2025-2026 年的多 Agent 论文几乎都在回答这个问题的某个侧面。我把它们归为六个方向：</p>
+
+  <div class="evo">
+    <span class="phase p1">Smallville 2023<br>观察涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p2">博弈论分析<br>解释涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p3">自组织研究<br>量化涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p4">规范与协议<br>约束涌现</span>
+    <span class="arrow">&rarr;</span>
+    <span class="phase p5">共同进化<br>工程化涌现</span>
+  </div>
+</section>
+
+<!-- T1: Emergent Cooperation -->
+<section class="section" id="b-t1">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--blue)">1</span>
+    <h2>涌现合作与博弈论分析</h2>
+  </div>
+
+  <p>Smallville 观察到了涌现的合作行为（派对组织、信息传播），但<strong>没有解释为什么会合作</strong>。2025-2026 年的一批论文用博弈论框架回答了这个问题。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.07360" target="_blank">The Yerkes-Dodson Curve for AI Agents: Emergent Cooperation Under Environmental Pressure</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Stress-Performance Inverted-U</span>
+      <span class="tag tag-k">Environmental Pressure</span>
+      <span class="tag tag-n">Grid-world Survival Arena</span>
+      <span class="tag tag-n">Resource Scarcity</span>
+    </div>
+    <div class="paper-body">
+      <p>首次系统研究 LLM 多 Agent 系统中的<span class="hl">压力-绩效关系</span>。在生存场景中调整环境压力（资源稀缺度），发现合作行为遵循<span class="hl">倒 U 形曲线</span>：中等压力下交易互动最多（29 次），压力过低（无需合作）或过高（忙于生存）都会降低合作。</p>
+    </div>
+    <div class="sv-link">Smallville 的环境压力接近零（和平小镇），所以观察到的合作是"社交驱动"的。这篇论文揭示了另一种合作来源——<strong>生存压力驱动</strong>。暗示 Smallville 如果加入资源竞争，涌现行为可能完全不同。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2512.07462" target="_blank">Understanding LLM Agent Behaviours via Game Theory: Strategy Recognition, Biases and Multi-Agent Dynamics</a></div>
+    <div class="paper-venue"><span class="yr">2025.12</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Prisoner's Dilemma</span>
+      <span class="tag tag-k">Public Goods Game</span>
+      <span class="tag tag-n">End-game Defection</span>
+      <span class="tag tag-n">Cross-linguistic Divergence</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">囚徒困境</span>和<span class="hl">公共品博弈</span>系统评估 LLM Agent 的策略行为。关键发现：(1) 所有模型在终局都趋向背叛；(2) <span class="hl">不同语言</span>下 Agent 策略显著不同（文化偏差嵌入在训练数据中）；(3) 激励强度影响合作意愿。</p>
+    </div>
+    <div class="sv-link">Smallville 的 Agent 全部使用英语、同一个 LLM（ChatGPT）。这篇论文表明如果用不同语言/不同模型初始化 Agent，<strong>涌现出的社会结构可能截然不同</strong>——这是 Smallville 未曾探索的维度。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2604.00487" target="_blank">Competition and Cooperation of LLM Agents in Games</a></div>
+    <div class="paper-venue"><span class="yr">2026.04</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Multi-round Cooperation</span>
+      <span class="tag tag-n">Fairness Reasoning</span>
+      <span class="tag tag-n">Non-zero-sum Context</span>
+    </div>
+    <div class="paper-body">
+      <p>发现 LLM Agent 在<span class="hl">多轮非零和博弈</span>中倾向合作，且<span class="hl">公平推理</span>是驱动合作的核心机制——Agent 不是因为"利益最大化"合作，而是因为"觉得应该公平"。</p>
+    </div>
+    <div class="sv-link">这解释了 Smallville 中为什么 Agent 会"邀请所有人"参加派对而不是只邀请亲密朋友——LLM 内置的<strong>公平偏好</strong>驱动了包容性的社交行为。这不是"涌现"，而是<strong>训练数据中的价值观泄漏</strong>。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2501.16173" target="_blank">Will Systems of LLM Agents Cooperate: An Investigation into a Social Dilemma</a></div>
+    <div class="paper-venue"><span class="yr">2025.01</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Evolutionary Game Theory</span>
+      <span class="tag tag-n">Strategic Dispositions</span>
+      <span class="tag tag-n">Population Dynamics</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">演化博弈论</span>模拟 LLM Agent 群体的策略演化。不同 LLM 表现出不同的策略偏好——有的偏攻击性，有的偏合作。群体中策略的成功取决于<span class="hl">群体组成而非个体能力</span>。</p>
+    </div>
+    <div class="sv-link">Smallville 用同一个模型，所以所有 Agent 的"性格底色"相同。这篇论文指出：如果用<strong>异构模型</strong>构建 Agent 社会，群体动态会更丰富——这是 AgentSociety 等后续工作已经在做的事。</div>
+  </div>
+</section>
+
+<!-- T2: Self-Organization -->
+<section class="section" id="b-t2">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--green)">2</span>
+    <h2>自组织与涌现分工</h2>
+  </div>
+
+  <p>Smallville 预设了每个 Agent 的角色（药剂师、教授、学生）。但如果<strong>不预设角色</strong>，Agent 能自发分工吗？这是 2025-2026 年最重要的发现之一。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy and Roles: How Self-Organizing LLM Agents Outperform Designed Structures</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Endogeneity Paradox</span>
+      <span class="tag tag-k">Emergent Specialization</span>
+      <span class="tag tag-k">25,000 Task Runs</span>
+      <span class="tag tag-n">4-256 Agents</span>
+      <span class="tag tag-n">5,006 Unique Roles</span>
+    </div>
+    <div class="paper-body">
+      <p><strong>本领域最重要的实证论文之一。</strong>超过 <span class="hl">25,000 次任务运行</span>，跨 8 个模型、4-256 个 Agent、8 种协议。核心发现——<span class="hl">内生性悖论</span>：最优协调不来自最大控制，也不来自最大自治，而来自<span class="hl">最小结构脚手架 + 完全角色自治</span>的混合体。</p>
+      <p>8 个 Agent 自发产生了 <span class="hl">5,006 个独特角色</span>。系统可以<span class="hl">亚线性扩展到 256 个 Agent</span> 而质量不下降。</p>
+    </div>
+    <div class="sv-link">这篇论文直接挑战了 Smallville 的设计：Park 为每个 Agent 预设了身份和人设（"Isabella 是咖啡店老板"），但这可能是<strong>多余的</strong>。给 Agent 最小的结构约束，让它们自己决定"我是谁"，产出反而更好。这意味着 Smallville 的"角色预设"可能限制了涌现的潜力。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2510.05174" target="_blank">Emergent Coordination in Multi-Agent Language Models</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv (updated 2026.03)</div>
+    <div class="tags">
+      <span class="tag tag-k">Dynamical Emergence</span>
+      <span class="tag tag-n">Cross-agent Synergy</span>
+      <span class="tag tag-n">Prompt Steering</span>
+    </div>
+    <div class="paper-body">
+      <p>测量多 Agent LLM 系统中是否存在<span class="hl">动态涌现</span>（而不仅是统计巧合）。通过 Prompt 设计，可以将 Agent 从"独立个体"引导为"高阶集体"。区分了<span class="hl">虚假的时序耦合</span>和<span class="hl">真正的跨 Agent 协同</span>。</p>
+    </div>
+    <div class="sv-link">Smallville 声称观察到了"涌现"，但没有严格区分这是真正的跨 Agent 协同还是各自独立决策恰好看起来协调。这篇论文提供了<strong>科学验证涌现</strong>的方法论——Smallville 的后续研究需要这种严谨性。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2604.01020" target="_blank">OrgAgent: Organize Your Multi-Agent System like a Company</a></div>
+    <div class="paper-venue"><span class="yr">2026.04</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Organizational Structure</span>
+      <span class="tag tag-n">Company Metaphor</span>
+      <span class="tag tag-n">Structural Forms</span>
+    </div>
+    <div class="paper-body">
+      <p>将<span class="hl">组织管理学</span>引入多 Agent 系统：不同组织结构（扁平/层级/矩阵）如何影响 Agent 的协调效率和专业化程度。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是扁平结构，没有层级。这篇论文提示：如果引入<strong>组织结构</strong>（比如让某个 Agent 成为"镇长"），可能会产生完全不同的社会动态。</div>
+  </div>
+</section>
+
+<!-- T3: Social Norms -->
+<section class="section" id="b-t3">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--pink)">3</span>
+    <h2>社会规范与集体智能</h2>
+  </div>
+
+  <p>Smallville 的 Agent 没有显式的"社会规范"——它们的行为完全由个体的记忆/反思/规划驱动。但在更大规模的仿真中，<strong>规范会自发形成吗？</strong></p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2510.14401" target="_blank">The Role of Social Learning and Collective Norm Formation in Fostering Cooperation in LLM Multi-Agent Systems</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Social Learning</span>
+      <span class="tag tag-k">Collective Norm Formation</span>
+      <span class="tag tag-n">Normative Reasoning</span>
+    </div>
+    <div class="paper-body">
+      <p>研究 LLM Agent 能否通过<span class="hl">社会学习</span>形成集体规范。在虚拟社会和博弈论环境中，Agent 通过观察他人行为逐渐形成<span class="hl">共享的行为规范</span>，且这些规范反过来促进合作。</p>
+    </div>
+    <div class="sv-link">Smallville 中 Agent 的"规范"其实是 Prompt 预设的（"你是一个友善的人"）。这篇论文展示了规范可以从<strong>底层交互中自发涌现</strong>——这是比 Smallville 更深层次的涌现。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2512.10665" target="_blank">On the Dynamics of Multi-Agent LLM Communities Driven by Value Diversity</a></div>
+    <div class="paper-venue"><span class="yr">2025.12</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Value Diversity</span>
+      <span class="tag tag-k">Heterogeneous > Homogeneous</span>
+      <span class="tag tag-n">Collective Intelligence</span>
+    </div>
+    <div class="paper-body">
+      <p>关键发现：<span class="hl">价值观异质的 Agent 群体</span>在集体智能上显著优于同质群体。多样性带来更多涌现性问题解决和规范发展。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 由同一个 LLM 驱动，本质上是<strong>价值观同质</strong>的（都继承了 ChatGPT 的价值取向）。这篇论文暗示：Smallville 如果用不同价值观的模型驱动不同 Agent，涌现的社会结构会更丰富、更接近真实社会。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2506.01839v1" target="_blank">Beyond Static Responses: Multi-Agent LLM Systems as a New Paradigm for Social Science Research</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Complex Adaptive Systems</span>
+      <span class="tag tag-k">Artificial Leviathan</span>
+      <span class="tag tag-n">Cultural Evolution</span>
+      <span class="tag tag-n">Institutional Change</span>
+    </div>
+    <div class="paper-body">
+      <p>提出多 Agent LLM 系统作为社会科学研究的新范式。最高级别（Level 5）是<span class="hl">复杂自适应系统</span>：自组织、规范形成、系统性适应。<span class="hl">Artificial Leviathan</span> 框架探索合作规范和治理结构的涌现——Agent 从竞争逐渐演化为有组织的合作社会。</p>
+    </div>
+    <div class="sv-link">这篇论文将 Smallville 定位为 Level 2-3 的工作（单环境多 Agent 交互），并指出了通向 Level 5（文化演化、制度变迁）的路径。Smallville 是<strong>起点</strong>，不是终点。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2506.06366" target="_blank">AI Agent Behavioral Science</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Agent Behavioral Science</span>
+      <span class="tag tag-n">Cognitive Biases in LLM Agents</span>
+    </div>
+    <div class="paper-body">
+      <p>提出将<span class="hl">行为科学</span>方法系统应用于 AI Agent 研究：量化 Agent 的认知偏差、社会偏好、决策模式。</p>
+    </div>
+    <div class="sv-link">Smallville 的评估主要靠人类评审打分（"这个行为看起来像人吗"）。这篇论文提供了<strong>科学的评估框架</strong>，可以定量分析 Smallville Agent 的认知偏差和社会偏好。</div>
+  </div>
+</section>
+
+<!-- T4: Protocols -->
+<section class="section" id="b-t4">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--orange)">4</span>
+    <h2>通信协议与编排标准</h2>
+  </div>
+
+  <p>Smallville 的 Agent 通过自然语言对话交互，没有结构化的通信协议。当 Agent 数量从 25 扩展到 10,000+，这种方式无法持续。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2601.13671" target="_blank">The Orchestration of Multi-Agent Systems: Architectures, Protocols, and Enterprise Adoption</a></div>
+    <div class="paper-venue"><span class="yr">2026.01</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">MCP / A2A / ACP / ANP</span>
+      <span class="tag tag-k">Enterprise Orchestration</span>
+      <span class="tag tag-n">Architecture Taxonomy</span>
+    </div>
+    <div class="paper-body">
+      <p>系统梳理多 Agent 编排的<span class="hl">架构、协议和企业落地</span>。覆盖 MCP（Anthropic）、A2A（Google）、ACP、ANP 等标准，以及 SAFEFLOW 等安全增强框架。</p>
+    </div>
+    <div class="sv-link">Smallville 的通信是"两个 Agent 碰面就聊天"，这种设计无法工程化。本文梳理的协议栈是从 Smallville 走向<strong>生产级多 Agent 系统</strong>的必经之路。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2506.12508" target="_blank">AgentOrchestra: Orchestrating Hierarchical Multi-Agent Intelligence with the TEA Protocol</a></div>
+    <div class="paper-venue"><span class="yr">2025.06</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">TEA Protocol</span>
+      <span class="tag tag-n">Tool-Environment-Agent</span>
+      <span class="tag tag-n">Hierarchical Orchestration</span>
+    </div>
+    <div class="paper-body">
+      <p>提出 <span class="hl">TEA（Tool-Environment-Agent）</span>协议，将工具、环境和 Agent 三者的关系标准化，实现层级式多 Agent 编排。</p>
+    </div>
+    <div class="sv-link">Smallville 的沙盒环境是硬编码的 Phaser.js 游戏地图。TEA 协议提供了一种<strong>通用方式</strong>来定义 Agent-环境交互，使 Smallville 式的仿真可以在任意环境中运行。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.08616" target="_blank">AgentsNet: Coordination and Collaborative Reasoning in Multi-Agent LLMs</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">100 Agents Scaling</span>
+      <span class="tag tag-n">Collaborative Reasoning</span>
+    </div>
+    <div class="paper-body">
+      <p>可扩展到 <span class="hl">100 个 Agent</span> 的协调推理框架，且能随 LLM 新一代模型升级而提升。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是硬上限。AgentsNet 展示了在保持协调质量的前提下<strong>扩展 Agent 数量</strong>的工程路径。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/html/2602.08009" target="_blank">Towards Adaptive, Scalable, and Robust Coordination: A Dynamic Ad-Hoc Networking Perspective</a></div>
+    <div class="paper-venue"><span class="yr">2026.02</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Ad-Hoc Networking</span>
+      <span class="tag tag-n">Dynamic Topology</span>
+      <span class="tag tag-n">Adaptive Coordination</span>
+    </div>
+    <div class="paper-body">
+      <p>借鉴<span class="hl">移动自组网（MANET）</span>的思想：Agent 动态加入/退出，网络拓扑实时变化，协调机制自适应。</p>
+    </div>
+    <div class="sv-link">Smallville 的 25 个 Agent 是静态集合，不会有人"搬走"或"新搬来"。现实社会是流动的——这篇论文解决了<strong>动态社会</strong>的工程基础。</div>
+  </div>
+</section>
+
+<!-- T5: Benchmarks -->
+<section class="section" id="b-t5">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--yellow)">5</span>
+    <h2>多 Agent 评测基准</h2>
+  </div>
+
+  <p>Smallville 的评估方式是让人类评审判断 Agent 行为"是否像人"——这太主观了。新的评测基准试图让评估变得科学。</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2503.01935" target="_blank">MultiAgentBench (MARBLE): Evaluating the Collaboration and Competition of LLM Agents</a></div>
+    <div class="paper-venue"><span class="yr">2025.03</span> &middot; ACL 2025</div>
+    <div class="tags">
+      <span class="tag tag-k">Milestone-based KPI</span>
+      <span class="tag tag-k">Collaboration + Competition</span>
+      <span class="tag tag-n">Star/Chain/Tree/Graph Topologies</span>
+      <span class="tag tag-n">Cognitive Planning</span>
+    </div>
+    <div class="paper-body">
+      <p>首个系统评测多 Agent 协作与竞争的基准。使用<span class="hl">里程碑式 KPI</span>（而非仅任务完成率）评估协作质量。测试了 star/chain/tree/graph 四种拓扑和认知规划等策略。发现 <span class="hl">graph 结构最优</span>，认知规划提升里程碑达成率 3%。</p>
+    </div>
+    <div class="sv-link">Smallville 没有结构化评测——只知道"Agent 办了派对"但不知道协作效率如何。MARBLE 提供了<strong>量化多 Agent 协作质量</strong>的标准方法，可以回答"25 个 Agent 的协作到底有多好"。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.21504" target="_blank">Evaluation and Benchmarking of LLM Agents: A Survey</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-n">Agent Evaluation Taxonomy</span>
+      <span class="tag tag-n">Multi-Agent Metrics</span>
+    </div>
+    <div class="paper-body">
+      <p>Agent 评测方法的综述：单 Agent 能力评测、多 Agent 协作评测、端到端任务评测三个层次。</p>
+    </div>
+    <div class="sv-link">为 Smallville 类系统的评估提供了<strong>方法论框架</strong>。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2508.04652" target="_blank">LLM Collaboration With Multi-Agent Reinforcement Learning</a></div>
+    <div class="paper-venue"><span class="yr">2025.08</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">MAGRPO</span>
+      <span class="tag tag-k">Emergent Cooperation Schemes</span>
+      <span class="tag tag-n">Multi-Agent RL Fine-tuning</span>
+    </div>
+    <div class="paper-body">
+      <p>用<span class="hl">多 Agent 强化学习（MAGRPO）</span>微调 LLM，使 Agent 在最小约束下<span class="hl">自发涌现多样的合作方案</span>。不预设合作模式，让 RL 训练自动发现最优协作策略。</p>
+    </div>
+    <div class="sv-link">Smallville 的合作完全靠 Prompt + 记忆/反思驱动（零训练）。这篇论文展示了用<strong>RL 训练</strong>可以让合作更高效——这是 Smallville 架构的一个自然升级方向。</div>
+  </div>
+</section>
+
+<!-- T6: Co-evolution -->
+<section class="section" id="b-t6">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent)">6</span>
+    <h2>共同进化与自我改进</h2>
+  </div>
+
+  <p>Smallville 的 Agent 不会"变聪明"——运行 100 天后，它们的认知能力和第 1 天完全一样（LLM 参数没变）。但如果 Agent 能在交互中<strong>进化</strong>呢？</p>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2510.23595" target="_blank">Multi-Agent Evolve (MAE): LLM Self-Improve through Multi-Agent Co-evolution</a></div>
+    <div class="paper-venue"><span class="yr">2025.10</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">Self-Play Co-evolution</span>
+      <span class="tag tag-k">Judge-based Evaluation</span>
+      <span class="tag tag-n">General Domain Applicable</span>
+    </div>
+    <div class="paper-body">
+      <p>将<span class="hl">Self-Play 范式</span>扩展到通用领域：多个 Agent 互相对抗/协作，引入 Judge 评估（不再要求零和博弈），Agent 在交互中<span class="hl">共同进化</span>，能力持续提升。</p>
+    </div>
+    <div class="sv-link">Smallville 的 Agent 是静态的认知体——它们积累记忆但不提升能力。MAE 提出的共同进化机制如果嵌入 Smallville，Agent 可以在社交互动中<strong>变得越来越善于社交</strong>——这才是真正的"模拟人类成长"。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2507.21046" target="_blank">A Survey of Self-Evolving Agents: What, When, How, and Where to Evolve</a></div>
+    <div class="paper-venue"><span class="yr">2025.07</span> &middot; arXiv (updated 2026.01)</div>
+    <div class="tags">
+      <span class="tag tag-k">Self-Evolving Agent Taxonomy</span>
+      <span class="tag tag-n">Lifelong Agentic Systems</span>
+      <span class="tag tag-n">Path to ASI</span>
+    </div>
+    <div class="paper-body">
+      <p>LLM 本质上是<span class="hl">静态的</span>——无法适应新任务、演化知识或动态交互。这篇综述系统梳理了让 Agent <span class="hl">自我进化</span>的路径：什么时候进化、怎么进化、在哪里进化。</p>
+    </div>
+    <div class="sv-link">这篇综述把 Smallville 定位为"静态 Agent 在动态环境中运行"的经典案例，并指出了下一步：<strong>Agent 本身也必须进化</strong>。Voyager（技能库增长）是一个方向，MAE（参数进化）是另一个。</div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-title"><a href="https://arxiv.org/abs/2603.23875" target="_blank">Self-Evolving Multi-Agent Framework for Efficient Decision Making in Real-Time Strategy Scenarios</a></div>
+    <div class="paper-venue"><span class="yr">2026.03</span> &middot; arXiv</div>
+    <div class="tags">
+      <span class="tag tag-k">RTS Self-Evolution</span>
+      <span class="tag tag-n">Strategy Adaptation</span>
+    </div>
+    <div class="paper-body">
+      <p>在即时战略（RTS）场景中，多 Agent <span class="hl">自我进化</span>决策框架：Agent 通过对局经验自动调整策略，适应对手变化。</p>
+    </div>
+    <div class="sv-link">如果 Smallville 加入竞争要素（资源争夺、社会地位），Agent 是否也能自我进化出更复杂的社会策略？这篇论文在游戏领域验证了可行性。</div>
+  </div>
+</section>
+
+<!-- Evolution Map -->
+<section class="section" id="b-map">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">!</span>
+    <h2>从 Smallville 到多 Agent 前沿：演进脉络</h2>
+  </div>
+
+  <div class="callout callout-insight">
+    <p><strong>Smallville 的五个"未回答的问题"，以及这些论文如何回答它们：</strong></p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Smallville 的局限</th>
+          <th style="width:30%">2025-2026 的回答</th>
+          <th>代表论文</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>为什么合作？</strong><br>只观察到涌现，没解释机制</td>
+          <td>LLM 内置的<strong>公平偏好</strong>驱动合作；压力水平决定合作程度；不同模型/语言有不同策略倾向</td>
+          <td>Yerkes-Dodson Curve, Game Theory Analysis, Competition & Cooperation</td>
+        </tr>
+        <tr>
+          <td><strong>角色必须预设吗？</strong><br>25 个 Agent 都有固定人设</td>
+          <td><strong>不必要</strong>。最小结构 + 完全角色自治产出更好。8 个 Agent 自发产生 5,006 个角色</td>
+          <td>Drop the Hierarchy, Emergent Coordination</td>
+        </tr>
+        <tr>
+          <td><strong>规范从哪来？</strong><br>Agent 的"礼貌/友善"来自 Prompt</td>
+          <td>规范可以从<strong>底层交互中自发涌现</strong>；价值观多样性的群体涌现更丰富的规范</td>
+          <td>Social Learning & Norm Formation, Value Diversity</td>
+        </tr>
+        <tr>
+          <td><strong>25 个够吗？</strong><br>沙盒规模太小</td>
+          <td>可亚线性扩展到 256 Agent（Drop the Hierarchy）、100 Agent 协调推理（AgentsNet），以及标准化协议支持万级（MCP/A2A）</td>
+          <td>AgentsNet, Orchestration Survey, Ad-Hoc Networking</td>
+        </tr>
+        <tr>
+          <td><strong>Agent 会成长吗？</strong><br>记忆增长但能力不变</td>
+          <td>多 Agent 共同进化可以<strong>持续提升能力</strong>；Self-Play + Judge 评估使进化不限于零和场景</td>
+          <td>Multi-Agent Evolve, Self-Evolving Agents Survey</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>一个更深层的洞察：</strong>Smallville 的"涌现"可能有很大一部分不是真正的涌现，而是 LLM 训练数据中人类社会行为模式的<strong>重放</strong>。Emergent Coordination 论文提供了区分"真涌现"和"伪涌现"的方法；Game Theory 系列论文则证明 LLM 内置了特定的策略偏好（如公平偏好、终局背叛）。这意味着 Smallville 观察到的社会行为，部分是<strong>设计的产物</strong>（记忆+反思+规划），部分是<strong>训练数据的泄漏</strong>（LLM 的内置偏好）。未来的多 Agent 研究需要严格区分这两者。
+  </div>
+</section>
+
+<!-- Paper Table -->
+<section class="section" id="b-table">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--muted)">+</span>
+    <h2>论文总表</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>论文</th><th>方向</th><th>年份</th><th>核心发现</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://arxiv.org/abs/2603.07360" target="_blank">Yerkes-Dodson Curve for AI Agents</a></td><td>涌现合作</td><td>2026.03</td><td>合作遵循倒 U 形压力曲线</td></tr>
+        <tr><td>2</td><td><a href="https://arxiv.org/abs/2512.07462" target="_blank">LLM Agent Behaviours via Game Theory</a></td><td>涌现合作</td><td>2025.12</td><td>跨语言策略差异、终局背叛</td></tr>
+        <tr><td>3</td><td><a href="https://arxiv.org/abs/2604.00487" target="_blank">Competition & Cooperation in Games</a></td><td>涌现合作</td><td>2026.04</td><td>公平推理驱动合作</td></tr>
+        <tr><td>4</td><td><a href="https://arxiv.org/abs/2501.16173" target="_blank">Will LLM Agents Cooperate</a></td><td>涌现合作</td><td>2025.01</td><td>演化博弈论分析策略偏好</td></tr>
+        <tr><td>5</td><td><a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy and Roles</a></td><td>自组织</td><td>2026.03</td><td>内生性悖论，5006 个自发角色</td></tr>
+        <tr><td>6</td><td><a href="https://arxiv.org/abs/2510.05174" target="_blank">Emergent Coordination in Multi-Agent LMs</a></td><td>自组织</td><td>2025.10</td><td>区分真涌现与伪涌现</td></tr>
+        <tr><td>7</td><td><a href="https://arxiv.org/abs/2604.01020" target="_blank">OrgAgent</a></td><td>自组织</td><td>2026.04</td><td>组织管理学引入 Agent 系统</td></tr>
+        <tr><td>8</td><td><a href="https://arxiv.org/html/2510.14401" target="_blank">Social Learning & Norm Formation</a></td><td>社会规范</td><td>2025.10</td><td>集体规范从交互中涌现</td></tr>
+        <tr><td>9</td><td><a href="https://arxiv.org/abs/2512.10665" target="_blank">Value Diversity in LLM Communities</a></td><td>社会规范</td><td>2025.12</td><td>异质群体 > 同质群体</td></tr>
+        <tr><td>10</td><td><a href="https://arxiv.org/html/2506.01839v1" target="_blank">Multi-Agent LLM as Social Science Paradigm</a></td><td>社会规范</td><td>2025.06</td><td>L5 复杂自适应系统，Artificial Leviathan</td></tr>
+        <tr><td>11</td><td><a href="https://arxiv.org/abs/2506.06366" target="_blank">AI Agent Behavioral Science</a></td><td>社会规范</td><td>2025.06</td><td>行为科学方法评估 Agent</td></tr>
+        <tr><td>12</td><td><a href="https://arxiv.org/abs/2601.13671" target="_blank">Orchestration of Multi-Agent Systems</a></td><td>协议标准</td><td>2026.01</td><td>MCP/A2A/ACP/ANP 协议全景</td></tr>
+        <tr><td>13</td><td><a href="https://arxiv.org/abs/2506.12508" target="_blank">AgentOrchestra (TEA Protocol)</a></td><td>协议标准</td><td>2025.06</td><td>Tool-Environment-Agent 协议</td></tr>
+        <tr><td>14</td><td><a href="https://arxiv.org/abs/2507.08616" target="_blank">AgentsNet</a></td><td>协议标准</td><td>2025.07</td><td>100 Agent 协调推理</td></tr>
+        <tr><td>15</td><td><a href="https://arxiv.org/html/2602.08009" target="_blank">Dynamic Ad-Hoc Networking for Agents</a></td><td>协议标准</td><td>2026.02</td><td>Agent 动态拓扑自组网</td></tr>
+        <tr><td>16</td><td><a href="https://arxiv.org/abs/2503.01935" target="_blank">MultiAgentBench (MARBLE)</a></td><td>评测基准</td><td>2025.03</td><td>里程碑式 KPI，graph 拓扑最优</td></tr>
+        <tr><td>17</td><td><a href="https://arxiv.org/abs/2507.21504" target="_blank">Evaluation & Benchmarking of LLM Agents</a></td><td>评测基准</td><td>2025.07</td><td>Agent 评测方法论综述</td></tr>
+        <tr><td>18</td><td><a href="https://arxiv.org/abs/2508.04652" target="_blank">LLM Collaboration with MARL (MAGRPO)</a></td><td>评测基准</td><td>2025.08</td><td>RL 微调涌现合作方案</td></tr>
+        <tr><td>19</td><td><a href="https://arxiv.org/abs/2510.23595" target="_blank">Multi-Agent Evolve (MAE)</a></td><td>共同进化</td><td>2025.10</td><td>Self-Play + Judge 共同进化</td></tr>
+        <tr><td>20</td><td><a href="https://arxiv.org/abs/2507.21046" target="_blank">Self-Evolving Agents Survey</a></td><td>共同进化</td><td>2025.07</td><td>自我进化路径综述</td></tr>
+        <tr><td>21</td><td><a href="https://arxiv.org/abs/2603.23875" target="_blank">Self-Evolving Multi-Agent for RTS</a></td><td>共同进化</td><td>2026.03</td><td>RTS 场景策略自进化</td></tr>
+        <tr><td>22</td><td><a href="https://arxiv.org/abs/2501.06322" target="_blank">Multi-Agent Collaboration Mechanisms Survey</a></td><td>综述</td><td>2025.01</td><td>协作维度分类框架</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div><!-- .container -->
+
+<div class="global-footer">
+  共 22 篇论文，覆盖 6 大方向 | 整理于 2026-04-05<br>
+  所有论文均分析了与 Stanford Generative Agents (2023) 的关联
+</div>
+
+</div><!-- #track-b -->
+
+
+<!-- ════════════════════════════════════════════════════════════
+     TRACK C — MetaGPT vs ChatDev
+     ════════════════════════════════════════════════════════════ -->
+<div id="track-c" class="track-panel">
+
+<header>
+  <h1>MetaGPT vs ChatDev 对比报告</h1>
+  <p class="subtitle">多智能体协作软件开发框架 &middot; 从 Generative Agents 规划模块到自主软件工程 &middot; 2026-04-07</p>
+  <div class="badge-row">
+    <span class="badge meta">MetaGPT &middot; ICLR 2024</span>
+    <span class="badge chat">ChatDev &middot; ACL 2024</span>
+  </div>
+</header>
+
+<nav class="c-nav">
+  <a href="#c-overview">概览</a>
+  <a href="#c-roles">角色设定</a>
+  <a href="#c-workflow">工作流程</a>
+  <a href="#c-innovation">核心创新</a>
+  <a href="#c-comparison">对比总表</a>
+  <a href="#c-results">实验成果</a>
+  <a href="#c-limits">局限性</a>
+  <a href="#c-verdict">总结</a>
+</nav>
+
+<div class="c-container">
+
+<!-- 1. 概览 -->
+<section id="c-overview">
+  <h2>1. 概览</h2>
+  <div class="duo">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT</h3>
+      <p class="pub">arXiv:2308.00352 &middot; Hong et al. &middot; ICLR 2024</p>
+      <p>将人类软件公司的<strong>标准操作流程（SOP）</strong>编码进多智能体系统。核心理念：智能体之间传递<strong>结构化工件</strong>（需求文档、接口定义、设计图），而非自由文本聊天，从而遏制级联幻觉的传播。</p>
+      <ul>
+        <li>灵感来源：真实软件公司的瀑布式开发流程</li>
+        <li>驱动方式：<strong>SOP + 结构化文档</strong></li>
+        <li>核心问题：解决多 LLM 串联时的级联幻觉（cascading hallucinations）</li>
+      </ul>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev</h3>
+      <p class="pub">arXiv:2307.07924 &middot; Qian et al. &middot; ACL 2024</p>
+      <p>用<strong>自然语言对话</strong>作为多智能体协作的统一桥梁，构建虚拟软件公司。核心理念：将开发流程分解为<strong>原子级对话节点</strong>，每个节点由两个角色通过多轮讨论完成。</p>
+      <ul>
+        <li>灵感来源：人类团队的沟通协作模式</li>
+        <li>驱动方式：<strong>聊天链（Chat Chain）</strong></li>
+        <li>核心问题：用沟通消除歧义，降低软件开发门槛</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 角色设定 -->
+<section id="c-roles">
+  <h2>2. 角色设定</h2>
+  <div class="duo">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT 角色</h3>
+      <table class="role-table">
+        <thead><tr><th></th><th>角色</th><th>职责 &amp; 产出</th></tr></thead>
+        <tbody>
+          <tr><td class="role-icon">📋</td><td>产品经理</td><td>需求分析 → 产品需求文档（PRD）、用户故事</td></tr>
+          <tr><td class="role-icon">🏗️</td><td>架构师</td><td>系统设计 → 文件列表、数据结构、接口定义</td></tr>
+          <tr><td class="role-icon">📊</td><td>项目经理</td><td>任务分配 → 拆分为可执行工单</td></tr>
+          <tr><td class="role-icon">💻</td><td>工程师</td><td>编码实现 → 类与函数代码</td></tr>
+          <tr><td class="role-icon">🧪</td><td>QA 工程师</td><td>测试验证 → 测试用例与质量报告</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev 角色</h3>
+      <table class="role-table">
+        <thead><tr><th></th><th>角色</th><th>职责 &amp; 产出</th></tr></thead>
+        <tbody>
+          <tr><td class="role-icon">👔</td><td>CEO</td><td>总体决策，发起需求</td></tr>
+          <tr><td class="role-icon">🔧</td><td>CTO</td><td>技术方向，语言与架构选型</td></tr>
+          <tr><td class="role-icon">💻</td><td>程序员</td><td>代码编写与功能实现</td></tr>
+          <tr><td class="role-icon">🎨</td><td>设计师</td><td>UI/UX 设计，交互优化</td></tr>
+          <tr><td class="role-icon">🧪</td><td>测试员</td><td>软件测试，Bug 报告</td></tr>
+          <tr><td class="role-icon">🔍</td><td>审查员</td><td>代码审查，质量把关</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 工作流程 -->
+<section id="c-workflow">
+  <h2>3. 工作流程</h2>
+
+  <div class="card meta" style="margin-bottom:20px">
+    <h3 class="meta-title">MetaGPT — SOP 驱动流水线</h3>
+    <p style="font-size:13px;color:#cbd5e1;margin-bottom:12px">严格的瀑布模型，每个阶段产出标准化工件后交给下一阶段。所有工件存入<strong>共享环境（Global Message Board）</strong>供全员访问。</p>
+    <div class="flow-c">
+      <span class="flow-step meta-s">需求分析<br><small>PRD</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step meta-s">系统设计<br><small>接口 &amp; 数据结构</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step meta-s">任务分配<br><small>工单拆分</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step meta-s">编码实现<br><small>代码 &amp; 执行反馈</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step meta-s">测试验证<br><small>用例 &amp; 报告</small></span>
+    </div>
+  </div>
+
+  <div class="card chat">
+    <h3 class="chat-title">ChatDev — 聊天链驱动对话</h3>
+    <p style="font-size:13px;color:#cbd5e1;margin-bottom:12px">四阶段瀑布流程，每个阶段通过<strong>聊天链（Chat Chain）</strong>分解为原子级子任务。每个原子节点由两个角色进行多轮对话直至达成共识。</p>
+    <div class="flow-c">
+      <span class="flow-step chat-s">设计<br><small>模态 &amp; 语言决策</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step chat-s">编码<br><small>实现 &amp; 审查</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step chat-s">测试<br><small>执行 &amp; 修复</small></span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step chat-s">文档<br><small>手册 &amp; 配置</small></span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px">每个流程步骤内部：CEO↔CTO 讨论决策 → CTO↔程序员 对话编码 → 程序员↔测试员 交互修复 → ...</p>
+  </div>
+</section>
+
+<!-- 4. 核心创新 -->
+<section id="c-innovation">
+  <h2>4. 核心创新机制</h2>
+  <div class="duo">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT 创新点</h3>
+      <ul>
+        <li><strong>SOP 编码：</strong>首次将标准操作流程系统性地嵌入 LLM 多智能体提示词，使协作有章可循</li>
+        <li><strong>结构化中间产物：</strong>智能体间传递规范化文档（PRD、API 规范、UML），而非自由文本，有效遏制幻觉在链条中逐级放大</li>
+        <li><strong>共享环境（Shared Environment）：</strong>全局消息看板，所有智能体可发布和订阅信息，实现去中心化协调</li>
+        <li><strong>可执行反馈（Executive Feedback）：</strong>运行时自动执行和调试代码，用实际输出纠正幻觉</li>
+      </ul>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev 创新点</h3>
+      <ul>
+        <li><strong>聊天链（Chat Chain）：</strong>首创将开发流程分解为原子级对话节点，粒度更细、可控性更强</li>
+        <li><strong>Inception Prompting：</strong>自动化互相引导机制，有效防止角色翻转（role flipping）和指令重复</li>
+        <li><strong>沟通去幻觉（Communicative Dehallucination）：</strong>智能体在回答前主动请求更多细节，减少代码幻觉（不完整函数、缺失依赖）</li>
+        <li><strong>双语言协作：</strong>设计阶段使用自然语言讨论，编码阶段切换到编程语言，充分发挥各自优势</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="insight">
+    <p><strong>关键区别：</strong>MetaGPT 依靠<strong>工件规范</strong>约束协作——"你必须按这个格式交付"；ChatDev 依靠<strong>对话协商</strong>约束协作——"我们聊到一致再动手"。前者更像制造业流水线，后者更像敏捷站会。</p>
+  </div>
+</section>
+
+<!-- 5. 对比总表 -->
+<section id="c-comparison">
+  <h2>5. 全维度对比</h2>
+  <div class="cmp-table-wrap">
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>MetaGPT</th>
+          <th>ChatDev</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>发表会议</td><td>ICLR 2024</td><td>ACL 2024</td></tr>
+        <tr><td>核心理念</td><td>SOP + 结构化工件驱动</td><td>自然语言对话链驱动</td></tr>
+        <tr><td>角色数量</td><td>5 个（产品经理→QA）</td><td>6 个（CEO→审查员）</td></tr>
+        <tr><td>通信协议</td><td>结构化文档 + 共享环境发布/订阅</td><td>聊天链中的原子级多轮对话</td></tr>
+        <tr><td>幻觉抑制</td><td>结构化工件约束 + 代码执行反馈</td><td>沟通去幻觉 + Inception Prompting</td></tr>
+        <tr><td>流程模型</td><td>瀑布式流水线</td><td>瀑布式 + 聊天链原子分解</td></tr>
+        <tr><td>代码生成量</td><td><span class="metric blue">更大</span> — 产出代码行数更多</td><td><span class="metric green">更精</span> — 代码质量评分更高</td></tr>
+        <tr><td>成本效率</td><td>token 消耗较多（多轮文档生成）</td><td><span class="metric green">&lt; $1 / 项目</span>，&lt; 7 分钟完成</td></tr>
+        <tr><td>人类干预</td><td>流程不可中断，缺少检查点</td><td>可在聊天链节点间插入人类审查</td></tr>
+        <tr><td>可扩展性</td><td>支持自定义角色与工作流</td><td>角色与阶段扩展不便</td></tr>
+        <tr><td>开源</td><td><a href="https://github.com/geekan/MetaGPT" style="color:var(--meta)">github.com/geekan/MetaGPT</a></td><td><a href="https://github.com/OpenBMB/ChatDev" style="color:var(--chat)">github.com/OpenBMB/ChatDev</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 6. 实验成果 -->
+<section id="c-results">
+  <h2>6. 实验成果</h2>
+  <div class="duo">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT 关键指标</h3>
+      <ul>
+        <li>代码生成 Pass@1：<span class="metric blue">85.9% / 87.7%</span></li>
+        <li>MBPP 基准提升：<span class="metric blue">+5.4%</span>（可执行反馈贡献）</li>
+        <li>任务完成率：<span class="metric blue">100%</span></li>
+        <li>显著优于 AutoGPT、LangChain 等基线系统</li>
+      </ul>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev 关键指标</h3>
+      <ul>
+        <li>端到端耗时：<span class="metric green">&lt; 7 分钟</span></li>
+        <li>单项目成本：<span class="metric green">&lt; $1</span></li>
+        <li>代码质量评分：<span class="metric green">优于 MetaGPT</span></li>
+        <li>完整性与可执行性：与 MetaGPT 相当，均显著优于 GPT-Engineer</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 7. 局限性 -->
+<section id="c-limits">
+  <h2>7. 局限性</h2>
+  <div class="duo">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT 局限</h3>
+      <div class="pros-cons" style="grid-template-columns:1fr">
+        <div class="item">
+          <div class="label-pc con">待改进</div>
+          <ul style="padding-left:16px">
+            <li><strong>幻觉残留</strong> — 仍会引用不存在的资源文件或未导入的类</li>
+            <li><strong>复杂交互受限</strong> — 高交互性任务（如游戏）完成率低</li>
+            <li><strong>缺乏 UI 支持</strong> — 未集成前端开发和多模态工具</li>
+            <li><strong>无跨项目学习</strong> — 每次执行独立，无经验积累</li>
+            <li><strong>流程不可中断</strong> — 缺少检查点机制</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev 局限</h3>
+      <div class="pros-cons" style="grid-template-columns:1fr">
+        <div class="item">
+          <div class="label-pc con">待改进</div>
+          <ul style="padding-left:16px">
+            <li><strong>项目规模有限</strong> — 主要适用于小型独立软件</li>
+            <li><strong>角色翻转</strong> — 多轮对话中仍偶发角色偏移</li>
+            <li><strong>需求理解迭代</strong> — 简单应用也需多轮澄清</li>
+            <li><strong>扩展性差</strong> — 难以自定义新角色或工作流阶段</li>
+            <li><strong>代码需打磨</strong> — 安全性与优化仍需人类干预</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. 总结 -->
+<section id="c-verdict">
+  <h2>8. 总结与启示</h2>
+
+  <div class="insight">
+    <p><strong>同源不同路：</strong>MetaGPT 与 ChatDev 都源自 Generative Agents 的<strong>规划（Planning）</strong>模块思想——将复杂任务分解为可执行的子步骤。但它们选择了截然不同的协作范式：</p>
+  </div>
+
+  <div class="duo" style="margin-bottom:24px">
+    <div class="card meta">
+      <h3 class="meta-title">MetaGPT = 制造业流水线</h3>
+      <p>用<strong>结构化工件</strong>作为约束，减少信息传递中的损耗和变形。适合需要产出大量代码、对完整性要求高的项目。代价是灵活性较低、token 消耗较大。</p>
+    </div>
+    <div class="card chat">
+      <h3 class="chat-title">ChatDev = 敏捷对话团队</h3>
+      <p>用<strong>自然语言协商</strong>作为约束，通过对话消除歧义。适合快速原型、低成本交付。代价是扩展性有限、大项目支撑不足。</p>
+    </div>
+  </div>
+
+  <div class="insight">
+    <p><strong>对 Generative Agents 研究的意义：</strong></p>
+    <p>这两个框架验证了一个核心假设——LLM 驱动的多智能体系统可以通过<strong>角色分工 + 流程编排</strong>完成复杂的现实任务。这是从 Smallville 沙盒仿真走向实际应用的关键一步。</p>
+    <p>未来方向包括：跨项目经验积累（类似 Generative Agents 的记忆流）、动态角色调度（类似反思机制的自适应）、以及更灵活的人机协作接口。</p>
+  </div>
+</section>
+
+</div><!-- .c-container -->
+
+<div class="global-footer">
+  <p>
+    参考文献：
+    <a href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT (arXiv:2308.00352)</a> &middot;
+    <a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev (arXiv:2307.07924)</a> &middot;
+    <a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents (arXiv:2304.03442)</a>
+  </p>
+  <p style="margin-top:8px">Generative Agents 研究工作区 &middot; 2026-04-07 生成</p>
+</div>
+
+</div><!-- #track-c -->
+
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT — Track switching
+     ════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  const tabs = document.querySelectorAll('.track-tab');
+  const panels = document.querySelectorAll('.track-panel');
+
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = this.getAttribute('data-track');
+
+      // Deactivate all
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      panels.forEach(function(p) { p.classList.remove('active'); });
+
+      // Activate selected
+      this.classList.add('active');
+      document.getElementById(target).classList.add('active');
+
+      // Scroll to top of content
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

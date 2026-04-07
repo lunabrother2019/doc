@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Agents 核心概念关联图</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0f1117;
+      --bg2:    #1a1d27;
+      --border: #2d2d3a;
+      --text:   #e2e8f0;
+      --muted:  #6b7280;
+      --accent: #a78bfa;
+      --mem:    #3b82f6;
+      --ref:    #ef4444;
+      --plan:   #f59e0b;
+      --act:    #22c55e;
+      --multi:  #a78bfa;
+      --extern: #94a3b8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ══════════ Shared Header ══════════ */
+    .page-header {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 20px 0;
+      text-align: center;
+    }
+    .page-header h1 {
+      font-size: 24px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .page-header .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    /* ══════════ Tab Bar ══════════ */
+    .tab-bar {
+      max-width: 1400px;
+      margin: 0 auto 0;
+      padding: 0 20px;
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 12px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ══════════ Tab Panels ══════════ */
+    .tab-panel {
+      display: none;
+      padding: 28px 20px 60px;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ══════════ Shared Styles (from all 3 files) ══════════ */
+    .legend {
+      max-width: 1400px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .legend span {
+      padding: 3px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .mermaid-wrap {
+      max-width: 1400px;
+      margin: 0 auto 36px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 16px;
+      overflow-x: auto;
+    }
+
+    .section-title, .cards-title {
+      max-width: 1400px;
+      margin: 0 auto 16px;
+      font-size: 18px;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .cards {
+      max-width: 1400px;
+      margin: 0 auto 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      border-left: 4px solid var(--cat, #4b5563);
+      transition: border-color .15s, transform .1s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+    }
+
+    /* ── Tab 1 card styles ── */
+    .card .pillar-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 10px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .card .title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #f0e6ff;
+      vertical-align: middle;
+    }
+    .card .title a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(255,255,255,.2);
+    }
+    .card .title a:hover { border-bottom-color: rgba(255,255,255,.5); }
+    .card .keywords {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .card .keywords span {
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+    }
+    .card .note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+
+    /* ── Tab 1 legend colors ── */
+    .lg-mem   { background: rgba(59,130,246,.15); color: var(--mem); }
+    .lg-ref   { background: rgba(239,68,68,.15);  color: var(--ref); }
+    .lg-plan  { background: rgba(245,158,11,.15); color: var(--plan); }
+    .lg-act   { background: rgba(34,197,94,.15);  color: var(--act); }
+    .lg-multi { background: rgba(167,139,250,.15); color: var(--multi); }
+    .lg-ext   { background: rgba(148,163,184,.12); color: var(--extern); border: 1px dashed rgba(148,163,184,.3); }
+
+    /* ── Tab 1 tag colors ── */
+    .tag-mem   { background: rgba(59,130,246,.18) !important; color: var(--mem) !important; }
+    .tag-ref   { background: rgba(239,68,68,.18) !important;  color: var(--ref) !important; }
+    .tag-plan  { background: rgba(245,158,11,.18) !important; color: var(--plan) !important; }
+    .tag-act   { background: rgba(34,197,94,.18) !important;  color: var(--act) !important; }
+    .tag-multi { background: rgba(167,139,250,.18) !important; color: var(--multi) !important; }
+    .tag-ext   { background: rgba(148,163,184,.15) !important; color: var(--extern) !important; border: 1px dashed rgba(148,163,184,.3) !important; }
+
+    .card-mem   { --cat: var(--mem); }
+    .card-ref   { --cat: var(--ref); }
+    .card-plan  { --cat: var(--plan); }
+    .card-act   { --cat: var(--act); }
+    .card-multi { --cat: var(--multi); }
+    .card-ext   { --cat: var(--extern); border-style: dashed; }
+
+    /* ── Tab 2 card styles ── */
+    .card .rank {
+      display: inline-block;
+      background: var(--cat, #4b5563);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .card .name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #f0e6ff;
+      vertical-align: middle;
+    }
+    .card .name-zh {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .card .desc {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #c9d1d9;
+      line-height: 1.65;
+    }
+    .card .papers {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .card .papers a {
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      text-decoration: none;
+      border: 1px solid;
+      transition: opacity .15s;
+    }
+    .card .papers a:hover { opacity: .7; }
+
+    /* ── Tab 2 category colors ── */
+    .clr-foundation  { color: #e9d5ff; background: #4c1d95; border-color: #7c3aed !important; }
+    .clr-memory      { color: #bfdbfe; background: #1e3a5f; border-color: #3b82f6 !important; }
+    .clr-reflect     { color: #fecaca; background: #3b1f1f; border-color: #ef4444 !important; }
+    .clr-plan        { color: #fde68a; background: #2d2a1a; border-color: #f59e0b !important; }
+    .clr-emergence   { color: #ddd6fe; background: #2a1f3b; border-color: #a78bfa !important; }
+    .clr-train       { color: #fed7aa; background: #2d1a00; border-color: #f97316 !important; }
+    .clr-multi       { color: #bbf7d0; background: #1f2d1f; border-color: #22c55e !important; }
+    .clr-embod       { color: #bae6fd; background: #1f2d3b; border-color: #38bdf8 !important; }
+    .clr-critique    { color: #fca5a5; background: #451a1a; border-color: #dc2626 !important; }
+
+    .link-foundation { color: #c4b5fd; border-color: #7c3aed; }
+    .link-memory     { color: #93c5fd; border-color: #3b82f6; }
+    .link-reflect    { color: #fca5a5; border-color: #ef4444; }
+    .link-plan       { color: #fcd34d; border-color: #f59e0b; }
+    .link-emergence  { color: #c4b5fd; border-color: #a78bfa; }
+    .link-train      { color: #fdba74; border-color: #f97316; }
+    .link-multi      { color: #86efac; border-color: #22c55e; }
+    .link-embod      { color: #7dd3fc; border-color: #38bdf8; }
+    .link-critique   { color: #fca5a5; border-color: #dc2626; }
+
+    /* ── Tab 2 edge legend ── */
+    .edge-legend {
+      max-width: 1400px;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .edge-legend span { display: flex; align-items: center; gap: 4px; }
+    .edge-legend .line {
+      display: inline-block;
+      width: 30px;
+      height: 0;
+      border-top: 2px solid #6b7280;
+    }
+    .edge-legend .dash {
+      display: inline-block;
+      width: 30px;
+      height: 0;
+      border-top: 2px dashed #ef4444;
+    }
+
+    /* ── Tab 3 specific ── */
+    .tab3-mermaid {
+      background: var(--bg2);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto 24px;
+    }
+    .tab3-legend {
+      max-width: 1400px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .tab3-legend span {
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tab3-h2 {
+      text-align: center;
+      color: var(--accent);
+      font-size: 20px;
+      margin: 32px 0 4px;
+    }
+    .tab3-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .tab3-hr {
+      max-width: 1400px;
+      margin: 40px auto;
+      border-color: var(--border);
+    }
+
+    /* ── Tab 3 paper table ── */
+    .paper-table { max-width:1400px; margin:0 auto 48px; border-collapse:collapse; width:100%; font-size:13px; }
+    .paper-table th { background:#1e2433; color:#a78bfa; padding:8px 12px; text-align:left; border-bottom:1px solid #2d2d3a; }
+    .paper-table td { padding:8px 12px; border-bottom:1px solid #1e2433; vertical-align:top; color:#d1d5db; }
+    .paper-table tr:hover td { background:#1a1d27; }
+    .paper-table a { color:#60a5fa; text-decoration:none; }
+    .paper-table a:hover { text-decoration:underline; }
+    .tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:11px; margin-right:4px; }
+    .tag-core   { background:#4c1d95; color:#e9d5ff; }
+    .tag-memory2 { background:#1e3a5f; color:#bfdbfe; }
+    .tag-retrieval { background:#1a3a2a; color:#bbf7d0; }
+    .tag-reflection { background:#3b1f1f; color:#fecaca; }
+    .tag-planning { background:#2d2a1a; color:#fde68a; }
+    .tag-scale  { background:#2a1f3b; color:#ddd6fe; }
+    .tag-foundation { background:#1a2233; color:#93c5fd; }
+    .tag-framework  { background:#2a1f3b; color:#c4b5fd; }
+    .tag-safety { background:#3b1f1f; color:#fca5a5; }
+    .tag-commercial { background:#2d2200; color:#fde68a; }
+    .tag-embodied { background:#1f2d3b; color:#bae6fd; }
+
+    footer {
+      max-width: 1400px;
+      margin: 40px auto 0;
+      padding: 0 20px 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ Page Header ══════════════════ -->
+<div class="page-header">
+  <h1>Generative Agents 核心概念关联图</h1>
+  <div class="subtitle">
+    三视角呈现 Stanford Smallville (arXiv:2304.03442) 概念体系<br>
+    概览五大支柱 &rarr; 15 核心概念关系网 &rarr; 全景演进图谱（含商业落地 + 论文总表）
+  </div>
+</div>
+
+<!-- ══════════════════ Tab Bar ══════════════════ -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="tab1">概览 (5支柱)</button>
+  <button class="tab-btn" data-tab="tab2">核心15概念</button>
+  <button class="tab-btn" data-tab="tab3">全景演进</button>
+</div>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 1 — 概览 (5支柱) from five-pillars-map.html       ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<div id="tab1" class="tab-panel active">
+
+<div style="max-width:1400px;margin:0 auto 8px;text-align:center;">
+  <h2 style="font-size:20px;color:var(--accent);margin-bottom:4px;">Generative Agents 五大核心概念关联图</h2>
+  <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Stanford Smallville (arXiv:2304.03442) 五大支柱 + 关键论文映射 | 持续补充中</div>
+</div>
+
+<div class="legend">
+  <span class="lg-mem">Memory 记忆</span>
+  <span class="lg-ref">Reflection 反思</span>
+  <span class="lg-plan">Planning 规划</span>
+  <span class="lg-act">Action 行动</span>
+  <span class="lg-multi">Multi-Agent 协调</span>
+  <span class="lg-ext">外围方法论启发</span>
+</div>
+
+<div class="mermaid-wrap">
+<pre class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a1d27","primaryBorderColor":"#4b5563","lineColor":"#6b7280","textColor":"#e2e8f0","fontSize":"13px"}}}%%
+
+graph TB
+
+  %% ── Core ──
+  SV(["Generative Agents\nPark et al. 2023\narXiv:2304.03442"])
+  style SV fill:#2d1f4e,stroke:#a78bfa,stroke-width:2px,color:#e9d5ff
+
+  %% ── 5 Pillars ──
+  MEM["Memory\n记忆系统"]
+  REF["Reflection\n反思机制"]
+  PLN["Planning\n规划"]
+  ACT["Action\n行动"]
+  MUL["Multi-Agent\n多智能体协调"]
+
+  style MEM fill:#1e3a5f,stroke:#3b82f6,color:#bfdbfe
+  style REF fill:#3b1f1f,stroke:#ef4444,color:#fecaca
+  style PLN fill:#2d2a1a,stroke:#f59e0b,color:#fde68a
+  style ACT fill:#1f2d1f,stroke:#22c55e,color:#bbf7d0
+  style MUL fill:#2a1f3b,stroke:#a78bfa,color:#ddd6fe
+
+  SV --> MEM
+  SV --> REF
+  SV --> PLN
+  SV --> ACT
+  SV --> MUL
+
+  %% ── Memory papers ──
+  M1["HiAgent\n子目标分层记忆"]
+  M2["A-MEM\nZettelkasten语义链接"]
+  M3["Cross-Attention检索\nFrontiers 2025"]
+
+  style M1 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+  style M2 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+  style M3 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+
+  MEM --- M1
+  MEM --- M2
+  MEM --- M3
+
+  %% ── Reflection papers ──
+  R1["Reflexion\nNeurIPS 2023\n语言强化学习"]
+  R2["ICLR 2024\n自我反思90%无效"]
+  R3["MAD / MAR\n多Agent辩论式反思"]
+  R4["ExpeL / ERL\n跨轨迹经验反思"]
+  R5["Dual-Loop\n双环元认知反思"]
+
+  style R1 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R2 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R3 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R4 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R5 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+
+  REF --- R1
+  REF --- R2
+  REF --- R3
+  REF --- R4
+  REF --- R5
+
+  %% ── Planning papers ──
+  P1["ReAct\n推理+行动交替"]
+  P2["ChatDev / MetaGPT\n多角色分工"]
+  P3["CVPR 2025 具身AI\nMLLM+World Model"]
+
+  style P1 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+  style P2 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+  style P3 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+
+  PLN --- P1
+  PLN --- P2
+  PLN --- P3
+
+  %% ── Action papers ──
+  A1["Inworld AI\n工程化显式实现\n≤250ms延迟"]
+  A2["Character.AI\n参数化隐式压缩"]
+  A3["Soul Machines\n动画数字人"]
+
+  style A1 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+  style A2 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+  style A3 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+
+  ACT --- A1
+  ACT --- A2
+  ACT --- A3
+
+  %% ── Multi-Agent papers ──
+  MA1["OpenCity\n10K Agent 并行化"]
+  MA2["AgentSociety\n500万次交互"]
+  MA3["A-HMAD\n异构Agent辩论"]
+
+  style MA1 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+  style MA2 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+  style MA3 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+
+  MUL --- MA1
+  MUL --- MA2
+  MUL --- MA3
+
+  %% ── 外围方法论启发（跨领域，非直接依赖） ──
+  subgraph EXT ["外围方法论启发 — 跨领域概念桥接"]
+    direction TB
+    X1["ALCS\n自动折叠采样\nCambridge 2026\n贝叶斯潜变量边缘化"]
+    X2["TimesFM\nGoogle Research\nICML 2024\n时间序列基础模型"]
+  end
+
+  style EXT fill:#0f1117,stroke:#475569,stroke-dasharray:6,color:#94a3b8
+  style X1 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
+  style X2 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
+
+  %% ── Cross-links ──
+  R3 -.->|辩论| MUL
+  P2 -.->|角色分工| MUL
+  R4 -.->|经验复用| MEM
+  R5 -.->|Reflection Bank| MEM
+  P1 -.->|工具调用| ACT
+  MA3 -.->|异构辩论| REF
+
+  %% ── 外围启发连线（双点虚线 = 概念类比，非引用） ──
+  X1 -.->|"降维压缩类比\n潜变量折叠 ≈ 记忆压缩"| MEM
+  X1 -.->|"不确定性量化\n记忆置信度建模"| REF
+  X2 -.->|"zero-shot预测\nAgent World Model"| PLN
+</pre>
+</div>
+
+<!-- Paper Cards -->
+<div class="section-title" style="color:var(--accent);">关键论文索引</div>
+
+<div class="cards">
+
+  <!-- Memory -->
+  <div class="card card-mem">
+    <span class="pillar-tag tag-mem">Memory</span>
+    <span class="title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent</a></span>
+    <div class="keywords"><span>子目标分层</span><span>记忆压缩</span><span>层级结构</span></div>
+    <div class="note">用子目标切分记忆，完成后压缩成摘要，保留层级结构</div>
+  </div>
+
+  <div class="card card-mem">
+    <span class="pillar-tag tag-mem">Memory</span>
+    <span class="title"><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM (2025)</a></span>
+    <div class="keywords"><span>Zettelkasten</span><span>语义链接</span><span>关联记忆网络</span></div>
+    <div class="note">每条记忆带关键词/标签，动态建立语义链接，从平面日志走向知识图谱</div>
+  </div>
+
+  <div class="card card-mem">
+    <span class="pillar-tag tag-mem">Memory</span>
+    <span class="title"><a href="https://www.frontiersin.org/articles/10.3389/fpsyg.2025.1591618/full" target="_blank">Cross-Attention 检索 (Frontiers 2025)</a></span>
+    <div class="keywords"><span>Cross-Attention</span><span>替代加权评分</span></div>
+    <div class="note">用 LLM 训练的 Cross-Attention 网络替代原版的三维加权评分检索</div>
+  </div>
+
+  <!-- Reflection -->
+  <div class="card card-ref">
+    <span class="pillar-tag tag-ref">Reflection</span>
+    <span class="title"><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion (NeurIPS 2023)</a></span>
+    <div class="keywords"><span>Verbal RL</span><span>episodic memory</span><span>自然语言反思</span></div>
+    <div class="note">任务失败后用自然语言写反思存入记忆，下次检索复用。决策+22%，HotPotQA+20%</div>
+  </div>
+
+  <div class="card card-ref">
+    <span class="pillar-tag tag-ref">Reflection</span>
+    <span class="title"><a href="https://arxiv.org/abs/2310.01848" target="_blank">自我反思局限性 (ICLR 2024)</a></span>
+    <div class="keywords"><span>90%确认性</span><span>纠错仅2%</span><span>分水岭</span></div>
+    <div class="note">发现没有外部反馈时，LLM 自我反思几乎无效，迫使领域转向外部批评机制</div>
+  </div>
+
+  <div class="card card-ref">
+    <span class="pillar-tag tag-ref">Reflection</span>
+    <span class="title"><a href="https://arxiv.org/abs/2305.14325" target="_blank">MAD 多智能体辩论</a></span>
+    <div class="keywords"><span>多Agent批评</span><span>共识达成</span></div>
+    <div class="note">多个 Agent 互相批评对方答案达成共识，绕过自我反思的确认性偏差</div>
+  </div>
+
+  <div class="card card-ref">
+    <span class="pillar-tag tag-ref">Reflection</span>
+    <span class="title"><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL (2025)</a></span>
+    <div class="keywords"><span>策略池</span><span>跨轨迹</span><span>Gaia2 +7.8%</span></div>
+    <div class="note">构建可检索的策略池，从历史轨迹中提取策略，新任务时检索指导执行</div>
+  </div>
+
+  <div class="card card-ref">
+    <span class="pillar-tag tag-ref">Reflection</span>
+    <span class="title"><a href="https://arxiv.org/abs/2405.06682" target="_blank">Dual-Loop Metacognitive Reflection</a></span>
+    <div class="keywords"><span>外环Extrospection</span><span>内环Introspection</span><span>Reflection Bank</span></div>
+    <div class="note">双环元认知：外环对比输出与参考构建 Reflection Bank，内环推理时检索历史经验</div>
+  </div>
+
+  <!-- Planning -->
+  <div class="card card-plan">
+    <span class="pillar-tag tag-plan">Planning</span>
+    <span class="title"><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a></span>
+    <div class="keywords"><span>Reasoning+Acting</span><span>工具调用</span><span>交替执行</span></div>
+    <div class="note">推理和行动交替进行，Agent 能调用外部工具，成为现代 Agent 标准范式</div>
+  </div>
+
+  <div class="card card-plan">
+    <span class="pillar-tag tag-plan">Planning</span>
+    <span class="title"><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev / MetaGPT</a></span>
+    <div class="keywords"><span>角色分工</span><span>PM/架构师/程序员</span></div>
+    <div class="note">多个 Agent 分别扮演不同角色协作完成任务，将规划分布到组织架构中</div>
+  </div>
+
+  <div class="card card-plan">
+    <span class="pillar-tag tag-plan">Planning</span>
+    <span class="title"><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">具身智能 (CVPR 2025)</a></span>
+    <div class="keywords"><span>MLLM</span><span>World Model</span><span>物理感知</span></div>
+    <div class="note">MLLM + World Model 双驱动：语言推理 + 物理感知，走向实体世界的规划</div>
+  </div>
+
+  <!-- Action -->
+  <div class="card card-act">
+    <span class="pillar-tag tag-act">Action</span>
+    <span class="title">Inworld AI</span>
+    <div class="keywords"><span>游戏NPC</span><span>B2B引擎</span><span>&lt;250ms延迟</span><span>4th Wall</span></div>
+    <div class="note">工程化显式 Memory/Reflection/Planning + Contextual Mesh 幻觉控制 + Director Layer 群组协调</div>
+  </div>
+
+  <div class="card card-act">
+    <span class="pillar-tag tag-act">Action</span>
+    <span class="title">Character.AI</span>
+    <div class="keywords"><span>参数化压缩</span><span>Personality Embeddings</span><span>RLHF</span></div>
+    <div class="note">Memory/Reflection/Planning 全部压进模型权重，不做显式模块，月活2000万</div>
+  </div>
+
+  <div class="card card-act">
+    <span class="pillar-tag tag-act">Action</span>
+    <span class="title">Soul Machines</span>
+    <div class="keywords"><span>动画数字人</span><span>情感感知</span></div>
+    <div class="note">动画驱动的数字人，将 Agent 行为映射为可视化表达</div>
+  </div>
+
+  <!-- Multi-Agent -->
+  <div class="card card-multi">
+    <span class="pillar-tag tag-multi">Multi-Agent</span>
+    <span class="title"><a href="https://aclanthology.org/2025.acl-industry.94.pdf" target="_blank">OpenCity (ACL 2025)</a></span>
+    <div class="keywords"><span>10K Agent</span><span>并行化</span><span>速度635x</span><span>Token -45%</span></div>
+    <div class="note">万级 Agent 并行化框架，从观察个体涌现走向研究群体社会系统规律</div>
+  </div>
+
+  <div class="card card-multi">
+    <span class="pillar-tag tag-multi">Multi-Agent</span>
+    <span class="title"><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety</a></span>
+    <div class="keywords"><span>10K+ Agent</span><span>500万次交互</span><span>政策模拟</span></div>
+    <div class="note">模拟政治极化、谣言传播、UBI 政策效果，可从真实用户画像初始化</div>
+  </div>
+
+  <div class="card card-multi">
+    <span class="pillar-tag tag-multi">Multi-Agent</span>
+    <span class="title"><a href="https://arxiv.org/abs/2512.20845" target="_blank">MAR 多角色反思 (2024)</a></span>
+    <div class="keywords"><span>Persona多样性</span><span>异构Agent</span><span>多视角批判</span></div>
+    <div class="note">不同 Persona 从不同视角批判失败推理，跨越反思与多Agent两个支柱</div>
+  </div>
+
+  <!-- External Methodology -->
+  <div class="card card-ext">
+    <span class="pillar-tag tag-ext">外围启发</span>
+    <span class="title"><a href="https://arxiv.org/abs/2603.26644" target="_blank">ALCS — 自动折叠采样 (Cambridge 2026)</a></span>
+    <div class="keywords"><span>Laplace近似</span><span>潜变量边缘化</span><span>自动微分</span><span>嵌套采样</span><span>贝叶斯推断</span></div>
+    <div class="note">用 MAP + Laplace 近似将高维潜变量"折叠"成标量贡献，有效维度从 d_θ+d_z 降至 d_θ。与 Agent 记忆的概念桥接：记忆压缩 ≈ 潜变量折叠；未来可为记忆加不确定性量化（置信度建模）。目前无直接引用关系，属于跨领域方法论启发。</div>
+  </div>
+
+  <div class="card card-ext">
+    <span class="pillar-tag tag-ext">外围启发</span>
+    <span class="title"><a href="https://arxiv.org/abs/2310.10688" target="_blank">TimesFM — 时间序列基础模型 (Google, ICML 2024)</a></span>
+    <div class="keywords"><span>Decoder-only</span><span>1000亿数据点</span><span>zero-shot预测</span><span>Patch机制</span><span>BigQuery集成</span></div>
+    <div class="note">将 LLM 的 decoder-only 范式迁移到时间序列预测，200M 参数 + 1000 亿真实数据点预训练实现 zero-shot 泛化。与 Agent 的概念桥接：可作为 Agent 的环境预测模块（World Model），在规划阶段 zero-shot 预测不同行动的后果。</div>
+  </div>
+
+</div>
+
+</div><!-- /tab1 -->
+
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 2 — 核心15概念 from top15-concepts-graph.html     ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<div id="tab2" class="tab-panel">
+
+<div style="max-width:1400px;margin:0 auto 8px;text-align:center;">
+  <h2 style="font-size:20px;color:var(--accent);margin-bottom:4px;">Generative Agents Top 15 核心概念关联图</h2>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">概念间关系 &middot; 实线 = 依赖/扩展 &middot; 虚线 = 质疑/替代 &middot; 点击节点跳转论文</p>
+</div>
+
+<div class="legend">
+  <span class="clr-foundation">基础架构</span>
+  <span class="clr-memory">记忆系统</span>
+  <span class="clr-reflect">反思机制</span>
+  <span class="clr-plan">规划与推理</span>
+  <span class="clr-multi">多智能体</span>
+  <span class="clr-emergence">涌现与仿真</span>
+  <span class="clr-embod">具身智能</span>
+  <span class="clr-train">训练方法</span>
+  <span class="clr-critique">验证与批判</span>
+</div>
+
+<div class="edge-legend">
+  <span><span class="line"></span> 依赖 / 扩展</span>
+  <span><span class="dash"></span> 质疑 / 替代</span>
+</div>
+
+<div class="mermaid-wrap">
+  <pre class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "14px"}, "flowchart": {"rankSpacing": 65, "nodeSpacing": 45, "curve": "basis"}}}%%
+flowchart TD
+
+    %% ════════════ 基础架构层 ════════════
+    MS2(["#1 Memory Stream\n记忆流\n所有Agent架构的起点"])
+    RIR(["#3 Recency x Importance x Relevance\n三维检索评分\n原版记忆检索公式"])
+
+    MS2 -->|"记忆如何取出?"| RIR
+
+    %% ════════════ 记忆演进层 ════════════
+    EM(["#10 Episodic Memory\n情节记忆\n跨任务经验容器"])
+    AMN(["#15 Associative Memory Network\n关联记忆网络\n知识图谱式记忆"])
+
+    MS2 -->|"跨任务积累"| EM
+    MS2 -->|"从线性到图谱"| AMN
+    RIR -.->|"被替代"| AMN
+
+    %% ════════════ 反思演进层 ════════════
+    RF2(["#2 Reflection\n反思机制\n争议最大的概念"])
+    MAD2(["#8 Multi-Agent Debate\n多智能体辩论\n反思失效后的转向"])
+
+    MS2 -->|"反思基于记忆"| RF2
+    RF2 -->|"失败经验写入"| EM
+    RF2 -.->|"90%为确认性\n仅~2%真正纠错"| MAD2
+
+    %% ════════════ 角色与对齐层 ════════════
+    RLHF2(["#7 RLHF / Alignment\n人类反馈对齐\n商业化训练基础"])
+    RP(["#9 Role-Playing / Persona\n角色扮演\n学术+商业共用"])
+
+    RLHF2 -->|"对齐角色行为"| RP
+    RP -->|"异质角色批判"| MAD2
+
+    %% ════════════ 推理与规划层 ════════════
+    COT(["#13 Chain-of-Thought\n思维链\n推理底层机制"])
+    ReAct2(["#6 ReAct\n推理+行动交替\nAgentic AI 基础范式"])
+    HP(["#5 Hierarchical Planning\n层级规划\n长程任务分解"])
+
+    COT -->|"支撑推理"| RF2
+    COT -->|"推理驱动行动"| ReAct2
+    ReAct2 -->|"行动需要计划"| HP
+    HP -->|"规划依赖记忆"| MS2
+
+    %% ════════════ 具身与世界模型层 ════════════
+    WM(["#14 World Model\n世界模型\n物理约束仿真"])
+
+    WM -->|"物理约束规划"| HP
+    ReAct2 -->|"行动落地物理"| WM
+
+    %% ════════════ 涌现与社会仿真层 ════════════
+    EB2(["#4 Emergent Behavior\n涌现行为\n最难预测"])
+    ABM(["#11 LLM + ABM 融合\nAgent-Based Modeling\n社会科学接入AI"])
+    VG(["#12 Validation Gap\n仿真验证问题\n根本科学可信度"])
+
+    HP -->|"个体规划产生群体涌现"| EB2
+    MAD2 -->|"多Agent交互产生涌现"| EB2
+    EB2 -->|"大规模仿真方法"| ABM
+    EB2 -.->|"涌现结果如何验证?"| VG
+    ABM -.->|"科学可靠性质疑"| VG
+
+    %% ════════════ 样式定义 ════════════
+    classDef foundation fill:#4c1d95,stroke:#7c3aed,color:#e9d5ff,rx:10
+    classDef memory     fill:#1e3a5f,stroke:#3b82f6,color:#bfdbfe,rx:10
+    classDef reflect    fill:#3b1f1f,stroke:#ef4444,color:#fecaca,rx:10
+    classDef plan       fill:#2d2a1a,stroke:#f59e0b,color:#fde68a,rx:10
+    classDef multi      fill:#1f2d1f,stroke:#22c55e,color:#bbf7d0,rx:10
+    classDef emergence  fill:#2a1f3b,stroke:#a78bfa,color:#ddd6fe,rx:10
+    classDef embod      fill:#1f2d3b,stroke:#38bdf8,color:#bae6fd,rx:10
+    classDef train      fill:#2d1a00,stroke:#f97316,color:#fed7aa,rx:10
+    classDef critique   fill:#451a1a,stroke:#dc2626,color:#fca5a5,rx:10
+
+    class MS2,RIR foundation
+    class EM,AMN memory
+    class RF2 reflect
+    class MAD2 multi
+    class RLHF2 train
+    class RP multi
+    class COT,ReAct2,HP plan
+    class WM embod
+    class EB2,ABM emergence
+    class VG critique
+
+    %% ════════════ 论文链接 ════════════
+    click MS2 href "https://arxiv.org/abs/2304.03442" _blank
+    click RIR href "https://arxiv.org/abs/2304.03442" _blank
+    click RF2 href "https://arxiv.org/abs/2304.03442" _blank
+    click EM href "https://arxiv.org/abs/2303.11366" _blank
+    click AMN href "https://arxiv.org/abs/2502.12110" _blank
+    click MAD2 href "https://arxiv.org/abs/2305.14325" _blank
+    click RLHF2 href "https://arxiv.org/abs/2203.02155" _blank
+    click RP href "https://arxiv.org/abs/2307.07924" _blank
+    click COT href "https://arxiv.org/abs/2201.11903" _blank
+    click ReAct2 href "https://arxiv.org/abs/2210.03629" _blank
+    click HP href "https://arxiv.org/abs/2408.09559" _blank
+    click WM href "https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" _blank
+    click EB2 href "https://arxiv.org/abs/2304.03442" _blank
+    click ABM href "https://www.nature.com/articles/s41599-024-03611-3" _blank
+    click VG href "https://link.springer.com/article/10.1007/s10462-025-11412-6" _blank
+  </pre>
+</div>
+
+<h2 class="cards-title">15 个核心概念详解</h2>
+
+<div class="cards">
+
+  <!-- #1 Memory Stream -->
+  <div class="card" style="--cat: #7c3aed;">
+    <div><span class="rank" style="background:#7c3aed;">1</span><span class="name">Memory Stream</span></div>
+    <div class="name-zh">记忆流</div>
+    <div class="desc">按时间顺序存储 Agent 所有经历的基础数据结构。几乎每一篇 Generative Agents 相关论文都以此为起点，是整个架构的根基。后续所有记忆系统的创新（层级记忆、关联网络、共享记忆）都是对它的扩展。</div>
+    <div class="papers">
+      <a class="link-foundation" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents (2023)</a>
+      <a class="link-memory" href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM (2025)</a>
+      <a class="link-memory" href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent (2024)</a>
+    </div>
+  </div>
+
+  <!-- #2 Reflection -->
+  <div class="card" style="--cat: #ef4444;">
+    <div><span class="rank" style="background:#ef4444;">2</span><span class="name">Reflection</span></div>
+    <div class="name-zh">反思机制</div>
+    <div class="desc">Agent 定期对记忆进行高层归纳的能力。从最初的"重要性阈值触发"到被发现 90% 是确认性反思，再到多智能体辩论、双环元认知等修复方案，是整个领域认知翻转最剧烈的概念。</div>
+    <div class="papers">
+      <a class="link-foundation" href="https://arxiv.org/abs/2304.03442" target="_blank">原版 Reflection (2023)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion (NeurIPS 2023)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2310.01848" target="_blank">Self-Correct 局限 (ICLR 2024)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2405.06682" target="_blank">Dual-Loop (2025)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2603.24639" target="_blank">ERL (2025)</a>
+    </div>
+  </div>
+
+  <!-- #3 Recency x Importance x Relevance -->
+  <div class="card" style="--cat: #7c3aed;">
+    <div><span class="rank" style="background:#7c3aed;">3</span><span class="name">Recency &times; Importance &times; Relevance</span></div>
+    <div class="name-zh">三维检索评分</div>
+    <div class="desc">原始论文定义的记忆检索公式，用时间衰减、LLM 打分的重要性和语义相关度三个维度加权排序记忆。看似简单，但"重要性由谁定义"这个问题至今没有完美解，后续被 Cross-Attention 网络和关联图谱等方案挑战。</div>
+    <div class="papers">
+      <a class="link-foundation" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents (2023)</a>
+      <a class="link-memory" href="https://www.frontiersin.org/articles/10.3389/fpsyg.2025.1591618/full" target="_blank">Cross-Attention 替代 (2025)</a>
+    </div>
+  </div>
+
+  <!-- #4 Emergent Behavior -->
+  <div class="card" style="--cat: #a78bfa;">
+    <div><span class="rank" style="background:#a78bfa;">4</span><span class="name">Emergent Behavior</span></div>
+    <div class="name-zh">涌现行为</div>
+    <div class="desc">个体 Agent 遵循简单规则却在群体层面产生无指令的复杂社会协作（如自发组织派对）。所有大规模仿真论文的核心观测目标，但最难被预测和复现——没有一篇论文能从第一性原理推导出涌现现象。</div>
+    <div class="papers">
+      <a class="link-foundation" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents (2023)</a>
+      <a class="link-emergence" href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety (2025)</a>
+      <a class="link-emergence" href="https://aclanthology.org/2025.acl-industry.94.pdf" target="_blank">OpenCity (2025)</a>
+    </div>
+  </div>
+
+  <!-- #5 Hierarchical Planning -->
+  <div class="card" style="--cat: #f59e0b;">
+    <div><span class="rank" style="background:#f59e0b;">5</span><span class="name">Hierarchical Planning</span></div>
+    <div class="name-zh">层级规划</div>
+    <div class="desc">将长程目标递归分解为日→时→分钟级行动的规划机制。原始论文中 Agent 先生成日计划再逐步细化。HiAgent 以子目标切分记忆，ChatDev/MetaGPT 用角色流程编排实现任务分解。长程规划的一致性问题仍是难点。</div>
+    <div class="papers">
+      <a class="link-foundation" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents (2023)</a>
+      <a class="link-memory" href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent (2024)</a>
+      <a class="link-multi" href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev (ACL 2024)</a>
+    </div>
+  </div>
+
+  <!-- #6 ReAct -->
+  <div class="card" style="--cat: #f59e0b;">
+    <div><span class="rank" style="background:#f59e0b;">6</span><span class="name">ReAct</span></div>
+    <div class="name-zh">推理+行动交替</div>
+    <div class="desc">提出将 Reasoning 与 Acting 交替执行的范式：Agent 在每步行动前先生成思维链推理，支持工具调用。是现代 Agentic AI（搜索、代码执行、API 调用）的基础范式，几乎所有可落地的 Agent 系统都采用此模式。</div>
+    <div class="papers">
+      <a class="link-plan" href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct (ICLR 2023)</a>
+    </div>
+  </div>
+
+  <!-- #7 RLHF -->
+  <div class="card" style="--cat: #f97316;">
+    <div><span class="rank" style="background:#f97316;">7</span><span class="name">RLHF / Alignment</span></div>
+    <div class="name-zh">人类反馈对齐</div>
+    <div class="desc">通过人类反馈强化学习使 LLM 行为符合人类期望。是 Character.AI Personality Embeddings 和所有商业 Agent 角色一致性训练的方法论基础。没有 RLHF，Agent 无法稳定扮演特定角色。</div>
+    <div class="papers">
+      <a class="link-train" href="https://arxiv.org/abs/2203.02155" target="_blank">InstructGPT (NeurIPS 2022)</a>
+    </div>
+  </div>
+
+  <!-- #8 Multi-Agent Debate -->
+  <div class="card" style="--cat: #22c55e;">
+    <div><span class="rank" style="background:#22c55e;">8</span><span class="name">Multi-Agent Debate</span></div>
+    <div class="name-zh">多智能体辩论</div>
+    <div class="desc">让多个 Agent 互相批评对方答案并通过辩论达成共识。直接回应"自我反思 90% 无效"的发现——引入外部批评者打破确认偏差，GSM-8K 从 82% 提升至 91%。是反思失效后整个领域的主要转向方向。</div>
+    <div class="papers">
+      <a class="link-multi" href="https://arxiv.org/abs/2305.14325" target="_blank">MAD (2023)</a>
+      <a class="link-multi" href="https://arxiv.org/abs/2512.20845" target="_blank">MAR (2024)</a>
+    </div>
+  </div>
+
+  <!-- #9 Role-Playing / Persona -->
+  <div class="card" style="--cat: #22c55e;">
+    <div><span class="rank" style="background:#22c55e;">9</span><span class="name">Role-Playing / Persona</span></div>
+    <div class="name-zh">角色扮演</div>
+    <div class="desc">为 Agent 赋予特定角色身份和行为模式。学术端用于 ChatDev（程序员/测试员分工）和 MAR（异质角色批判）；商业端被 Inworld AI（游戏 NPC）和 Character.AI（角色对话）大规模落地。角色一致性维持是核心挑战。</div>
+    <div class="papers">
+      <a class="link-multi" href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev / MetaGPT (ACL 2024)</a>
+      <a class="link-multi" href="https://arxiv.org/abs/2512.20845" target="_blank">MAR Persona Diversity (2024)</a>
+    </div>
+  </div>
+
+  <!-- #10 Episodic Memory -->
+  <div class="card" style="--cat: #3b82f6;">
+    <div><span class="rank" style="background:#3b82f6;">10</span><span class="name">Episodic Memory</span></div>
+    <div class="name-zh">情节记忆</div>
+    <div class="desc">存储 Agent 完整任务经历（成功/失败轨迹）的记忆类型。Reflexion 将语言反思写入 episodic memory 供下次重试调用；ERL 比较历史轨迹提取可复用 heuristics；Dual-Loop 用反思银行实现持续自我改进。是跨任务经验积累的核心容器。</div>
+    <div class="papers">
+      <a class="link-reflect" href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion (NeurIPS 2023)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2603.24639" target="_blank">ERL (2025)</a>
+      <a class="link-reflect" href="https://arxiv.org/abs/2405.06682" target="_blank">Dual-Loop (2025)</a>
+    </div>
+  </div>
+
+  <!-- #11 LLM + ABM -->
+  <div class="card" style="--cat: #a78bfa;">
+    <div><span class="rank" style="background:#a78bfa;">11</span><span class="name">LLM + ABM Fusion</span></div>
+    <div class="name-zh">LLM + Agent-Based Modeling 融合</div>
+    <div class="desc">将 LLM 的行为生成能力与传统 Agent-Based Modeling 的涌现规律可控性结合。Nature 和 Physica A 两篇综述系统分析了该融合在经济学、社会学、政治学中的应用潜力，代表社会科学接入 AI 的方法论前沿。</div>
+    <div class="papers">
+      <a class="link-emergence" href="https://www.nature.com/articles/s41599-024-03611-3" target="_blank">Nature 综述 (2024)</a>
+      <a class="link-emergence" href="https://www.sciencedirect.com/science/article/pii/S1571064524001386" target="_blank">Physica A 综述 (2024)</a>
+    </div>
+  </div>
+
+  <!-- #12 Validation Gap -->
+  <div class="card" style="--cat: #dc2626;">
+    <div><span class="rank" style="background:#dc2626;">12</span><span class="name">Validation Gap</span></div>
+    <div class="name-zh">仿真验证问题</div>
+    <div class="desc">所有 Agent 仿真论文都在回避的根本问题：仿真结果怎么证明它对应真实人类行为？Springer AI Review 的批判性评述指出验证（Validation）是最关键的未解决问题——仿真数据缺乏 Ground Truth 对照，科学可靠性存疑。</div>
+    <div class="papers">
+      <a class="link-critique" href="https://link.springer.com/article/10.1007/s10462-025-11412-6" target="_blank">Critical Perspectives (Springer 2025)</a>
+    </div>
+  </div>
+
+  <!-- #13 Chain-of-Thought -->
+  <div class="card" style="--cat: #f59e0b;">
+    <div><span class="rank" style="background:#f59e0b;">13</span><span class="name">Chain-of-Thought</span></div>
+    <div class="name-zh">思维链</div>
+    <div class="desc">让 LLM 在回答前显式生成中间推理步骤。是 ReAct 推理-行动交替和 Reflection 反思归纳的底层机制。没有 CoT，Agent 就无法进行多步推理，也无法产生有意义的反思内容。</div>
+    <div class="papers">
+      <a class="link-plan" href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought Prompting (NeurIPS 2022)</a>
+      <a class="link-plan" href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct (ICLR 2023)</a>
+    </div>
+  </div>
+
+  <!-- #14 World Model -->
+  <div class="card" style="--cat: #38bdf8;">
+    <div><span class="rank" style="background:#38bdf8;">14</span><span class="name">World Model</span></div>
+    <div class="name-zh">世界模型</div>
+    <div class="desc">为 Agent 提供物理世界约束仿真的模块。CVPR 2025 提出 MLLM 负责高层语义规划、World Model 提供物理约束的双驱动架构。是 Agent 从纯语言空间落地到物理世界的关键缺口。</div>
+    <div class="papers">
+      <a class="link-embod" href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">Generalist Embodied Agents (CVPR 2025)</a>
+    </div>
+  </div>
+
+  <!-- #15 Associative Memory Network -->
+  <div class="card" style="--cat: #3b82f6;">
+    <div><span class="rank" style="background:#3b82f6;">15</span><span class="name">Associative Memory Network</span></div>
+    <div class="name-zh">关联记忆网络</div>
+    <div class="desc">受 Zettelkasten 卡片笔记启发，将线性记忆流升级为知识图谱式关联网络。每条记忆带关键词与标签，与相关记忆动态建立语义链接，提升跨事件推理能力。代表记忆系统的下一代演进形态。</div>
+    <div class="papers">
+      <a class="link-memory" href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM (2025)</a>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /tab2 -->
+
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 3 — 全景演进 from generative-agents-concept-map   ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<div id="tab3" class="tab-panel">
+
+<!-- ── Diagram 1: Core evolution ── -->
+<h2 class="tab3-h2">Generative Agents 核心概念与演进关联图</h2>
+<p class="tab3-sub">从斯坦福小镇（2023）到 Agentic AI（2026）&nbsp;&middot;&nbsp;点击节点可跳转论文</p>
+
+<div class="tab3-mermaid">
+<pre class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "14px"}, "flowchart": {"rankSpacing": 60, "nodeSpacing": 40}}}%%
+flowchart TD
+
+    %% ── 原始论文 ──
+    GA3(["Generative Agents\nSmallville, UIST 2023\nPark et al. / Stanford"])
+
+    %% ── 五大核心概念 ──
+    MS3["Memory Stream\n按时间顺序存储所有经历"]
+    RT3["Retrieval\nRecency Importance Relevance"]
+    RF3["Reflection\n阈值触发 归纳高层认知"]
+    PL3["Planning\n长期日程 + 短期行动分解"]
+    AC3["Action and Interaction\n执行动作 触发对话"]
+    EB3["Emergent Behavior\n无指令自发社会协作"]
+
+    GA3 --> MS3
+    GA3 --> RT3
+    GA3 --> RF3
+    GA3 --> PL3
+    GA3 --> AC3
+    AC3 --> EB3
+
+    %% ── 记忆流扩展 ──
+    MS3 --> AMEM3["A-MEM 2025\n关联记忆网络\nZettelkasten 卡片链接结构\n语义邻居动态建边"]
+    MS3 --> HiAgent3["HiAgent 2024\n分层记忆\n子目标切分 完成后压缩摘要"]
+    MS3 --> SharedMem3["多 Agent 共享记忆\n集体记忆 共识形成\n跨 Agent 记忆冲突解决"]
+    MS3 --> MemOS3["MemoryOS\nEMNLP 2025 Oral\n三级记忆: 短期/中期/长期\nOS 内存管理思想 F1 +49%"]
+    MS3 --> RMM3["反思式记忆管理 RMM\nACL 2025\n前瞻+回顾双向反思\n在线 RL 优化检索"]
+    MS3 --> MemSurvey3["Memory Survey 2025\n最全记忆综述\nFactual/Experiential/Working\n基准+框架目录"]
+
+    %% ── 检索扩展 ──
+    RT3 --> CrossAttn3["Cross-Attention 检索 2025\n用 LLM 训练注意力网络\n替代加权评分公式"]
+    RT3 --> VecDB3["向量数据库集成\n语义嵌入索引\n大规模高效检索"]
+
+    %% ── 反思演进（重点展开）──
+    subgraph REF_EVO3 ["── 反思机制演进 ──"]
+      direction TB
+      RF03["原版 Reflection\n重要性累计超阈值触发\n对记忆流做高层归纳"]
+      Reflexion3["Reflexion\nNeurIPS 2023\n语言版强化学习\n失败 语言反思 episodic memory\n决策+22% 编程+11%"]
+      Limit3["自我反思局限\nICLR 2024\n90%反思为确认性\n真正纠错仅 ~2%\n无外部信号时几乎无效"]
+      MAD3["多智能体辩论\nMAD / MAR 2024-2025\n多角色 Persona 批评者\n异构模型辩论\nGSM-8K 91% vs 82%"]
+      TrajRF3["跨轨迹经验反思\nExpeL / ERL 2024-2025\n比较成功与失败轨迹\n提取可复用 Heuristics\nGaia2 +7.8%"]
+      DualLoop3["双环元认知反思\n2025\n外环 Extrospection 对比参考答案建库\n内环 Introspection 推理时检索反思库\n灵感 认知科学元认知理论"]
+
+      SweetSour3["Sweet and Sour\nNeurIPS 2024\n正面+负面经验都反思\n弥补 Reflexion 只反思失败的缺陷"]
+
+      RF03 --> Reflexion3
+      Reflexion3 --> SweetSour3
+      Reflexion3 --> Limit3
+      Limit3 --> MAD3
+      Limit3 --> TrajRF3
+      MAD3 --> DualLoop3
+      TrajRF3 --> DualLoop3
+    end
+
+    RF3 --> RF03
+
+    %% ── 规划扩展 ──
+    PL3 --> ReAct3["ReAct 2023\n推理 Reasoning +\n行动 Acting 交替\n支持工具调用"]
+    PL3 --> MultiCollab3["多 Agent 协作规划\nChatDev MetaGPT\n角色分工 流程编排\n自动完成复杂任务"]
+
+    %% ── 大规模仿真 ──
+    EB3 --> Scale3["大规模仿真"]
+    Scale3 --> OpenCity3["OpenCity 2025\n10,000 Agent 并行\n速度 635x 提升\nToken 消耗 -45%"]
+    Scale3 --> AgentSociety3["AgentSociety 2025\n500 万次交互仿真\n政治极化 谣言传播\nUBI 政策效果研究"]
+    Scale3 --> SocioVerse3["SocioVerse 2025\n1000 万真实用户池\n政治/新闻/经济验证\nPopulation-Scale Calibration"]
+    Scale3 --> Concordia3["Concordia\nGoogle DeepMind\nGame Master 架构\n混合动机社会博弈仿真"]
+    Scale3 --> Sotopia3["Sotopia / S4\nCMU 2024-2025\n90 场景 40 角色\nAgent 社交智能评测"]
+    Scale3 --> PolicySim3["PolicySim 2026\n政策仿真沙盒\n部署前评估干预效果\n替代 A/B 测试"]
+
+    %% ── 具身智能 ──
+    AC3 --> Embodied3["具身智能\nEmbodied Agent"]
+    Embodied3 --> MLLM3["MLLM + World Model\nCVPR 2025\n语言推理 高层规划\n物理仿真 动作约束"]
+    Embodied3 --> ToolUse3["工具调用 / Agentic AI\n搜索 代码执行 API\n真实任务自主完成"]
+    Embodied3 --> VoyagerNode3["Voyager\nNeurIPS 2023\nMinecraft 终身学习\n技能库 + 自动课程"]
+
+    %% ── 游戏/产品化 ──
+    EB3 --> Unbounded3["Unbounded 2024\n无限生命仿真游戏\n双 Agent 架构\nGemma-2B 蒸馏 可玩产品"]
+
+    %% ── 样式 ──
+    classDef core fill:#4c1d95,stroke:#7c3aed,color:#e9d5ff,rx:8
+    classDef memory fill:#1e3a5f,stroke:#3b82f6,color:#bfdbfe
+    classDef retrieval fill:#1a3a2a,stroke:#22c55e,color:#bbf7d0
+    classDef reflection fill:#3b1f1f,stroke:#ef4444,color:#fecaca
+    classDef planning fill:#2d2a1a,stroke:#f59e0b,color:#fde68a
+    classDef action fill:#1f2d3b,stroke:#38bdf8,color:#bae6fd
+    classDef emergent fill:#2a1f3b,stroke:#a78bfa,color:#ddd6fe
+    classDef warning fill:#4a2000,stroke:#f97316,color:#fed7aa
+
+    class GA3 core
+    class MS3,AMEM3,HiAgent3,SharedMem3,MemOS3,RMM3,MemSurvey3 memory
+    class RT3,CrossAttn3,VecDB3 retrieval
+    class RF3,RF03,Reflexion3,SweetSour3,MAD3,TrajRF3,DualLoop3 reflection
+    class Limit3 warning
+    class PL3,ReAct3,MultiCollab3 planning
+    class AC3,Embodied3,MLLM3,ToolUse3,VoyagerNode3 action
+    class EB3,Scale3,OpenCity3,AgentSociety3,SocioVerse3,Concordia3,Sotopia3,PolicySim3,Unbounded3 emergent
+
+    %% ── 论文链接 ──
+    click GA3 href "https://arxiv.org/abs/2304.03442" _blank
+    click MS3 href "https://arxiv.org/abs/2304.03442" _blank
+    click RT3 href "https://arxiv.org/abs/2304.03442" _blank
+    click RF3 href "https://arxiv.org/abs/2304.03442" _blank
+    click PL3 href "https://arxiv.org/abs/2304.03442" _blank
+    click AC3 href "https://arxiv.org/abs/2304.03442" _blank
+    click EB3 href "https://arxiv.org/abs/2304.03442" _blank
+    click RF03 href "https://arxiv.org/abs/2304.03442" _blank
+    click AMEM3 href "https://arxiv.org/abs/2502.12110" _blank
+    click HiAgent3 href "https://arxiv.org/abs/2408.09559" _blank
+    click SharedMem3 href "https://www.techrxiv.org/users/1007269/articles/1367390/master/file/data/LLM_MAS_Memory_Survey_preprint_/LLM_MAS_Memory_Survey_preprint_.pdf" _blank
+    click CrossAttn3 href "https://www.frontiersin.org/articles/10.3389/fpsyg.2025.1591618/full" _blank
+    click Reflexion3 href "https://arxiv.org/abs/2303.11366" _blank
+    click Limit3 href "https://arxiv.org/abs/2310.01848" _blank
+    click MAD3 href "https://arxiv.org/abs/2305.14325" _blank
+    click TrajRF3 href "https://arxiv.org/abs/2603.24639" _blank
+    click DualLoop3 href "https://arxiv.org/abs/2405.06682" _blank
+    click ReAct3 href "https://arxiv.org/abs/2210.03629" _blank
+    click MultiCollab3 href "https://arxiv.org/abs/2307.07924" _blank
+    click AgentSociety3 href "https://arxiv.org/abs/2502.08691" _blank
+    click OpenCity3 href "https://aclanthology.org/2025.acl-industry.94.pdf" _blank
+    click MLLM3 href "https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" _blank
+    click ToolUse3 href "https://arxiv.org/abs/2210.03629" _blank
+    click MemOS3 href "https://arxiv.org/abs/2506.06326" _blank
+    click RMM3 href "https://arxiv.org/abs/2503.08026" _blank
+    click MemSurvey3 href "https://arxiv.org/abs/2512.13564" _blank
+    click SweetSour3 href "https://arxiv.org/abs/2411.02223" _blank
+    click Concordia3 href "https://github.com/google-deepmind/concordia" _blank
+    click Sotopia3 href "https://sotopia.world/projects/sotopia" _blank
+    click PolicySim3 href "https://arxiv.org/abs/2603.19649" _blank
+    click VoyagerNode3 href "https://arxiv.org/abs/2305.16291" _blank
+    click Unbounded3 href "https://arxiv.org/abs/2410.18975" _blank
+    click SocioVerse3 href "https://arxiv.org/abs/2504.10157" _blank
+</pre>
+</div>
+
+<div class="tab3-legend">
+  <span style="background:#4c1d95;color:#e9d5ff">原始论文</span>
+  <span style="background:#1e3a5f;color:#bfdbfe">记忆系统</span>
+  <span style="background:#1a3a2a;color:#bbf7d0">检索机制</span>
+  <span style="background:#3b1f1f;color:#fecaca">反思演进</span>
+  <span style="background:#4a2000;color:#fed7aa">局限发现</span>
+  <span style="background:#2d2a1a;color:#fde68a">规划扩展</span>
+  <span style="background:#1f2d3b;color:#bae6fd">行动/具身</span>
+  <span style="background:#2a1f3b;color:#ddd6fe">涌现/大规模</span>
+</div>
+
+<hr class="tab3-hr">
+
+<!-- ── Diagram 2: Academic → Commercial ── -->
+<h2 class="tab3-h2">学术论文 → 商业落地概念关联图</h2>
+<p class="tab3-sub">Inworld AI &middot; Character.AI &middot; Soul Machines &nbsp;&middot;&nbsp; 实线=采用/扩展 &nbsp;&middot;&nbsp; 虚线=替代/颠覆</p>
+
+<div class="tab3-mermaid">
+<pre class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "13px"}, "flowchart": {"rankSpacing": 55, "nodeSpacing": 30}}}%%
+flowchart TD
+
+    %% ── 学术论文锚点 ──
+    subgraph PAPERS3 ["核心论文体系"]
+      direction LR
+      P1b(["Generative Agents\narXiv:2304.03442\nMemory Reflection Planning"])
+      P2b(["Reflexion\narXiv:2303.11366\n语言版强化学习"])
+      P3b(["反思局限\nICLR 2024 2310.01848\n90%反思为确认性"])
+      P4b(["ReAct\narXiv:2210.03629\n推理+行动交替"])
+      P5b(["ChatDev / MetaGPT\narXiv:2307.07924\n多Agent角色分工"])
+      P6b(["HiAgent\narXiv:2408.09559\n分层记忆+子目标切分"])
+      P7b(["InstructGPT / RLHF\narXiv:2203.02155\n人类反馈强化学习"])
+      P8b(["Generalist Embodied\nCVPR 2025\nMLLM驱动具身Agent"])
+      P9b(["A-MEM\narXiv:2502.12110\n关联记忆网络"])
+    end
+
+    %% ── Inworld AI ──
+    subgraph IW3 ["Inworld AI Character Engine (B2B Gaming)"]
+      direction TB
+      IW1b["Memory Stream\n游戏事件 + 关系图\n4th Wall 知识边界封闭"]
+      IW2b["Threshold Reflection\n重要性累计触发\n生成日计划/关系变化"]
+      IW3b["Hierarchical Planning\n日 时 分钟递归分解\n动态响应外部事件"]
+      IW4b["Director Layer\n2-5 NPC 群组协调\nAuto speaker selection"]
+      IW5b["Contextual Mesh\n幻觉抑制 Narrative Control\n玩家画像 安全过滤"]
+    end
+
+    %% ── Character.AI ──
+    subgraph CA3 ["Character.AI RLHF Platform (C端 2000万月活)"]
+      direction TB
+      CA1b["对话摘要记忆\n短期滚动窗口 中期摘要\n长期性格嵌入"]
+      CA2b["Personality Embeddings\n嵌入空间编码角色性格\n同一模型参数表现不同角色"]
+      CA3b["RLHF + PPO\n评分员驱动 连续在线优化\n反思隐含于参数更新"]
+      CA4b["AvatarFX / TalkingMachines\n视频生成 自回归扩散模型\n实时音频驱动 FaceTime 风格"]
+    end
+
+    %% ── Soul Machines ──
+    subgraph SM3 ["Soul Machines Digital Brain (B2B Enterprise)"]
+      direction TB
+      SM1b["Biological AI\nUS Patent 10181213B2\n神经行为动画系统"]
+      SM2b["Digital Brain\n感觉/运动/自主神经系统\n模拟多巴胺等神经化学"]
+      SM3b["自主动画引擎\n无需动捕实时生成\n面部+肢体+情感同步"]
+      SM4b["Digital Workforce\n医疗/HR/销售数字员工\nServiceNow 工作流集成"]
+    end
+
+    %% ── 论文 → Inworld AI ──
+    P1b -->|"Memory Stream 直接采用"| IW1b
+    P1b -->|"Reflection 阈值机制"| IW2b
+    P1b -->|"Planning 分层结构"| IW3b
+    P5b -->|"多Agent协调 实时扩展"| IW4b
+    P4b -->|"推理+行动 加幻觉约束层"| IW5b
+    P6b -->|"分层记忆 Planning分解"| IW3b
+    P9b -->|"关联记忆 关系图建边"| IW1b
+
+    %% ── 论文 → Character.AI ──
+    P1b -->|"Memory Stream 摘要压缩变体"| CA1b
+    P7b -->|"RLHF 方法论直接采用"| CA3b
+    P3b -->|"自反思失效 用RLHF替代显式反思"| CA2b
+    P2b -->|"失败反思 参数化内化进模型"| CA3b
+
+    %% ── 论文 → Soul Machines ──
+    P8b -->|"具身Agent 企业数字人"| SM4b
+    P1b -.->|"替代路线\n放弃LLM记忆/反思范式"| SM1b
+    SM1b --> SM2b
+    SM2b --> SM3b
+    SM3b --> SM4b
+
+    %% ── 样式 ──
+    classDef paper fill:#1e2433,stroke:#6366f1,color:#c7d2fe
+    classDef inworld fill:#0f2d1f,stroke:#22c55e,color:#bbf7d0
+    classDef charai fill:#1f1a33,stroke:#a78bfa,color:#ddd6fe
+    classDef soulmach fill:#2d1a1a,stroke:#f87171,color:#fecaca
+    classDef star fill:#2d2200,stroke:#f59e0b,color:#fde68a
+
+    class P1b,P2b,P3b,P4b,P5b,P6b,P7b,P8b,P9b paper
+    class IW1b,IW2b,IW3b inworld
+    class IW4b,IW5b star
+    class CA1b,CA3b charai
+    class CA2b,CA4b star
+    class SM2b,SM3b,SM4b soulmach
+    class SM1b star
+
+    %% ── 论文链接 ──
+    click P1b href "https://arxiv.org/abs/2304.03442" _blank
+    click P2b href "https://arxiv.org/abs/2303.11366" _blank
+    click P3b href "https://arxiv.org/abs/2310.01848" _blank
+    click P4b href "https://arxiv.org/abs/2210.03629" _blank
+    click P5b href "https://arxiv.org/abs/2307.07924" _blank
+    click P6b href "https://arxiv.org/abs/2408.09559" _blank
+    click P7b href "https://arxiv.org/abs/2203.02155" _blank
+    click P8b href "https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" _blank
+    click P9b href "https://arxiv.org/abs/2502.12110" _blank
+    click SM1b href "https://patents.google.com/patent/US10181213B2/no" _blank
+</pre>
+</div>
+
+<div class="tab3-legend">
+  <span style="background:#1e2433;color:#c7d2fe">学术论文</span>
+  <span style="background:#0f2d1f;color:#bbf7d0">Inworld AI</span>
+  <span style="background:#1f1a33;color:#ddd6fe">Character.AI</span>
+  <span style="background:#2d1a1a;color:#fecaca">Soul Machines</span>
+  <span style="background:#2d2200;color:#fde68a">关键创新点</span>
+  <span style="color:#9ca3af;padding:2px 8px">实线 = 采用/扩展论文概念 &middot; 虚线 = 替代/颠覆论文路线</span>
+</div>
+
+<hr class="tab3-hr">
+
+<!-- ── Diagram 3: Supplementary concepts ── -->
+<h2 class="tab3-h2">遗漏概念补充图</h2>
+<p class="tab3-sub">技术基础 &middot; 工程框架 &middot; 记忆遗忘 &middot; 安全对齐 &middot; 自主进化</p>
+
+<div class="tab3-mermaid">
+<pre class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "13px"}, "flowchart": {"rankSpacing": 55, "nodeSpacing": 30}}}%%
+flowchart TD
+
+    %% ── 技术基础 ──
+    subgraph FOUNDATION3 ["技术基础（Generative Agents 未显式说明）"]
+      direction LR
+      CoT3(["Chain-of-Thought\nNeurIPS 2022\nWei et al. / Google\n中间推理步骤大幅提升复杂任务性能"])
+      ToT3(["Tree of Thoughts\nNeurIPS 2023\n多路径推理+自我评估\nGame of 24: 4% to 74%"])
+      RAG3(["RAG\nNeurIPS 2020\nLewis et al. / Facebook\n参数记忆+非参数检索结合"])
+      CoT3 --> ToT3
+      CoT3 -.->|"记忆检索本质是 RAG"| RAG3
+    end
+
+    %% ── 早期 Agentic AI ──
+    subgraph EARLY3 ["早期 Agentic AI（工程先驱）"]
+      direction LR
+      AutoGPT3(["Auto-GPT\n2023 / Richards\n首个自主目标执行 Agent\n6 周达 107k GitHub stars"])
+      BabyAGI3(["BabyAGI\n2023 / Nakajima\n任务驱动自主 Agent\n启发 42+ 学术论文"])
+    end
+
+    %% ── 多 Agent 框架 ──
+    subgraph FRAMEWORK3 ["多 Agent 框架（学术 工程转化）"]
+      direction TB
+      CAMEL3(["CAMEL\nNeurIPS 2023 / Li et al.\nRole-playing + Inception Prompting\n角色身份初始化的代表性研究"])
+      AutoGen3(["AutoGen\n2023 / Microsoft\n可组合多 Agent 对话框架\n学术概念落地的核心桥梁"])
+      LangGraph3(["LangGraph\n2024 / LangChain\n有状态多 Agent 图编排\n支持 Human-in-the-loop"])
+      CAMEL3 --> AutoGen3
+      AutoGen3 --> LangGraph3
+    end
+
+    %% ── 自主进化 ──
+    Voyager3(["Voyager\nICLR 2024 / Wang et al.\nMinecraft 中持续探索+积累技能库\n独特物品发现量 3.1x 基线"])
+
+    %% ── 记忆遗忘 ──
+    subgraph FORGET3 ["记忆遗忘机制（原版缺失）"]
+      direction LR
+      MemBank3(["MemoryBank\n2023 arXiv:2305.10250\n艾宾浩斯遗忘曲线驱动\n动态强化/选择性遗忘"])
+      SAGE3(["SAGE\n2024 arXiv:2409.00872\n遗忘曲线优化记忆管理\nAgentBench 性能 +2.26x"])
+      MemBank3 --> SAGE3
+    end
+
+    %% ── 环境感知与状态追踪 ──
+    StateAct3(["StateAct\n2024 arXiv:2410.02810\n环境状态+目标显式追踪\n超越 ReAct 10-30%"])
+    LATS3(["LATS\n2023 arXiv:2310.04406\nMCTS + LLM 推理树\n推理/行动/规划统一框架"])
+
+    %% ── 安全对齐 ──
+    subgraph SAFETY3 ["Agent 安全与对齐（文档完全缺失）"]
+      direction LR
+      SafetyRL3(["Agent Safety via RL\n2025 arXiv:2507.08270\n首个统一安全框架\n防对抗 Prompt + 恶意工具双威胁"])
+      OPTIMA3(["OPTIMA\nACL 2025\nToken 用量降低 90%\n多 Agent 任务性能 +2.8x"])
+    end
+
+    %% ── 连线 ──
+    CoT3 -->|"推理基础"| CAMEL3
+    RAG3 -->|"检索原型"| MemBank3
+    AutoGPT3 --> CAMEL3
+    BabyAGI3 --> AutoGen3
+    AutoGen3 --> Voyager3
+    StateAct3 --> LATS3
+
+    %% ── 样式 ──
+    classDef foundation3 fill:#1a2233,stroke:#60a5fa,color:#bfdbfe
+    classDef early3 fill:#1f2d1a,stroke:#4ade80,color:#bbf7d0
+    classDef framework3 fill:#2a1f3b,stroke:#a78bfa,color:#ddd6fe
+    classDef voyager3 fill:#1f2d3b,stroke:#38bdf8,color:#bae6fd
+    classDef forget3 fill:#1a2d2a,stroke:#2dd4bf,color:#99f6e4
+    classDef state3 fill:#2d2a1a,stroke:#f59e0b,color:#fde68a
+    classDef safety3 fill:#3b1f1f,stroke:#f87171,color:#fecaca
+
+    class CoT3,ToT3,RAG3 foundation3
+    class AutoGPT3,BabyAGI3 early3
+    class CAMEL3,AutoGen3,LangGraph3 framework3
+    class Voyager3 voyager3
+    class MemBank3,SAGE3 forget3
+    class StateAct3,LATS3 state3
+    class SafetyRL3,OPTIMA3 safety3
+
+    %% ── 论文链接 ──
+    click CoT3 href "https://arxiv.org/abs/2201.11903" _blank
+    click ToT3 href "https://arxiv.org/abs/2305.10601" _blank
+    click RAG3 href "https://arxiv.org/abs/2005.11401" _blank
+    click AutoGPT3 href "https://github.com/Significant-Gravitas/AutoGPT" _blank
+    click BabyAGI3 href "https://github.com/yoheinakajima/babyagi" _blank
+    click CAMEL3 href "https://arxiv.org/abs/2303.17760" _blank
+    click AutoGen3 href "https://arxiv.org/abs/2308.08155" _blank
+    click LangGraph3 href "https://github.com/langchain-ai/langgraph" _blank
+    click Voyager3 href "https://arxiv.org/abs/2305.16291" _blank
+    click MemBank3 href "https://arxiv.org/abs/2305.10250" _blank
+    click SAGE3 href "https://arxiv.org/abs/2409.00872" _blank
+    click StateAct3 href "https://arxiv.org/abs/2410.02810" _blank
+    click LATS3 href "https://arxiv.org/abs/2310.04406" _blank
+    click SafetyRL3 href "https://arxiv.org/abs/2507.08270" _blank
+    click OPTIMA3 href "https://aclanthology.org/2025.findings-acl.601.pdf" _blank
+</pre>
+</div>
+
+<div class="tab3-legend">
+  <span style="background:#1a2233;color:#bfdbfe">技术基础</span>
+  <span style="background:#1f2d1a;color:#bbf7d0">早期 Agentic AI</span>
+  <span style="background:#2a1f3b;color:#ddd6fe">多 Agent 框架</span>
+  <span style="background:#1f2d3b;color:#bae6fd">自主进化</span>
+  <span style="background:#1a2d2a;color:#99f6e4">记忆遗忘</span>
+  <span style="background:#2d2a1a;color:#fde68a">环境感知/状态</span>
+  <span style="background:#3b1f1f;color:#fecaca">安全对齐</span>
+</div>
+
+<hr class="tab3-hr">
+
+<!-- ── Paper Reference Table ── -->
+<h2 class="tab3-h2">论文参考总表</h2>
+<p class="tab3-sub">所有概念图涉及论文 &middot; 含 URL + 精简摘要</p>
+
+<table class="paper-table">
+  <thead>
+    <tr>
+      <th style="width:26%">论文</th>
+      <th style="width:14%">年份 / 会议</th>
+      <th style="width:12%">分类</th>
+      <th>精简摘要</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents: Interactive Simulacra of Human Behavior</a><br><small>Park, O'Brien, Cai, Morris, Liang, Bernstein / Stanford</small></td>
+      <td>UIST 2023</td>
+      <td><span class="tag tag-core">原始论文</span></td>
+      <td>提出 Generative Agents 架构，将 LLM 与记忆流、反思、规划结合，25 个 AI 智能体在沙盒小镇 Smallville 中自发涌现情人节派对组织等社会行为，开创"LLM + 多智能体社会仿真"方向。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a><br><small>Wei, Wang, Schuurmans et al. / Google</small></td>
+      <td>NeurIPS 2022</td>
+      <td><span class="tag tag-foundation">技术基础</span></td>
+      <td>证明在 prompt 中加入中间推理步骤（"思维链"）可显著提升 LLM 在算术、常识、符号推理等复杂任务上的性能，是 Generative Agents 所有 LLM 推理调用的基础范式。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2305.10601" target="_blank">Tree of Thoughts: Deliberate Problem Solving with Large Language Models</a><br><small>Yao, Yu, Zhao et al. / Princeton &amp; Google</small></td>
+      <td>NeurIPS 2023</td>
+      <td><span class="tag tag-foundation">技术基础</span></td>
+      <td>将 CoT 扩展为树形多路径搜索，LLM 可同时探索多条推理分支并自我评估剪枝，在 Game of 24 任务上成功率从 4% 提升至 74%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2005.11401" target="_blank">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a><br><small>Lewis, Perez, Piktus et al. / Facebook AI</small></td>
+      <td>NeurIPS 2020</td>
+      <td><span class="tag tag-retrieval">检索/RAG</span></td>
+      <td>首次将参数化记忆（LLM 权重）与非参数化记忆（可检索文档）结合，通过 DPR 检索增强生成，是 Generative Agents 记忆检索机制的学术原型。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct: Synergizing Reasoning and Acting in Language Models</a><br><small>Yao, Zhao, Yu et al. / Princeton &amp; Google</small></td>
+      <td>ICLR 2023</td>
+      <td><span class="tag tag-planning">规划/行动</span></td>
+      <td>让 LLM 交替生成推理轨迹（Reason）与环境动作（Act），在 HotpotQA 和 ALFWorld 上显著优于仅推理或仅行动的基线，是 Agentic AI 工具调用的核心范式。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM: Agentic Memory for LLM Agents</a></td>
+      <td>2025</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>受 Zettelkasten 卡片笔记启发，每条记忆带关键词/标签，并与相关记忆动态建立语义链接，形成知识图谱式关联记忆网络，替代原版单层线性记忆流。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent: Hierarchical Working Memory Management for Solving Long-Horizon Agent Tasks</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>引入分层记忆管理：将任务分解为子目标，每个子目标完成后压缩为摘要存入上层记忆，有效解决长任务中工作记忆溢出问题。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2305.10250" target="_blank">MemoryBank: Enhancing Large Language Models with Long-Term Memory</a></td>
+      <td>2023</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>借鉴艾宾浩斯遗忘曲线，根据记忆的访问频率和经过时间动态调整记忆强度，实现选择性遗忘与强化，弥补原版 Generative Agents 无显式遗忘机制的缺陷。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2409.00872" target="_blank">SAGE: Self-Evolving LLM Agents with Reflective and Memory-Augmented Abilities</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>将遗忘曲线嵌入记忆管理优化流程，结合自我反思持续调整记忆优先级，在 AgentBench 上将 GPT-3.5/4 性能提升最高 2.26x。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion: Language Agents with Verbal Reinforcement Learning</a><br><small>Shinn, Cassano, Berman et al.</small></td>
+      <td>NeurIPS 2023</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>提出语言版强化学习：Agent 执行失败后用自然语言反思代替梯度更新，将反思写入 episodic memory 指导下次尝试，决策任务 +22%、HotPotQA +20%、Python 编程 +11%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2310.01848" target="_blank">Large Language Models Cannot Self-Correct Reasoning Yet</a><br><small>Huang, Chen, Liang et al. / ICLR 2024</small></td>
+      <td>ICLR 2024</td>
+      <td><span class="tag tag-reflection">反思局限</span></td>
+      <td>实验证明 LLM 在无外部反馈时自我反思 90%+ 是确认性的（维持原答案），真正纠错仅约 2%，推动研究者转向外部信号驱动和多智能体批评范式。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2305.14325" target="_blank">Improving Factuality and Reasoning in Language Models through Multiagent Debate</a></td>
+      <td>2023</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>多个 LLM Agent 轮流提出答案并互相批评对方推理，通过辩论达成共识，在数学推理和事实问答上显著优于单 Agent 自我修正，GSM-8K 精度从 82% 提升至 91%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2512.20845" target="_blank">MAR: Multi-view Attention Reasoning for Diverse Language Model Reasoning</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>引入多角色 Persona 的 Agent 批评者，从不同视角对失败推理进行异构批判，通过多模型辩论进一步提升复杂推理任务准确率。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2405.06682" target="_blank">Dual-Loop Reflection for Language Model Agents</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>受认知科学元认知理论启发，设计双环反思：外环（Extrospection）对比参考答案构建 Reflection Bank，内环（Introspection）推理时检索历史反思库，实现持续自我改进闭环。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2307.07924" target="_blank">Communicative Agents for Software Development (ChatDev)</a></td>
+      <td>2023</td>
+      <td><span class="tag tag-planning">规划/行动</span></td>
+      <td>将软件开发流程映射为多 Agent 角色分工（CEO、CTO、程序员、测试员），通过结构化聊天协作自动完成从需求到可运行代码的全流程，是多 Agent 任务协作的代表工作。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2310.04406" target="_blank">Language Agent Tree Search (LATS)</a></td>
+      <td>2023</td>
+      <td><span class="tag tag-planning">规划/行动</span></td>
+      <td>将蒙特卡洛树搜索（MCTS）引入 LLM Agent，统一推理、行动与规划为树形搜索框架，Agent 可回溯探索失败路径，在复杂决策任务上显著超越 ReAct。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2410.02810" target="_blank">StateAct: State Tracking and Reasoning for Acting and Planning with LLMs</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-planning">环境感知</span></td>
+      <td>在 CoT 基础上显式追踪 Agent 的环境状态（位置、库存、目标完成度），避免状态遗忘导致的决策偏差，在多个基准上比 ReAct 高出 10-30%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society</a><br><small>Li et al. / NeurIPS 2023</small></td>
+      <td>NeurIPS 2023</td>
+      <td><span class="tag tag-framework">多Agent框架</span></td>
+      <td>通过角色扮演（Role-playing）和 Inception Prompting 初始化 Agent 身份，引导多 Agent 在保持人类意图一致性的前提下协作完成任务。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2308.08155" target="_blank">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation</a><br><small>Wu, Bansal, Zhang et al. / Microsoft</small></td>
+      <td>2023</td>
+      <td><span class="tag tag-framework">多Agent框架</span></td>
+      <td>提出可组合的多 Agent 对话框架，每个 Agent 可灵活配置 LLM、工具或人类输入，支持复杂任务的自动协作完成，是学术概念工程化落地的核心桥梁。</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/langchain-ai/langgraph" target="_blank">LangGraph</a><br><small>LangChain, 2024</small></td>
+      <td>2024（工程项目）</td>
+      <td><span class="tag tag-framework">多Agent框架</span></td>
+      <td>基于有向图的有状态多 Agent 编排框架，将 Agent 工作流建模为循环图节点，原生支持 Human-in-the-loop、持久化记忆和并行分支执行。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager: An Open-Ended Embodied Agent with Large Language Models</a><br><small>Wang, Xie, Jiang et al.</small></td>
+      <td>ICLR 2024</td>
+      <td><span class="tag tag-embodied">自主进化</span></td>
+      <td>首个在 Minecraft 中实现终身学习的 LLM Agent：自动探索环境、将可复用行为编写为可执行代码技能库，独特物品发现数量是基线的 3.1x。</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/Significant-Gravitas/AutoGPT" target="_blank">Auto-GPT</a><br><small>Richards, 2023</small></td>
+      <td>2023（工程项目）</td>
+      <td><span class="tag tag-framework">早期Agent</span></td>
+      <td>首个将 GPT-4 与工具调用结合实现自主目标执行的开源实验，6 周内 GitHub stars 突破 107k，引爆 Agentic AI 工程化浪潮。</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/yoheinakajima/babyagi" target="_blank">BabyAGI</a><br><small>Nakajima, 2023</small></td>
+      <td>2023（工程项目）</td>
+      <td><span class="tag tag-framework">早期Agent</span></td>
+      <td>极简任务驱动自主 Agent：用 GPT-4 生成任务、Pinecone 向量库存储结果、LangChain 执行任务，启发了 42+ 篇学术论文。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety: Large-Scale Simulation of LLM-Based Societies</a></td>
+      <td>2025</td>
+      <td><span class="tag tag-scale">大规模仿真</span></td>
+      <td>构建万级 Agent 社会仿真平台，模拟 500 万次交互，研究政治极化、谣言传播和 UBI 政策效果。</td>
+    </tr>
+    <tr>
+      <td><a href="https://aclanthology.org/2025.acl-industry.94.pdf" target="_blank">OpenCity: Scalable LLM-Driven Urban Simulation</a></td>
+      <td>ACL 2025</td>
+      <td><span class="tag tag-scale">大规模仿真</span></td>
+      <td>通过并行化框架将 LLM Agent 城市仿真扩展至 10,000 个并发 Agent，仿真速度提升 635x，Token 消耗降低 45%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2507.08270" target="_blank">Agent Safety Alignment via Reinforcement Learning</a></td>
+      <td>2025</td>
+      <td><span class="tag tag-safety">安全对齐</span></td>
+      <td>首个统一 Agent 安全对齐框架，同时覆盖用户侧（对抗性 prompt）和工具侧（恶意工具输出）两类威胁。</td>
+    </tr>
+    <tr>
+      <td><a href="https://aclanthology.org/2025.findings-acl.601.pdf" target="_blank">OPTIMA: Optimizing Effectiveness and Efficiency for LLM-Based Multi-Agent Systems</a></td>
+      <td>ACL 2025</td>
+      <td><span class="tag tag-safety">成本效率</span></td>
+      <td>针对多 Agent 系统 Token 开销过大的问题，在保持任务性能 +2.8x 的同时将 Token 使用量降低 90%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2203.02155" target="_blank">Training Language Models to Follow Instructions with Human Feedback (InstructGPT / RLHF)</a><br><small>Ouyang, Wu, Jiang et al. / OpenAI</small></td>
+      <td>NeurIPS 2022</td>
+      <td><span class="tag tag-commercial">商业基础</span></td>
+      <td>通过人类偏好标注 + PPO 强化学习微调 GPT 模型，成为 Character.AI 等商业产品角色对话对齐的核心方法论。</td>
+    </tr>
+    <tr>
+      <td><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">From Multimodal LLMs to Generalist Embodied Agents: Methods and Lessons</a></td>
+      <td>CVPR 2025</td>
+      <td><span class="tag tag-embodied">具身智能</span></td>
+      <td>系统总结将多模态 LLM 应用于通用具身 Agent 的方法与经验教训，为语言世界 Agent 向物理世界迁移提供方法论框架。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey</a><br><small>Hu, Liu et al.</small></td>
+      <td>2025</td>
+      <td><span class="tag tag-memory2">记忆综述</span></td>
+      <td>目前最全面的 Agent 记忆综述，区分 Factual/Experiential/Working Memory 三大功能类型，编制记忆基准和框架目录。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent</a><br><small>Kang, Ji, Zhao, Bai</small></td>
+      <td>EMNLP 2025 Oral</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>借鉴操作系统内存管理，设计短期/中期/长期三级记忆架构，LoCoMo 基准 F1 提升 49.11%。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2503.08026" target="_blank">In Prospect and Retrospect: Reflective Memory Management (RMM)</a><br><small>Tan, Yan et al.</small></td>
+      <td>ACL 2025</td>
+      <td><span class="tag tag-memory2">记忆系统</span></td>
+      <td>前瞻反思跨粒度动态摘要 + 回顾反思用在线 RL 优化检索，LongMemEval 准确率提升 10%+。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2411.02223" target="_blank">Sweet&amp;Sour: Positive Experience Reflection for Agents</a></td>
+      <td>NeurIPS 2024</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>不只反思失败，每完成子目标也反思（正面经验），弥补 Reflexion 只关注失败的缺陷。</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/google-deepmind/concordia" target="_blank">Concordia: A Library for Generative Social Simulation</a><br><small>Google DeepMind</small></td>
+      <td>2024</td>
+      <td><span class="tag tag-scale">社会仿真</span></td>
+      <td>Google DeepMind 开源社会仿真库，Game Master 架构形式化 LLM 在多 Agent 博弈中的交互。</td>
+    </tr>
+    <tr>
+      <td><a href="https://sotopia.world/projects/sotopia" target="_blank">Sotopia / SOTOPIA-S4</a><br><small>CMU</small></td>
+      <td>2024-2025</td>
+      <td><span class="tag tag-scale">社会仿真</span></td>
+      <td>CMU 出品的 Agent 社交智能评测框架：90 个场景 + 40 个角色，评测目标完成度、可信度、秘密保守等。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2504.10157" target="_blank">SocioVerse: A World Model for Social Simulation with 10M Users</a><br><small>Fudan University</small></td>
+      <td>2025</td>
+      <td><span class="tag tag-scale">社会仿真</span></td>
+      <td>1000 万真实用户池驱动的社会仿真世界模型，政治/新闻/经济三领域验证。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2603.19649" target="_blank">PolicySim: LLM-Based Agent Sandbox for Proactive Policy Optimization</a></td>
+      <td>2026</td>
+      <td><span class="tag tag-scale">社会仿真</span></td>
+      <td>用 Agent 仿真在部署前评估社交平台干预政策，替代事后 A/B 测试。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2410.18975" target="_blank">Unbounded: A Generative Infinite Game of Character Life Simulation</a></td>
+      <td>2024</td>
+      <td><span class="tag tag-scale">游戏仿真</span></td>
+      <td>将 Smallville 思想做成可玩产品：双 Agent 架构，从 GPT-4o 蒸馏到 Gemma-2B。</td>
+    </tr>
+    <tr>
+      <td><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL: Experience Reflection Learning</a></td>
+      <td>2025</td>
+      <td><span class="tag tag-reflection">反思机制</span></td>
+      <td>构建可检索的策略池，从历史轨迹中提取策略，新任务时检索指导执行，Gaia2 +7.8%。</td>
+    </tr>
+  </tbody>
+</table>
+
+</div><!-- /tab3 -->
+
+<footer>
+  Generative Agents Research Map &mdash; 三视角概念关联图 &mdash; 持续补充中
+</footer>
+
+<!-- ══════════════════ Tab Switching + Mermaid Re-render ══════════════════ -->
+<script>
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { curve: 'basis', padding: 16, nodeSpacing: 30, rankSpacing: 50 }
+  });
+
+  const renderedTabs = new Set();
+
+  async function renderTab(panelId) {
+    if (renderedTabs.has(panelId)) return;
+    const panel = document.getElementById(panelId);
+    const nodes = panel.querySelectorAll('pre.mermaid');
+    if (nodes.length === 0) return;
+    renderedTabs.add(panelId);
+    await mermaid.run({ nodes: Array.from(nodes) });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => renderTab('tab1'));
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+      await renderTab(btn.dataset.tab);
+    });
+  });
+</script>
+
+</body>
+</html>

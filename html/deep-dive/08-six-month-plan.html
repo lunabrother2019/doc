@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多Agent平台统一改造：半年计划</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#242837;--border:#2d2d3a;--text:#e2e8f0;--muted:#8b95a5;--accent:#a78bfa;--blue:#60a5fa;--green:#34d399;--red:#f87171;--orange:#fb923c;--yellow:#fbbf24;--cyan:#22d3ee;--pink:#f472b6}
+html{scroll-behavior:smooth}
+body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.8}
+.hero{background:linear-gradient(135deg,#1b1340 0%,#0f1117 50%,#0a1628 100%);padding:48px 24px 40px;text-align:center;border-bottom:1px solid var(--border)}
+.hero h1{font-size:clamp(20px,3.5vw,30px);color:var(--cyan);margin-bottom:10px}
+.hero .sub{color:var(--muted);font-size:14px;max-width:800px;margin:0 auto;line-height:1.9}
+.nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;white-space:nowrap}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;gap:2px;padding:6px 0}
+.nav a{color:var(--muted);text-decoration:none;font-size:12px;padding:5px 10px;border-radius:6px;transition:all .2s;flex-shrink:0}
+.nav a:hover{color:var(--text);background:var(--bg3)}
+.container{max-width:1200px;margin:0 auto;padding:28px 24px 80px}
+.section{margin-bottom:48px}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--border)}
+.sec-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#0f1117;flex-shrink:0}
+.sec-head h2{font-size:19px;font-weight:600}
+h3{font-size:16px;color:var(--accent);margin:24px 0 10px;font-weight:600}
+h4{font-size:14px;color:var(--yellow);margin:16px 0 8px;font-weight:600}
+p,.li-text{margin-bottom:8px;font-size:14px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.callout{border-radius:10px;padding:14px 18px;margin:14px 0 18px;font-size:13.5px;line-height:1.85}
+.callout-key{background:rgba(167,139,250,.08);border-left:3px solid var(--accent)}
+.callout-insight{background:rgba(34,211,238,.06);border-left:3px solid var(--cyan)}
+.callout-warn{background:rgba(251,146,60,.08);border-left:3px solid var(--orange)}
+.callout-good{background:rgba(52,211,153,.06);border-left:3px solid var(--green)}
+.callout-red{background:rgba(248,113,113,.06);border-left:3px solid var(--red)}
+.hl{background:rgba(251,191,36,.12);color:var(--yellow);padding:1px 4px;border-radius:3px;font-weight:500}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:14px;transition:border-color .2s}
+.card:hover{border-color:var(--accent)}
+.card-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.card-body{font-size:13.5px;color:#c9d1d9;line-height:1.75}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr}}
+.table-wrap{overflow-x:auto;margin:14px 0 20px;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--bg3);color:var(--accent);font-weight:600;text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+.phase-bar{display:flex;gap:0;margin:20px 0;border-radius:10px;overflow:hidden;font-size:12px;font-weight:600;text-align:center}
+.phase-bar>div{padding:12px 8px;flex:1}
+.phase-bar .p1{background:rgba(167,139,250,.2);color:var(--accent)}
+.phase-bar .p2{background:rgba(96,165,250,.15);color:var(--blue)}
+.phase-bar .p3{background:rgba(34,211,238,.12);color:var(--cyan)}
+.milestone{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.ms-dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.ms-content{flex:1}
+.ms-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.ms-desc{font-size:13px;color:var(--muted)}
+.tag{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500;display:inline-block;margin:1px 2px}
+.tag-p1{background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)}
+.tag-p2{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.25)}
+.tag-p3{background:rgba(34,211,238,.1);color:var(--cyan);border:1px solid rgba(34,211,238,.2)}
+.tag-critical{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.tag-track{background:rgba(251,191,36,.12);color:var(--yellow);border:1px solid rgba(251,191,36,.3)}
+.stat-row{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:120px;text-align:center}
+.stat-box .num{font-size:28px;font-weight:700;line-height:1.2}
+.stat-box .label{font-size:11px;color:var(--muted);margin-top:2px}
+code{background:var(--bg3);padding:1px 6px;border-radius:4px;font-size:12.5px;font-family:"JetBrains Mono",Consolas,monospace}
+.code-block{background:#161b22;border:1px solid var(--border);border-radius:8px;padding:14px 18px;font-family:"JetBrains Mono",Consolas,monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;margin:12px 0 16px;color:#c9d1d9}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:28px 24px;border-top:1px solid var(--border);margin-top:40px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>多Agent平台统一改造：半年计划</h1>
+  <p class="sub">基于斯坦福小镇架构原理 + 90篇前沿论文 + Claude Code源码分析 + 企业落地实践<br>从现有平台出发，分三阶段构建统一的多Agent系统</p>
+</div>
+
+<nav class="nav"><div class="nav-inner">
+  <a href="#vision">愿景</a>
+  <a href="#principles">设计原则</a>
+  <a href="#phases">三阶段总览</a>
+  <a href="#p1">Phase 1 基座</a>
+  <a href="#p2">Phase 2 协同</a>
+  <a href="#p3">Phase 3 智能</a>
+  <a href="#cap">能力矩阵</a>
+  <a href="#stack">技术选型</a>
+  <a href="#frontier">前沿跟踪</a>
+  <a href="#risk">风险与避坑</a>
+  <a href="#review">复盘节奏</a>
+</div></nav>
+
+<div class="container">
+
+<!-- ═══ Vision ═══ -->
+<section class="section" id="vision">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">!</span>
+    <h2>愿景：从"平台各自为政"到"Agent协作网络"</h2>
+  </div>
+
+  <p>目前的状态：部门内多个平台各有独立的自动化逻辑、独立的数据存储、独立的触发机制。平台之间靠API硬编码调用，缺乏语义理解和自适应能力。</p>
+
+  <p>目标状态：每个平台成为一个<span class="hl">Agent（或Agent集群）</span>，拥有独立的记忆、推理和行动能力，通过<span class="hl">统一协议</span>互相感知、协商和协作。一个新需求不再需要逐个平台改代码——只需告诉"编排Agent"目标，它会自动分解任务、调度各平台Agent执行。</p>
+
+  <div class="callout callout-key">
+    <strong>核心类比</strong>：<a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville</a>是25个Agent在一个小镇里自发协作。我们要做的是——让部门的N个平台成为N个Agent，在一个"数字小镇"里自发协作。每个平台Agent有自己的"性格"（能力边界）、"记忆"（历史数据和经验）、"社交"（与其他平台的通信），以及"反思"（从执行结果中学习改进）。
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box"><div class="num" style="color:var(--accent)">6</div><div class="label">个月</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--blue)">3</div><div class="label">个阶段</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--green)">8</div><div class="label">个核心能力</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--yellow)">5</div><div class="label">条前沿赛道</div></div>
+  </div>
+</section>
+
+<!-- ═══ Principles ═══ -->
+<section class="section" id="principles">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent)">0</span>
+    <h2>设计原则：从研究中提炼的7条铁律</h2>
+  </div>
+
+  <p>这7条原则从我们研究的90+篇论文和Claude Code源码中提炼，是整个改造的架构指南针。</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">1. 先单Agent跑通，再搞多Agent</div>
+      <div class="card-body">企业落地第一大坑是"平台先行"——先搭框架再找场景。正确做法：先在<span class="hl">1个平台</span>上做出1个高质量Agent，验证价值后再扩展。<br><em>来源：企业落地实践 — "premature abstraction"是头号失败模式</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">2. 窄能力专家 > 宽能力通才</div>
+      <div class="card-body">每个平台Agent应该是<span class="hl">深而窄</span>的专家（"发票处理Agent"），而不是浅而宽的通才（"做一切Agent"）。窄Agent可测试、可评估、可信赖。<br><em>来源：<a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy</a> — 8个Agent自发分化5,006个角色，自然走向专业化</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">3. 结构化消息 > 自由对话</div>
+      <div class="card-body">Agent之间用<span class="hl">结构化Schema</span>通信，不是自由文本聊天。每一跳都会损失信息，结构化消息减少累积误差。<br><em>来源：Claude Code Mailbox — JSONL格式{from, text, summary, timestamp}</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">4. 记忆分类存储，不是记住一切</div>
+      <div class="card-body">分4类：<span class="hl">用户画像/反馈/项目状态/外部引用</span>。每类有不同的生命周期。明确定义<span class="hl">负列表</span>（不记什么）比定义正列表更重要。<br><em>来源：Claude Code memoryTypes.ts — 四类记忆 + 负列表</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">5. 做事和反思永远分离</div>
+      <div class="card-body">Agent执行任务时不做元认知反思。反思在<span class="hl">后台空闲时</span>运行（autoDream模式）。两者互斥——做事的人和复盘的人不能是同一时刻的同一个人。<br><em>来源：Claude Code extractMemories互斥机制 + 认知科学睡眠记忆整合理论</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">6. 信任但验证（Trust but Verify）</div>
+      <div class="card-body">Agent的记忆是<span class="hl">"提示"而非"事实"</span>。推荐任何东西之前先验证当前状态。记忆超过1天就标注年龄警告。<br><em>来源：Claude Code "memory as hint, not truth"</em></div>
+    </div>
+    <div class="card">
+      <div class="card-title">7. 最小结构 + 完全角色自治</div>
+      <div class="card-body">不要过度预设Agent的角色。给<span class="hl">最小的结构约束</span>（执行顺序、通信协议），让Agent自己决定"我在这个任务中应该扮演什么角色"。<br><em>来源：<a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy</a> — 内生性悖论，预设角色是反模式</em></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Phases Overview ═══ -->
+<section class="section" id="phases">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--blue)">~</span>
+    <h2>三阶段总览</h2>
+  </div>
+
+  <div class="phase-bar">
+    <div class="p1">Phase 1<br>基座建设<br>月1-2</div>
+    <div class="p2">Phase 2<br>多Agent协同<br>月3-4</div>
+    <div class="p3">Phase 3<br>智能进化<br>月5-6</div>
+  </div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>阶段</th><th>核心目标</th><th>交付物</th><th>对应Smallville</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-p1">Phase 1</span></td>
+        <td>在1个试点平台上跑通<strong>单Agent全流程</strong>：感知→推理→行动→记忆</td>
+        <td>Agent Runtime + 记忆系统 + 工具层 + 可观测性</td>
+        <td>一个Agent的完整循环（Memory Stream + Planning + Action）</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-p2">Phase 2</span></td>
+        <td>扩展到3-5个平台Agent，建立<strong>通信和协调机制</strong></td>
+        <td>Agent注册中心 + 消息总线 + 编排Agent + MCP工具层</td>
+        <td>多Agent交互（对话 + 信息传播 + 协作）</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-p3">Phase 3</span></td>
+        <td>加入<strong>反思和进化能力</strong>，让系统越用越聪明</td>
+        <td>后台反思系统 + 跨Agent知识共享 + 评测基准 + 自优化</td>
+        <td>Reflection + Emergent Behavior + 涌现合作</td>
+      </tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══ Phase 1 ═══ -->
+<section class="section" id="p1">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent)">1</span>
+    <h2>Phase 1：基座建设（月1-2）</h2>
+  </div>
+
+  <div class="callout callout-key"><strong>目标</strong>：在1个试点平台上跑通单Agent全流程，证明价值。不搞框架，不搞平台，先出业务成果。</div>
+
+  <h3>1.1 选择试点平台</h3>
+  <p>选择标准（满足越多越好）：</p>
+  <ul style="font-size:14px;padding-left:20px;margin-bottom:14px">
+    <li>有明确的、重复性的人工操作（Agent替代价值高）</li>
+    <li>有结构化的API/工具可调用（Agent行动层容易实现）</li>
+    <li>有历史数据可做记忆（Agent能从经验中学习）</li>
+    <li>团队对AI接受度高（减少推行阻力）</li>
+    <li>出错可容忍或可回滚（降低风险）</li>
+  </ul>
+
+  <h3>1.2 构建Agent Runtime</h3>
+  <p>核心是一个<span class="hl">Agent循环（Agent Loop）</span>——对应Smallville的感知-推理-行动循环，Claude Code的queryLoop()。</p>
+
+  <div class="code-block">
+// Agent循环的伪代码（对应Claude Code query.ts的queryLoop）
+while (true) {
+  // 1. 感知：收集当前上下文
+  const context = await gatherContext(state, memory, tools)
+
+  // 2. 压缩：如果上下文过长，按级别压缩（对应5级瀑布）
+  const compressed = await compressIfNeeded(context, state.compressionLevel)
+
+  // 3. 推理：调用LLM决策
+  const decision = await callLLM(compressed, systemPrompt)
+
+  // 4. 行动：执行工具调用（对应Claude Code Tool System）
+  if (decision.toolCalls) {
+    const results = await executeTools(decision.toolCalls, permissions)
+    state.messages.push(...results)
+  }
+
+  // 5. 记忆：提取值得记住的信息（对应extractMemories）
+  await maybeExtractMemories(state, decision, results)
+
+  // 6. 状态转移：决定继续还是结束（对应transition字段）
+  state = updateState(state, decision, results)
+  if (isTerminal(state)) break
+}
+  </div>
+
+  <div class="callout callout-insight"><strong>借鉴Claude Code的关键设计</strong>：State对象必须是显式的、可序列化的。每次迭代从State解构，transition字段记录"为什么继续"。这让Agent的每个决定都可追溯、可恢复。</div>
+
+  <h3>1.3 构建记忆系统（v1）</h3>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>层级</th><th>内容</th><th>存储</th><th>生命周期</th><th>对应</th></tr></thead>
+    <tbody>
+      <tr><td><strong>工作记忆</strong></td><td>当前会话/任务的上下文</td><td>Redis / 内存</td><td>会话级</td><td>Smallville当前tick的感知</td></tr>
+      <tr><td><strong>短期记忆</strong></td><td>最近N次任务的摘要</td><td>PostgreSQL</td><td>天级，可压缩</td><td>Memory Stream近期部分</td></tr>
+      <tr><td><strong>长期记忆</strong></td><td>4类分类记忆（用户/反馈/项目/引用）</td><td>PostgreSQL + pgvector</td><td>持久，有遗忘机制</td><td>Claude Code MEMORY.md + Topic Files</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>第一版不需要做autoDream——先做<span class="hl">写入和检索</span>。记忆整合在Phase 3加入。</p>
+
+  <h3>1.4 构建工具层（<a href="https://modelcontextprotocol.io" target="_blank">MCP</a>）</h3>
+  <p>将试点平台的核心操作封装为<span class="hl">MCP Server</span>。每个工具需要：</p>
+  <ul style="font-size:14px;padding-left:20px;margin-bottom:14px">
+    <li><strong>输入Schema</strong>（Zod/JSON Schema验证）——防止LLM传垃圾参数</li>
+    <li><strong>权限标记</strong>（只读/写入/危险）——对应Claude Code的allow/deny/ask三级</li>
+    <li><strong>并发安全标记</strong>——只读工具可并行，写工具串行</li>
+    <li><strong>幂等设计</strong>——Agent可能重试，工具必须能安全重复调用</li>
+  </ul>
+
+  <div class="callout callout-warn"><strong>经验教训</strong>：工具集成是60-70%的工作量。不要低估。MCP帮你标准化接口，但不帮你处理认证、限流、错误恢复。预留充足时间。</div>
+
+  <h3>1.5 构建可观测性（Day 1必须有）</h3>
+  <p>不带可观测性上线Agent等于盲飞。最小可观测性栈：</p>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Trace（追踪）</div>
+      <div class="card-body">每次Agent循环的完整执行路径：LLM输入/输出、工具调用、记忆检索。用<span class="hl"><a href="https://langfuse.com" target="_blank">LangFuse</a></span>（可自托管）或<span class="hl"><a href="https://smith.langchain.com" target="_blank">LangSmith</a></span>。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Metrics（指标）</div>
+      <div class="card-body">延迟（P50/P95/P99）、Token消耗/成本、工具调用成功率、任务完成率。接入现有APM（Datadog/Prometheus）。</div>
+    </div>
+  </div>
+
+  <h3>1.6 Phase 1里程碑</h3>
+  <div class="milestone"><span class="ms-dot" style="background:var(--accent)"></span><div class="ms-content"><div class="ms-title">M1.1 — 第2周：Agent能完成试点平台上1个端到端任务</div><div class="ms-desc">从输入→推理→调用工具→返回结果，全链路跑通。不要求完美，要求完整。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--accent)"></span><div class="ms-content"><div class="ms-title">M1.2 — 第4周：记忆系统v1上线</div><div class="ms-desc">Agent能记住上次任务的结果，下次被问到时能检索并引用。覆盖4类记忆的写入和检索。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--accent)"></span><div class="ms-content"><div class="ms-title">M1.3 — 第6周：可观测性+评测基线</div><div class="ms-desc">全量Trace上线。建立评测数据集（50+测试用例），跑出基线准确率/完成率。后续每次改动都对比基线。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--accent)"></span><div class="ms-content"><div class="ms-title">M1.4 — 第8周：试点平台Agent灰度上线</div><div class="ms-desc">10-20%流量灰度，人工审核Agent输出。收集真实场景的失败案例，建立"困难用例"库。</div></div></div>
+</section>
+
+<!-- ═══ Phase 2 ═══ -->
+<section class="section" id="p2">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--blue)">2</span>
+    <h2>Phase 2：多Agent协同（月3-4）</h2>
+  </div>
+
+  <div class="callout callout-key"><strong>目标</strong>：将3-5个平台改造为Agent，建立Agent间的通信和协调机制。从"每个平台独立自动化"变为"平台之间能感知、协商、协作"。</div>
+
+  <h3>2.1 Agent注册与发现</h3>
+  <p>每个平台Agent发布一份<span class="hl">Agent Card</span>（借鉴<a href="https://google.github.io/A2A" target="_blank">A2A</a>协议的概念）：</p>
+  <div class="code-block">
+{
+  "name": "invoice-agent",
+  "description": "处理发票识别、校验和入账",
+  "capabilities": ["invoice_ocr", "invoice_validate", "ledger_entry"],
+  "tools": ["read_invoice", "validate_amount", "create_entry"],
+  "input_schema": { ... },
+  "output_schema": { ... },
+  "sla": { "p95_latency_ms": 5000, "availability": 0.999 },
+  "owner": "finance-team"
+}
+  </div>
+  <p>所有Agent Card注册到<span class="hl">Agent Registry</span>（可以是一个简单的配置中心或数据库）。编排Agent通过Registry发现可用Agent。</p>
+
+  <h3>2.2 消息总线（Mailbox模式）</h3>
+  <p>借鉴Claude Code的Mailbox架构，而非传统的REST调用：</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>模式</th><th>适用场景</th><th>实现</th></tr></thead>
+    <tbody>
+      <tr><td><strong>同步请求</strong></td><td>需要立即结果（&lt;5s）</td><td>直接gRPC/HTTP调用</td></tr>
+      <tr><td><strong>异步任务</strong></td><td>长时间任务（分钟级）</td><td>消息队列（Kafka/RabbitMQ）+ 状态轮询</td></tr>
+      <tr><td><strong>Mailbox消息</strong></td><td>Agent间协商/通知</td><td>Redis Stream或专用JSONL Mailbox</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout callout-insight"><strong>为什么用Mailbox而不是直接调用？</strong><br>
+    1. <strong>速度解耦</strong>——快的Agent不等慢的，失败的不拖活着的<br>
+    2. <strong>可追溯</strong>——所有消息持久化，可回溯完整协作过程<br>
+    3. <strong>容错</strong>——Agent重启后从Mailbox恢复未处理消息<br>
+    来源：Claude Code Mailbox + Smallville的"物理空间隔离"原理——Agent不能直接读对方脑子
+  </div>
+
+  <h3>2.3 编排Agent（Coordinator）</h3>
+  <p>一个专门的<span class="hl">编排Agent</span>负责将复杂需求分解为子任务，分派给各平台Agent。</p>
+
+  <p>设计要点（借鉴Claude Code Coordinator模式 + <a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy</a>的内生性悖论）：</p>
+  <ul style="font-size:14px;padding-left:20px;margin-bottom:14px">
+    <li>编排Agent<strong>只分解和分派，不自己执行</strong>——防止"什么都自己做"</li>
+    <li>给<strong>最小的结构约束</strong>（任务分解+执行顺序），让平台Agent自己决定执行细节</li>
+    <li>支持<strong>动态重规划</strong>——某个Agent失败时，编排Agent重新分解剩余任务</li>
+    <li>所有分派决策<strong>可追溯</strong>——记录"为什么选了这个Agent"</li>
+  </ul>
+
+  <div class="code-block">
+// 编排Agent的决策流程
+async function orchestrate(userRequest) {
+  // 1. 理解需求
+  const intent = await parseIntent(userRequest)
+
+  // 2. 查询Registry，发现可用Agent
+  const agents = await registry.findCapable(intent.requiredCapabilities)
+
+  // 3. 分解任务（LLM推理）
+  const plan = await planTasks(intent, agents)
+
+  // 4. 按依赖关系分派（可并行的并行，有依赖的串行）
+  const results = await executePlan(plan, agents, {
+    maxRetries: 2,
+    timeoutMs: 30000,
+    onFailure: 'replan'  // 失败时重新规划
+  })
+
+  // 5. 汇总结果
+  return synthesize(results)
+}
+  </div>
+
+  <h3>2.4 跨平台工具层（MCP统一）</h3>
+  <p>每个平台Agent的工具都封装为MCP Server。编排Agent通过MCP协议调用各平台能力。</p>
+  <div class="callout callout-good"><strong>MCP的价值在这里</strong>：新增一个平台时，只需要写一个新的MCP Server，编排Agent自动发现新能力。不需要改编排逻辑——这是"USB式"的即插即用。</div>
+
+  <h3>2.5 Phase 2里程碑</h3>
+  <div class="milestone"><span class="ms-dot" style="background:var(--blue)"></span><div class="ms-content"><div class="ms-title">M2.1 — 第10周：3个平台Agent上线，Agent Card注册完成</div><div class="ms-desc">每个Agent独立工作正常，发布到Registry。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--blue)"></span><div class="ms-content"><div class="ms-title">M2.2 — 第12周：编排Agent跑通第1个跨平台工作流</div><div class="ms-desc">一个需要2+个平台Agent协作的真实业务场景端到端跑通。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--blue)"></span><div class="ms-content"><div class="ms-title">M2.3 — 第14周：Mailbox通信 + 异步任务上线</div><div class="ms-desc">Agent间通过Mailbox协商，长任务异步执行，状态可追踪。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--blue)"></span><div class="ms-content"><div class="ms-title">M2.4 — 第16周：5个平台Agent + 编排Agent灰度上线</div><div class="ms-desc">覆盖3-5个跨平台工作流，灰度运行，收集失败案例。</div></div></div>
+</section>
+
+<!-- ═══ Phase 3 ═══ -->
+<section class="section" id="p3">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan)">3</span>
+    <h2>Phase 3：智能进化（月5-6）</h2>
+  </div>
+
+  <div class="callout callout-key"><strong>目标</strong>：让系统越用越聪明。加入后台反思、跨Agent知识共享、自动评测和优化。这是从"能用"到"好用"的跃迁。</div>
+
+  <h3>3.1 后台反思系统（autoDream）</h3>
+  <p>借鉴Claude Code autoDream的四阶段设计，构建后台记忆整合机制：</p>
+
+  <div class="grid-2">
+    <div class="card" style="border-color:rgba(167,139,250,.3)">
+      <div class="card-title" style="color:var(--accent)">Phase A — Orient（定向）</div>
+      <div class="card-body">审视当前记忆库状态：有多少记忆、各类分布如何、最近新增了什么。"我现在的知识图谱长什么样？"</div>
+    </div>
+    <div class="card" style="border-color:rgba(96,165,250,.3)">
+      <div class="card-title" style="color:var(--blue)">Phase B — Gather（收集）</div>
+      <div class="card-body">从最近的执行日志中收集新信号：哪些任务失败了？用户反馈了什么？哪些知识过时了？</div>
+    </div>
+    <div class="card" style="border-color:rgba(34,211,238,.3)">
+      <div class="card-title" style="color:var(--cyan)">Phase C — Consolidate（整合）</div>
+      <div class="card-body">将新信号融入已有记忆：合并重复、更新事实、建立关联。重点是<strong>合并而非创建</strong>。</div>
+    </div>
+    <div class="card" style="border-color:rgba(52,211,153,.3)">
+      <div class="card-title" style="color:var(--green)">Phase D — Prune（修剪）</div>
+      <div class="card-body">删除过时记忆、解决矛盾、控制记忆总量。对应Claude Code的200行约束。</div>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <strong>触发条件</strong>（借鉴Claude Code的4门控）：<br>
+    1. 距上次整合 ≥ 24小时<br>
+    2. 新任务执行 ≥ N次<br>
+    3. 无其他整合进程在运行（锁机制）<br>
+    4. 系统负载低于阈值（空闲时运行）<br>
+    <strong>关键</strong>：整合与执行互斥——正在处理业务时不做反思，防止干扰。
+  </div>
+
+  <h3>3.2 跨Agent知识共享</h3>
+  <p>借鉴Claude Code的Team Memory Sync：</p>
+  <ul style="font-size:14px;padding-left:20px;margin-bottom:14px">
+    <li><strong>共享记忆层</strong>：所有Agent都能读取的公共知识库（项目状态、架构决策、团队反馈）</li>
+    <li><strong>私有记忆层</strong>：各Agent独有的领域知识（不污染其他Agent）</li>
+    <li><strong>增量同步</strong>：基于哈希的delta sync，只传差异</li>
+    <li><strong>冲突策略</strong>：读时验证，写时合并，矛盾时标记由人工裁决</li>
+  </ul>
+
+  <h3>3.3 评测基准（Evaluation Framework）</h3>
+  <p>借鉴<a href="https://arxiv.org/abs/2503.01935" target="_blank">MultiAgentBench(MARBLE)</a>的里程碑式KPI设计：</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>维度</th><th>指标</th><th>基线来源</th><th>目标</th></tr></thead>
+    <tbody>
+      <tr><td>任务完成率</td><td>端到端成功率</td><td>Phase 1评测集</td><td>≥ 85%</td></tr>
+      <tr><td>协作效率</td><td>跨Agent任务的额外延迟</td><td>单Agent基线</td><td>≤ 2x 单Agent延迟</td></tr>
+      <tr><td>记忆准确率</td><td>记忆检索的相关性评分</td><td>人工标注</td><td>≥ 0.8</td></tr>
+      <tr><td>反思有效性</td><td>autoDream后下周任务成功率变化</td><td>整合前基线</td><td>正向提升</td></tr>
+      <tr><td>成本效率</td><td>每次任务的Token/API成本</td><td>Phase 1上线值</td><td>逐月下降</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>3.4 自优化循环</h3>
+  <p>将评测结果反馈回系统：</p>
+  <div class="code-block">
+// 自优化循环（对应Multi-Agent Evolve的Self-Play思想）
+失败案例收集 → 分类（模型错误/工具错误/编排错误/记忆错误）
+  → 模型错误 → 优化Prompt或切换模型
+  → 工具错误 → 改进MCP Server实现
+  → 编排错误 → 调整任务分解策略
+  → 记忆错误 → 改进记忆检索/整合逻辑
+  </div>
+
+  <h3>3.5 Phase 3里程碑</h3>
+  <div class="milestone"><span class="ms-dot" style="background:var(--cyan)"></span><div class="ms-content"><div class="ms-title">M3.1 — 第18周：autoDream v1上线</div><div class="ms-desc">四阶段整合首次运行，验证记忆质量提升。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--cyan)"></span><div class="ms-content"><div class="ms-title">M3.2 — 第20周：跨Agent知识共享上线</div><div class="ms-desc">共享记忆层 + 增量同步 + 冲突处理。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--cyan)"></span><div class="ms-content"><div class="ms-title">M3.3 — 第22周：评测基准 + 自优化循环上线</div><div class="ms-desc">自动化评测跑分，失败案例自动分类，优化建议自动生成。</div></div></div>
+  <div class="milestone"><span class="ms-dot" style="background:var(--cyan)"></span><div class="ms-content"><div class="ms-title">M3.4 — 第24周：全平台Agent系统正式上线</div><div class="ms-desc">所有平台Agent + 编排Agent + 反思系统 + 评测体系 全量运行。</div></div></div>
+</section>
+
+<!-- ═══ Core Capabilities ═══ -->
+<section class="section" id="cap">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--green)">+</span>
+    <h2>8个核心能力的逐步补全路线</h2>
+  </div>
+
+  <p>这8个能力对应Claude Code源码分析中提炼的8大原理，按阶段逐步构建：</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>核心能力</th><th>P1 基座</th><th>P2 协同</th><th>P3 智能</th><th>学术来源</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Agent循环</strong><br><small>显式State状态机</small></td>
+        <td style="color:var(--green)">单Agent循环<br>State可序列化</td>
+        <td style="color:var(--green)">多Agent各自循环<br>编排Agent循环</td>
+        <td style="color:var(--green)">循环内嵌评测<br>自适应参数</td>
+        <td><small>Claude Code query.ts<br>Smallville tick循环</small></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>上下文管理</strong><br><small>压缩瀑布</small></td>
+        <td style="color:var(--green)">2级压缩<br>(截断+摘要)</td>
+        <td style="color:var(--green)">4级压缩<br>(+折叠+自动摘要)</td>
+        <td style="color:var(--green)">5级+断路器<br>跨Agent压缩协调</td>
+        <td><small>Claude Code 5级瀑布<br><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS</a>三级存储</small></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>记忆系统</strong><br><small>四类分类学</small></td>
+        <td style="color:var(--green)">写入+检索<br>4类分类</td>
+        <td style="color:var(--green)">跨Agent共享层<br>私有层隔离</td>
+        <td style="color:var(--green)">年龄标记+验证<br>负列表严格执行</td>
+        <td><small>Claude Code memoryTypes<br><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM Zettelkasten</a></small></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>记忆整合</strong><br><small>autoDream四阶段</small></td>
+        <td style="color:var(--muted)">—</td>
+        <td style="color:var(--yellow)">简单整合<br>(去重+过期清理)</td>
+        <td style="color:var(--green)">四阶段完整版<br>后台互斥运行</td>
+        <td><small>Claude Code autoDream<br><a href="https://www.nature.com/articles/s44387-025-00045-3" target="_blank">Dual-Loop Reflection</a></small></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>信任但验证</strong><br><small>记忆≠事实</small></td>
+        <td style="color:var(--yellow)">基础验证<br>(文件存在检查)</td>
+        <td style="color:var(--green)">年龄标记<br>推荐前验证</td>
+        <td style="color:var(--green)">自动化验证管道<br>矛盾检测</td>
+        <td><small>Claude Code "memory as hint"<br><a href="https://inworld.ai" target="_blank">Inworld 4th Wall</a></small></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>Agent通信</strong><br><small>Mailbox模式</small></td>
+        <td style="color:var(--muted)">—</td>
+        <td style="color:var(--green)">Mailbox + Registry<br>结构化消息</td>
+        <td style="color:var(--green)">MCP/A2A协议<br>跨组织互通</td>
+        <td><small>Claude Code SendMessageTool<br>Smallville空间触发</small></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><strong>工具权限</strong><br><small>读写分离+门控</small></td>
+        <td style="color:var(--green)">Schema验证<br>3级权限</td>
+        <td style="color:var(--green)">跨Agent权限<br>审计日志</td>
+        <td style="color:var(--green)">动态权限<br>基于风险的门控</td>
+        <td><small>Claude Code Tool.ts<br>toolOrchestration.ts</small></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><strong>评测与进化</strong><br><small>自优化循环</small></td>
+        <td style="color:var(--yellow)">基线评测集<br>50+用例</td>
+        <td style="color:var(--green)">自动化回归测试<br>协作指标</td>
+        <td style="color:var(--green)">在线评测+反馈循环<br>自优化</td>
+        <td><small><a href="https://arxiv.org/abs/2503.01935" target="_blank">MARBLE</a>里程碑式KPI<br><a href="https://arxiv.org/abs/2510.23595" target="_blank">MAE</a>共同进化</small></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:12px;color:var(--muted)">绿色=该阶段完成的能力，黄色=基础版，灰色=该阶段不涉及</p>
+</section>
+
+<!-- ═══ Tech Stack ═══ -->
+<section class="section" id="stack">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--orange)">$</span>
+    <h2>技术选型建议</h2>
+  </div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>层级</th><th>推荐选型</th><th>备选</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Agent框架</strong></td><td><a href="https://langchain-ai.github.io/langgraph/" target="_blank">LangGraph</a> (Python)</td><td><a href="https://www.crewai.com" target="_blank">CrewAI</a> (快速原型) / Semantic Kernel (.NET)</td><td>显式图状态管理，最接近Claude Code的queryLoop设计</td></tr>
+      <tr><td><strong>LLM</strong></td><td>Claude Opus/Sonnet (编排+复杂推理)<br>Haiku (简单任务+评测)</td><td>GPT-4o, DeepSeek v3</td><td>1M上下文 + SWE-bench 80.8%</td></tr>
+      <tr><td><strong>工具协议</strong></td><td><a href="https://modelcontextprotocol.io" target="_blank">MCP</a></td><td>OpenAPI + 自定义适配</td><td>生态最大，即插即用，已成事实标准</td></tr>
+      <tr><td><strong>Agent通信</strong></td><td>Redis Stream (Mailbox)<br>Kafka (异步任务)</td><td>RabbitMQ, NATS</td><td>Redis轻量低延迟，Kafka持久可靠</td></tr>
+      <tr><td><strong>向量DB</strong></td><td>pgvector (PostgreSQL扩展)</td><td>Qdrant, Weaviate</td><td>与现有PostgreSQL共用，运维成本低</td></tr>
+      <tr><td><strong>工作记忆</strong></td><td>Redis</td><td>内存</td><td>跨进程共享，重启可恢复</td></tr>
+      <tr><td><strong>长期记忆</strong></td><td>PostgreSQL (结构化) + pgvector (语义)</td><td>MongoDB + 独立向量DB</td><td>单一数据库覆盖结构化+语义检索</td></tr>
+      <tr><td><strong>知识图谱</strong></td><td>Phase 3引入 — Neo4j或PostgreSQL+递归CTE</td><td>Amazon Neptune</td><td>关系型记忆对跨Agent知识共享很有价值</td></tr>
+      <tr><td><strong>可观测性</strong></td><td><a href="https://langfuse.com" target="_blank">LangFuse</a> (Agent追踪, 可自托管)<br>+ 现有APM (指标/告警)</td><td><a href="https://smith.langchain.com" target="_blank">LangSmith</a>, Datadog LLM</td><td>LangFuse开源自托管满足数据驻留要求</td></tr>
+      <tr><td><strong>评测</strong></td><td><a href="https://langfuse.com" target="_blank">LangFuse</a> Evaluation + 自建评测管道</td><td>Braintrust, Arize Phoenix</td><td>评测必须Day 1就有</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══ Frontier Tracking ═══ -->
+<section class="section" id="frontier">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--yellow)">*</span>
+    <h2>5条前沿赛道：必须跟紧的动态</h2>
+  </div>
+
+  <p>这些方向在6个月内可能产生重大突破，直接影响我们的技术选型和架构演进。</p>
+
+  <div class="card" style="border-left:3px solid var(--red)">
+    <div class="card-title"><span class="tag tag-critical">最高优先</span> 赛道1：Agent通信协议标准化（MCP + A2A）</div>
+    <div class="card-body">
+      <p><strong>为什么重要</strong>：MCP已成为工具集成事实标准，A2A正在成为Agent间通信标准。如果标准定型而我们的架构不兼容，未来的迁移成本巨大。</p>
+      <p><strong>跟踪目标</strong>：MCP规范演进（特别是认证/授权）、A2A正式版发布、主要云厂商的支持情况。</p>
+      <p><strong>影响我们的决策</strong>：Phase 2的通信层设计必须预留MCP/A2A兼容性。</p>
+      <p><strong>关键信源</strong>：<a href="https://modelcontextprotocol.io" target="_blank">modelcontextprotocol.io</a>、<a href="https://google.github.io/A2A" target="_blank">google.github.io/A2A</a>、Anthropic/Google工程博客</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--orange)">
+    <div class="card-title"><span class="tag tag-track">高优先</span> 赛道2：Agent记忆与反思的工程化</div>
+    <div class="card-body">
+      <p><strong>为什么重要</strong>：ICLR 2026有专门的MemAgents Workshop。Mem0、Zep等专用记忆层在快速迭代。Claude Code的autoDream暗示记忆整合将成为Agent标配。</p>
+      <p><strong>跟踪目标</strong>：Mem0/Zep的企业版功能、MemAgents Workshop论文、autoDream式后台整合在开源框架中的实现。</p>
+      <p><strong>影响我们的决策</strong>：Phase 3的autoDream设计可能被开源方案替代，不需要从零自建。</p>
+      <p><strong>关键信源</strong>：<a href="https://github.com/mem0ai/mem0" target="_blank">Mem0 GitHub</a>、<a href="https://openreview.net/pdf?id=U51WxL382H" target="_blank">ICLR 2026 MemAgents</a>、LangChain/LangGraph更新日志</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--yellow)">
+    <div class="card-title"><span class="tag tag-track">高优先</span> 赛道3：自组织与涌现——从预设到自发</div>
+    <div class="card-body">
+      <p><strong>为什么重要</strong>：<a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy</a>证明预设角色是反模式。如果这个发现被工程化，Agent系统将不再需要人工设计协作流程。</p>
+      <p><strong>跟踪目标</strong>：<a href="https://arxiv.org/abs/2603.28990" target="_blank">Drop the Hierarchy</a>的后续工作（bio-inspired protocols）、OrgAgent等自组织框架的开源实现、Agent自发分工的可复现实验。</p>
+      <p><strong>影响我们的决策</strong>：Phase 2的编排Agent设计是否需要给Agent更多自主权——目前保守设计（Coordinator模式），但准备在Phase 3实验Sequential模式。</p>
+      <p><strong>关键信源</strong>：Victoria Dochkina后续论文、MultiAgentBench更新、Agent自组织相关arXiv</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--blue)">
+    <div class="card-title"><span class="tag tag-track">中优先</span> 赛道4：Agent评测基准成熟化</div>
+    <div class="card-body">
+      <p><strong>为什么重要</strong>：目前没有公认的多Agent协作评测标准。<a href="https://arxiv.org/abs/2503.01935" target="_blank">MARBLE</a>(ACL 2025)是最接近的，但还在演进。标准化评测让我们能客观对比不同架构。</p>
+      <p><strong>跟踪目标</strong>：MARBLE 2.0、新的多Agent基准、企业级Agent评测框架（LangSmith/Braintrust的新功能）。</p>
+      <p><strong>影响我们的决策</strong>：Phase 3的评测框架设计参考MARBLE的里程碑式KPI，但需要适配到我们的业务场景。</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--green)">
+    <div class="card-title"><span class="tag tag-track">中优先</span> 赛道5：KAIROS式主动Agent</div>
+    <div class="card-body">
+      <p><strong>为什么重要</strong>：Claude Code泄漏了KAIROS（后台守护进程，主动寻找行动机会）。如果这个模式被验证，Agent将从"被动响应"变为"主动服务"——从"你问我答"到"我主动发现问题并修复"。</p>
+      <p><strong>跟踪目标</strong>：KAIROS是否正式发布、开源社区的KAIROS复现（已有dev.to文章）、主动Agent在企业中的安全模型。</p>
+      <p><strong>影响我们的决策</strong>：Phase 3后期可以试验：让Agent在空闲时主动巡检系统状态，发现异常时Mailbox通知编排Agent。但安全模型必须先设计好。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Risk ═══ -->
+<section class="section" id="risk">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--red)">!</span>
+    <h2>风险与避坑指南</h2>
+  </div>
+
+  <div class="callout callout-red"><strong>企业多Agent部署的10大坑</strong>（基于企业实践调研）——每个坑都是"有人真的踩过"：</div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>坑</th><th>症状</th><th>对策</th><th>在哪个Phase处理</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>平台先行</strong></td><td>搭了3个月框架，0个业务场景跑通</td><td>先做1个Agent跑通1个场景，再扩展</td><td>P1 — 第一条原则</td></tr>
+      <tr><td>2</td><td><strong>无评测上线</strong></td><td>出了问题不知道是模型/工具/编排的锅</td><td>Day 1就建评测集，每次改动对比基线</td><td>P1 M1.3</td></tr>
+      <tr><td>3</td><td><strong>Agent间自由聊天</strong></td><td>每一跳信息损失，3跳后面目全非</td><td>结构化Schema通信，不用自由文本</td><td>P2 Mailbox设计</td></tr>
+      <tr><td>4</td><td><strong>无限递归</strong></td><td>Agent调Agent调Agent，成本爆炸</td><td>最大递归深度限制（建议≤3），Token预算</td><td>P2 编排Agent</td></tr>
+      <tr><td>5</td><td><strong>忽视延迟</strong></td><td>5个LLM调用串行 = 30秒响应</td><td>激进并行化 + 缓存 + 小模型做简单任务</td><td>P1-P2</td></tr>
+      <tr><td>6</td><td><strong>成本失控</strong></td><td>一个循环跑飞，一晚上花了几千美元</td><td>per-Agent + per-workflow的Token预算和断路器</td><td>P1 — Agent循环设计</td></tr>
+      <tr><td>7</td><td><strong>记忆污染</strong></td><td>记了错误信息，后续决策持续出错</td><td>Trust but Verify + 年龄标记 + 定期整合</td><td>P1写入纪律 + P3 autoDream</td></tr>
+      <tr><td>8</td><td><strong>模型版本漂移</strong></td><td>升级模型后Agent行为突变</td><td>锁定模型版本 + 升级前跑评测集</td><td>P1 评测基线</td></tr>
+      <tr><td>9</td><td><strong>工具集成低估</strong></td><td>"Agent很快就写好了，工具接了3个月"</td><td>预留60-70%时间给工具集成</td><td>P1-P2</td></tr>
+      <tr><td>10</td><td><strong>无人负责</strong></td><td>跨ML/平台/安全/业务，出了事互相推诿</td><td>明确RACI，Agent系统和微服务一样需要on-call</td><td>P1 — 组织设计</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══ Review ═══ -->
+<section class="section" id="review">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--muted)">R</span>
+    <h2>复盘节奏与决策点</h2>
+  </div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>时间</th><th>复盘类型</th><th>关键决策</th></tr></thead>
+    <tbody>
+      <tr><td><strong>第4周</strong></td><td>P1中期Review</td><td>试点平台选对了吗？Agent能完成核心任务吗？继续还是换平台？</td></tr>
+      <tr><td><strong>第8周</strong></td><td>P1→P2 Gate Review</td><td>单Agent价值验证了吗？灰度数据如何？是否Ready扩展到多Agent？<br><span class="tag tag-critical">决策点</span>：如果单Agent价值未证明，延长P1而不是强行进P2</td></tr>
+      <tr><td><strong>第12周</strong></td><td>P2中期Review</td><td>跨平台协作跑通了吗？通信模式对吗？编排Agent的分解质量如何？</td></tr>
+      <tr><td><strong>第16周</strong></td><td>P2→P3 Gate Review</td><td>多Agent系统稳定吗？失败率可接受吗？是否Ready加入反思和进化？<br><span class="tag tag-critical">决策点</span>：如果多Agent协作不稳定，延长P2而不是强行进P3</td></tr>
+      <tr><td><strong>第20周</strong></td><td>P3中期Review</td><td>autoDream真的在提升质量吗？跨Agent知识共享有帮助吗？</td></tr>
+      <tr><td><strong>第24周</strong></td><td>半年总Review</td><td>ROI验证。下半年计划：横向扩展（更多平台）还是纵向深入（更智能）？</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout callout-good">
+    <strong>半年后的预期状态</strong>：<br>
+    - N个平台Agent稳定运行，各自有独立记忆和工具<br>
+    - 1个编排Agent协调跨平台工作流<br>
+    - 后台反思系统持续整合记忆，系统越来越聪明<br>
+    - 完整的可观测性和评测体系<br>
+    - MCP/A2A兼容的通信层，新平台即插即用<br>
+    - 从"人工编排各平台"到"告诉Agent目标，它自动协调完成"
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  多Agent平台统一改造半年计划 | 基于90+篇论文 + Claude Code源码分析 + 企业实践调研<br>
+  整理于 2026-04-06 | Deep-Dive系列 #08
+</div>
+
+</body>
+</html>

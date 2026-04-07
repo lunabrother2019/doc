@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读06：Claude Code源码可借鉴原理 —— 从512K行TypeScript中提炼的8个Agent设计模式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+      --code-bg: #161b22;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1a0a2e 0%, #0f1117 40%, #0a1628 70%, #0d1520 100%); padding: 64px 24px 52px; text-align: center; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 50%, rgba(167,139,250,0.05) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(96,165,250,0.04) 0%, transparent 50%); pointer-events: none; }
+    .hero::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 120px; background: linear-gradient(to top, var(--bg), transparent); pointer-events: none; }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 36px); color: var(--cyan); margin-bottom: 14px; position: relative; letter-spacing: -0.5px; }
+    .hero .sub { color: var(--muted); font-size: 14.5px; max-width: 880px; margin: 0 auto; line-height: 1.85; position: relative; }
+    .hero .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; position: relative; }
+    .hero .tag { font-size: 12px; border-radius: 8px; padding: 5px 14px; border: 1px solid; }
+    .hero .tag-purple { color: var(--accent); background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.25); }
+    .hero .tag-blue { color: var(--blue); background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.25); }
+    .hero .tag-red { color: var(--red); background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.25); }
+    .hero .tag-orange { color: var(--orange); background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.25); }
+    .hero .tag-green { color: var(--green); background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.25); }
+    .hero .tag-cyan { color: var(--cyan); background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.25); }
+    .hero .tag-yellow { color: var(--yellow); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.25); }
+
+    /* Sticky Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.95); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 36px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 60px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { color: var(--text); }
+
+    /* Highlights */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-accent { background: rgba(167,139,250,0.12); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-orange { background: rgba(251,146,60,0.12); color: var(--orange); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.85; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout-blue { background: rgba(96,165,250,0.06); border-left: 3px solid var(--blue); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .callout code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: "SF Mono", "Fira Code", monospace; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Code block */
+    .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 14px 0 18px; overflow-x: auto; font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace; font-size: 13px; line-height: 1.7; color: #c9d1d9; }
+    .code-block .code-title { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .code-block .kw { color: var(--accent); }
+    .code-block .fn { color: var(--blue); }
+    .code-block .str { color: var(--green); }
+    .code-block .cmt { color: #6a737d; font-style: italic; }
+    .code-block .op { color: var(--orange); }
+    .code-block .type { color: var(--cyan); }
+    .code-block .num { color: var(--orange); }
+
+    /* VS card */
+    .vs-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin: 16px 0 24px; align-items: stretch; }
+    .vs-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .vs-card .vs-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 700; }
+    .vs-card ul { padding-left: 18px; }
+    .vs-divider { display: flex; align-items: center; justify-content: center; padding: 0 12px; font-size: 20px; font-weight: 800; color: var(--orange); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Layer stack */
+    .layer-stack { margin: 16px 0 24px; }
+    .layer-item { display: flex; align-items: stretch; margin-bottom: 2px; }
+    .layer-badge { width: 110px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #0f1117; border-radius: 8px 0 0 8px; text-align: center; padding: 14px 8px; }
+    .layer-content { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13px; line-height: 1.7; }
+    .layer-content code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", "Fira Code", monospace; }
+
+    /* Detail cards */
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .detail-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; position: relative; overflow: hidden; }
+    .detail-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .detail-card.dc-purple::before { background: linear-gradient(90deg, var(--accent), var(--pink)); }
+    .detail-card.dc-blue::before { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .detail-card.dc-green::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .detail-card.dc-orange::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .detail-card.dc-red::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .detail-card.dc-cyan::before { background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+    .detail-card .dc-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+    .detail-card .dc-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+    .detail-card ul { padding-left: 16px; margin-top: 6px; }
+    .detail-card li { font-size: 13px; color: #c9d1d9; margin-bottom: 4px; }
+
+    /* Flow arrows */
+    .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0 20px; }
+    .flow-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 500; }
+    .flow-arrow { color: var(--accent); font-size: 18px; }
+
+    /* Route cards */
+    .route-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; position: relative; overflow: hidden; }
+    .route-card::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+    .route-card.rc-purple::before { background: var(--accent); }
+    .route-card.rc-blue::before { background: var(--blue); }
+    .route-card.rc-green::before { background: var(--green); }
+    .route-card.rc-orange::before { background: var(--orange); }
+    .route-card.rc-cyan::before { background: var(--cyan); }
+    .route-card .route-num { position: absolute; top: 16px; right: 20px; font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.03); line-height: 1; }
+    .route-card .route-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .route-card .route-entry { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; font-family: "SF Mono", "Fira Code", monospace; }
+    .route-card .route-desc { font-size: 13.5px; line-height: 1.75; color: #c9d1d9; }
+    .route-card .route-focus { margin-top: 10px; }
+    .route-card .route-focus li { font-size: 13px; color: #c9d1d9; }
+
+    /* Compression level cards */
+    .level-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; position: relative; overflow: hidden; }
+    .level-card::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+    .level-card.lv-1::before { background: var(--green); }
+    .level-card.lv-2::before { background: var(--cyan); }
+    .level-card.lv-3::before { background: var(--blue); }
+    .level-card.lv-4::before { background: var(--orange); }
+    .level-card.lv-5::before { background: var(--red); }
+    .level-label { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .level-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+    .level-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Memory type cards */
+    .mem-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; }
+    .mem-card .mem-type { font-weight: 700; font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .mem-card .mem-type .mem-badge { font-size: 11px; border-radius: 6px; padding: 2px 10px; font-weight: 600; }
+
+    /* Phase cards */
+    .phase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .phase-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; position: relative; overflow: hidden; }
+    .phase-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .phase-card.ph-1::before { background: var(--cyan); }
+    .phase-card.ph-2::before { background: var(--blue); }
+    .phase-card.ph-3::before { background: var(--accent); }
+    .phase-card.ph-4::before { background: var(--orange); }
+    .phase-num { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .phase-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+    .phase-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Transition cards */
+    .trans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .trans-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+    .trans-num { font-size: 28px; font-weight: 800; color: var(--accent); opacity: 0.6; flex-shrink: 0; width: 40px; text-align: center; }
+    .trans-body { flex: 1; }
+    .trans-from { font-size: 13px; color: var(--muted); }
+    .trans-arrow-text { font-size: 12px; color: var(--accent); margin: 2px 0; }
+    .trans-to { font-size: 13px; color: var(--text); font-weight: 600; }
+
+    /* Quote block */
+    .quote-block { background: var(--bg2); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 16px 0 20px; font-style: italic; color: #c9d1d9; font-size: 13.5px; line-height: 1.9; }
+    .quote-block .quote-src { font-style: normal; color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; line-height: 1.8; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .vs-grid { grid-template-columns: 1fr; }
+      .vs-divider { padding: 8px 0; transform: rotate(90deg); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .phase-grid { grid-template-columns: 1fr; }
+      .trans-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .flow { flex-direction: column; align-items: flex-start; }
+      .flow-arrow { transform: rotate(90deg); }
+      .layer-item { flex-direction: column; }
+      .layer-badge { width: 100%; border-radius: 8px 8px 0 0; padding: 8px; }
+      .layer-content { border-left: 1px solid var(--border); border-radius: 0 0 8px 8px; }
+      .route-card .route-num { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== HERO ==================== -->
+<div class="hero">
+  <h1>Claude Code 源码可借鉴原理</h1>
+  <p class="sub">
+    基于512,000行TypeScript源码的深度技术分析 —— 从Claude Code泄漏代码中提炼8个核心Agent设计模式，逐一对照Stanford <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville</a>架构，揭示从学术原型到生产系统的关键跃迁
+  </p>
+  <div class="tags">
+    <span class="tag tag-purple">Agent Loop状态机</span>
+    <span class="tag tag-cyan">五级压缩瀑布</span>
+    <span class="tag tag-green">四类记忆分类学</span>
+    <span class="tag tag-blue">autoDream四阶段整合</span>
+    <span class="tag tag-yellow">信任但验证</span>
+    <span class="tag tag-orange">Mailbox通信</span>
+    <span class="tag tag-red">工具权限隔离</span>
+    <span class="tag tag-cyan">流式并行执行</span>
+  </div>
+</div>
+
+<!-- ==================== NAV ==================== -->
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1.源码概览</a>
+    <a href="#sec2">2.Agent Loop</a>
+    <a href="#sec3">3.五级压缩</a>
+    <a href="#sec4">4.四类记忆</a>
+    <a href="#sec5">5.autoDream</a>
+    <a href="#sec6">6.信任但验证</a>
+    <a href="#sec7">7.Mailbox通信</a>
+    <a href="#sec8">8.工具权限</a>
+    <a href="#sec9">9.流式执行</a>
+    <a href="#sec10">10.阅读路线</a>
+    <a href="#sec11">11.总览表</a>
+    <a href="#sec12">12.结论</a>
+  </div>
+</div>
+
+<!-- ==================== CONTENT ==================== -->
+<div class="container">
+
+<!-- ===== SECTION 1 ===== -->
+<div class="section" id="sec1">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--accent);">01</div>
+    <h2>源码概览与架构分层</h2>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-val" style="color: var(--cyan);">512K</div>
+      <div class="stat-label">TypeScript 代码行</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="color: var(--accent);">1,906</div>
+      <div class="stat-label">源文件</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="color: var(--green);">5</div>
+      <div class="stat-label">架构层级</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="color: var(--orange);">~46K</div>
+      <div class="stat-label">QueryEngine 核心行数</div>
+    </div>
+  </div>
+
+  <p>Claude Code的源码采用严格的五层架构。每一层只依赖其下一层，入口层的多态性保证了<span class="hl">所有客户端共享同一个Engine层</span>——Agent的核心逻辑只写一次。</p>
+
+  <div class="layer-stack">
+    <div class="layer-item">
+      <div class="layer-badge" style="background: var(--cyan);">Layer 1<br>Entrypoints</div>
+      <div class="layer-content"><code>main.tsx</code>（CLI入口）、<code>bridgeMain.ts</code>（IDE / Web / SDK统一接口）。所有客户端在此层汇聚，向下调用同一个Runtime。</div>
+    </div>
+    <div class="layer-item">
+      <div class="layer-badge" style="background: var(--blue);">Layer 2<br>Runtime</div>
+      <div class="layer-content"><code>sessionRunner.ts</code>（会话生命周期管理）、<code>bridgeMessaging.ts</code>（跨进程通信协议）。负责会话创建、恢复、持久化。</div>
+    </div>
+    <div class="layer-item">
+      <div class="layer-badge" style="background: var(--accent);">Layer 3<br>Engine</div>
+      <div class="layer-content"><code>QueryEngine.ts</code>（约46,000行，核心引擎）、<code>query.ts</code>（Agent循环）。这是整个系统的心脏——所有Agent行为的决策和执行都在此层。</div>
+    </div>
+    <div class="layer-item">
+      <div class="layer-badge" style="background: var(--orange);">Layer 4<br>Tools</div>
+      <div class="layer-content"><code>src/tools/</code> 目录下每个工具是独立模块，含权限检查（<code>checkPermissions</code>）、Schema定义（Zod）、隔离执行逻辑。工具是Agent的"手脚"。</div>
+    </div>
+    <div class="layer-item">
+      <div class="layer-badge" style="background: var(--green);">Layer 5<br>Infrastructure</div>
+      <div class="layer-content">权限系统、<a href="https://modelcontextprotocol.io" target="_blank">MCP</a>（Model Context Protocol）、Hooks、配置管理、Telemetry、Feature Gates。提供横切关注点。</div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">关键设计原则</div>
+    所有入口（CLI、桌面端、Web、SDK）共享同一个Engine层。这意味着Agent的核心逻辑只写一次。这是<strong>"平台化"</strong>的基础——新增一个前端（如移动端）只需实现Layer 1的适配器，Layer 3-5完全复用。
+  </div>
+</div>
+
+<!-- ===== SECTION 2 ===== -->
+<div class="section" id="sec2">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--cyan);">02</div>
+    <h2>可借鉴原理一：Agent Loop的状态机设计</h2>
+  </div>
+
+  <h3>源码位置：src/query/query.ts, queryLoop() 函数</h3>
+
+  <p>Agent循环的核心是一个 <code>while(true)</code> 循环，携带<span class="hl-accent">显式State对象</span>。不是通过全局变量或闭包隐式传递状态，而是每次迭代都从一个结构化的State对象中解构所需信息。</p>
+
+  <div class="code-block">
+    <span class="code-title">query.ts - State 对象结构</span>
+<span class="kw">State</span> = {
+  <span class="fn">messages</span>: <span class="type">Message</span>[]
+  <span class="fn">toolUseContext</span>: <span class="type">ToolUseContext</span>
+  <span class="fn">autoCompactTracking</span>: {<span class="cmt">/* 压缩追踪 */</span>}
+  <span class="fn">maxOutputTokensRecoveryCount</span>: <span class="type">number</span>
+  <span class="fn">hasAttemptedReactiveCompact</span>: <span class="type">boolean</span>
+  <span class="fn">turnCount</span>: <span class="type">number</span>
+  <span class="fn">transition</span>: <span class="type">Continue</span> | <span class="kw">undefined</span>  <span class="cmt">// 为什么上一次迭代继续了</span>
+}
+  </div>
+
+  <h4>每次迭代的4个阶段</h4>
+
+  <div class="flow">
+    <div class="flow-step" style="border-color: var(--cyan); color: var(--cyan);">1. Context Compression<br><span style="font-size:11px;color:var(--muted);">压缩决策</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step" style="border-color: var(--blue); color: var(--blue);">2. API Streaming<br><span style="font-size:11px;color:var(--muted);">调用LLM + 流式接收</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step" style="border-color: var(--accent); color: var(--accent);">3. Tool Execution<br><span style="font-size:11px;color:var(--muted);">执行工具，收集结果</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step" style="border-color: var(--green); color: var(--green);">4. Attachments<br><span style="font-size:11px;color:var(--muted);">注入记忆、技能、通知</span></div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>显式的State对象而非隐式全局状态</strong> —— 每次迭代都从State解构，状态转换清晰可追溯</li>
+      <li><strong>transition字段记录"为什么继续"</strong>（next_turn / reactive_compact_retry / max_output_tokens_retry等）—— 这是调试和理解Agent行为的关键</li>
+      <li><strong>不可变参数+可变状态分离</strong> —— parameters在 <code>query()</code> 入口冻结，loop内只改State</li>
+    </ul>
+  </div>
+
+  <h4>与Smallville对比</h4>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--red);">Smallville</div>
+      <ul>
+        <li style="font-size:13px;">Agent循环是<strong>隐式的</strong>（每个tick执行一次感知&rarr;检索&rarr;反思&rarr;规划&rarr;行动）</li>
+        <li style="font-size:13px;">没有显式State对象</li>
+        <li style="font-size:13px;">调试"Agent为什么做了这个决定"需要逆向推断</li>
+      </ul>
+    </div>
+    <div class="vs-divider">VS</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">Claude Code</div>
+      <ul>
+        <li style="font-size:13px;">显式 <code>while(true)</code> 循环 + 结构化State</li>
+        <li style="font-size:13px;">transition字段精确记录每次继续的原因</li>
+        <li style="font-size:13px;">每个决定都可追溯和序列化</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color: var(--cyan);">设计启示</div>
+    任何Agent系统都应该有一个<strong>显式的、可序列化的State对象</strong>。这不仅方便调试，还能实现<span class="hl-cyan">会话恢复</span>——Claude Code在API调用前就把transcript写到磁盘，进程被杀也能恢复。
+  </div>
+
+  <h3>循环终止条件（Terminal Reasons）</h3>
+
+  <div class="code-block">
+    <span class="code-title">Terminal Reasons 枚举</span>
+<span class="str">completed</span> | <span class="str">prompt_too_long</span> | <span class="str">model_error</span> | <span class="str">max_output_tokens</span> |
+<span class="str">blocking_limit</span> | <span class="str">aborted_streaming</span> | <span class="str">aborted_tools</span> | <span class="str">max_turns</span> |
+<span class="str">hook_stopped</span> | <span class="str">stop_hook_prevented</span>
+  </div>
+
+  <p>每种终止都有明确的语义——不是简单的"成功/失败"，而是<span class="hl-orange">精确的原因分类</span>。可用于重试决策（<code>max_output_tokens</code> 可重试，<code>prompt_too_long</code> 需压缩）和错误报告（用户看到的错误信息根据reason定制）。</p>
+</div>
+
+<!-- ===== SECTION 3 ===== -->
+<div class="section" id="sec3">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--blue);">03</div>
+    <h2>可借鉴原理二：五级上下文压缩瀑布</h2>
+  </div>
+
+  <h3>源码位置：query.ts L379-L543, services/compact/</h3>
+
+  <p>这是整个代码库<span class="hl">最精妙的工程设计之一</span>。当上下文接近LLM的窗口上限时，系统不是"一刀切"地压缩，而是按成本从低到高依次尝试5级压缩策略——<strong>渐进式降级</strong>。</p>
+
+  <div class="level-card lv-1">
+    <div class="level-label" style="color: var(--green);">Level 1 - Snip Compact（最廉价）</div>
+    <div class="level-desc">删除中间消息，保留首尾。纯本地操作，0 API成本。Feature-gated: <code>HISTORY_SNIP</code>。</div>
+    <div class="level-meta">成本：0 | 压缩率：低 | 信息损失：最小</div>
+  </div>
+
+  <div class="level-card lv-2">
+    <div class="level-label" style="color: var(--cyan);">Level 2 - MicroCompact（低成本）</div>
+    <div class="level-desc">缓存 <code>tool_use</code> 的输入，利用prompt caching机制。几乎0 API成本，对用户完全无感。</div>
+    <div class="level-meta">成本：极低 | 压缩率：低-中 | 信息损失：无</div>
+  </div>
+
+  <div class="level-card lv-3">
+    <div class="level-label" style="color: var(--blue);">Level 3 - Context Collapse（中等成本）</div>
+    <div class="level-desc">对历史做<span class="hl-blue">折叠投影</span>——模型看到折叠视图，UI保留完整历史。如果压到阈值以下，跳过后续步骤。Feature-gated: <code>CONTEXT_COLLAPSE</code>。</div>
+    <div class="level-meta">成本：中 | 压缩率：中-高 | 关键：读时投影（read-time projection），不修改底层数据</div>
+  </div>
+
+  <div class="level-card lv-4">
+    <div class="level-label" style="color: var(--orange);">Level 4 - AutoCompact（高成本）</div>
+    <div class="level-desc">Fork一个<strong>子Agent专门做摘要</strong>。触发条件：<code>tokenCount >= (contextWindow - 13,000 buffer)</code>。有断路器：连续3次失败后停止重试。生成结构化摘要替代原始对话。</div>
+    <div class="level-meta">成本：高（额外API调用）| 压缩率：高 | 断路器：3次失败上限</div>
+  </div>
+
+  <div class="level-card lv-5">
+    <div class="level-label" style="color: var(--red);">Level 5 - Full Compact（最高成本）</div>
+    <div class="level-desc">完整对话压缩 + 选择性文件重新注入。只在极端情况触发，是最后的手段。</div>
+    <div class="level-meta">成本：最高 | 压缩率：最高 | 触发频率：极低</div>
+  </div>
+
+  <h4>消息存储设计</h4>
+
+  <div class="card">
+    <ul>
+      <li><strong>Append-only JSONL</strong> —— 旧消息不删除，只追加</li>
+      <li><strong>可见性标志</strong>：<code>isCompactSummary</code>、<code>isVisibleInTranscriptOnly</code>、<code>isMeta</code></li>
+      <li><code>getMessagesAfterCompactBoundary()</code> 只返回压缩边界之后的消息给API</li>
+      <li><strong>UI可回滚看完整历史</strong> —— 压缩对API透明，对用户不透明</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>渐进式降级而非一刀切</strong> —— 先试便宜的，不行再试贵的</li>
+      <li><strong>读写分离</strong> —— 底层保留完整数据，对API做投影（Context Collapse的精髓）</li>
+      <li><strong>断路器模式</strong> —— 防止压缩失败导致无限重试</li>
+    </ul>
+  </div>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--red);">Smallville</div>
+      <ul>
+        <li style="font-size:13px;"><strong>完全没有上下文管理</strong></li>
+        <li style="font-size:13px;">记忆只增不减</li>
+        <li style="font-size:13px;">学术原型最大的工程盲区</li>
+      </ul>
+    </div>
+    <div class="vs-divider">VS</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">Claude Code</div>
+      <ul>
+        <li style="font-size:13px;">5级压缩瀑布</li>
+        <li style="font-size:13px;">成本感知的渐进降级</li>
+        <li style="font-size:13px;">"有限上下文窗口"硬约束的最完整工程解法</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color: var(--cyan);">设计启示</div>
+    任何长对话Agent都需要压缩策略。关键不是"用什么算法压缩"，而是<strong>"什么时候压缩、压缩多少、失败了怎么办"</strong>——这是一个<span class="hl-cyan">决策瀑布问题</span>。
+  </div>
+</div>
+
+<!-- ===== SECTION 4 ===== -->
+<div class="section" id="sec4">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--green);">04</div>
+    <h2>可借鉴原理三：四类记忆的分类学</h2>
+  </div>
+
+  <h3>源码位置：src/memdir/memoryTypes.ts</h3>
+
+  <p>Claude Code不是"记住一切"，而是将记忆<span class="hl-accent">严格分为4类</span>。每类有不同的触发条件、结构要求和衰减速度。</p>
+
+  <div class="mem-card">
+    <div class="mem-type"><span class="mem-badge" style="background: rgba(167,139,250,0.15); color: var(--accent);">user</span> 关于用户的角色、目标、知识、偏好</div>
+    <ul>
+      <li><strong>触发</strong>：了解到用户的任何个人信息</li>
+      <li><strong>用途</strong>：根据用户画像调整协作方式</li>
+      <li><strong>举例</strong>：<span class="hl-accent">"用户是数据科学家，当前关注可观测性/日志"</span></li>
+    </ul>
+  </div>
+
+  <div class="mem-card">
+    <div class="mem-type"><span class="mem-badge" style="background: rgba(96,165,250,0.15); color: var(--blue);">feedback</span> 用户对工作方式的反馈（纠正+确认）</div>
+    <ul>
+      <li><strong>触发</strong>：用户纠正你（"不要那样做"）或确认非显然做法（"对，就是这样"）</li>
+      <li><strong>结构</strong>：规则 + <code>Why:</code>（原因）+ <code>How to apply:</code>（应用场景）</li>
+      <li><strong>关键</strong>：<span class="hl">不仅记录纠正，也记录确认</span>——否则会过度谨慎</li>
+    </ul>
+  </div>
+
+  <div class="mem-card">
+    <div class="mem-type"><span class="mem-badge" style="background: rgba(52,211,153,0.15); color: var(--green);">project</span> 不可从代码/git推导的项目信息</div>
+    <ul>
+      <li><strong>触发</strong>：了解到谁在做什么、为什么、截止日期</li>
+      <li><strong>关键</strong>：将相对日期转为绝对日期（"周四" &rarr; "2026-03-05"）</li>
+      <li><strong>特性</strong>：<span class="hl-orange">衰减最快</span>，需要why来判断是否仍然有效</li>
+    </ul>
+  </div>
+
+  <div class="mem-card">
+    <div class="mem-type"><span class="mem-badge" style="background: rgba(251,146,60,0.15); color: var(--orange);">reference</span> 外部系统的指针</div>
+    <ul>
+      <li><strong>触发</strong>：了解到外部系统的位置和用途</li>
+      <li><strong>举例</strong>：<span class="hl-orange">"pipeline bugs追踪在Linear项目INGEST中"</span></li>
+    </ul>
+  </div>
+
+  <h4>明确不记录的内容（负列表）</h4>
+
+  <div class="callout callout-red">
+    <div class="callout-title" style="color: var(--red);">NOT-MEMORIZE 负列表</div>
+    <ul style="margin-top:6px;">
+      <li><strong>代码模式、架构、文件路径</strong> —— 可从代码推导</li>
+      <li><strong>Git历史</strong> —— <code>git log</code> / <code>blame</code> 更权威</li>
+      <li><strong>调试方案</strong> —— 修复在代码中，上下文在commit message中</li>
+      <li><strong>CLAUDE.md已有的内容</strong> —— 避免重复</li>
+      <li><strong>临时任务状态</strong> —— 会话级信息不需持久化</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>记忆不是日志，而是分类知识库</strong> —— 每类有不同的触发条件、结构要求和衰减速度</li>
+      <li><strong>"负列表"同样重要</strong> —— 明确什么不该记是防止记忆膨胀的关键</li>
+      <li><strong>feedback类记忆的"同时记录纠正和确认"</strong> —— 这是对<a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a>（只记录失败）的直接改进，对应<a href="https://arxiv.org/abs/2411.02223" target="_blank">Sweet&amp;Sour</a>论文的思想</li>
+    </ul>
+  </div>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--red);">Smallville</div>
+      <ul>
+        <li style="font-size:13px;">Memory Stream是<strong>无类型的</strong></li>
+        <li style="font-size:13px;">观察、对话、反思洞见全混在一起</li>
+        <li style="font-size:13px;">无衰减管理策略</li>
+      </ul>
+    </div>
+    <div class="vs-divider">VS</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">Claude Code</div>
+      <ul>
+        <li style="font-size:13px;">4类严格分类</li>
+        <li style="font-size:13px;">每种记忆有不同的生命周期管理策略</li>
+        <li style="font-size:13px;">负列表防止膨胀</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 5 ===== -->
+<div class="section" id="sec5">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--orange);">05</div>
+    <h2>可借鉴原理四：autoDream四阶段记忆整合</h2>
+  </div>
+
+  <h3>源码位置：src/services/autoDream/</h3>
+
+  <h4>触发条件（4个门控，cheapest first）</h4>
+
+  <div class="card">
+    <ol>
+      <li><span class="hl-cyan">时间门控</span>：距上次整合 &ge; 24小时</li>
+      <li><span class="hl-blue">会话门控</span>：此后有 &ge; 5个新会话</li>
+      <li><span class="hl-accent">锁门控</span>：无其他进程在整合</li>
+      <li><span class="hl-orange">扫描节流</span>：10分钟内不重复扫描</li>
+    </ol>
+    <p style="font-size:13px;color:var(--muted);margin-top:8px;">配置来自GrowthBook feature flag <code>tengu_onyx_plover</code>。</p>
+  </div>
+
+  <h4>四阶段整合流程（consolidationPrompt.ts）</h4>
+
+  <div class="phase-grid">
+    <div class="phase-card ph-1">
+      <div class="phase-num">PHASE 1</div>
+      <div class="phase-title" style="color: var(--cyan);">Orient（定向）</div>
+      <div class="phase-desc">
+        列出记忆目录，读MEMORY.md，浏览已有文件，检查logs/。<br>
+        <strong>"我现在的知识图谱长什么样？"</strong>
+      </div>
+    </div>
+    <div class="phase-card ph-2">
+      <div class="phase-num">PHASE 2</div>
+      <div class="phase-title" style="color: var(--blue);">Gather（收集）</div>
+      <div class="phase-desc">
+        先看日志（最新信号），再找被矛盾的事实，再搜索transcript。<br>
+        <strong>"自上次整合以来有什么新信号？"</strong>
+      </div>
+    </div>
+    <div class="phase-card ph-3">
+      <div class="phase-num">PHASE 3</div>
+      <div class="phase-title" style="color: var(--accent);">Consolidate（整合）</div>
+      <div class="phase-desc">
+        写入/更新记忆文件，聚焦合并而非创建重复。<br>
+        <strong>"新信号如何与已知知识融合？"</strong>
+      </div>
+    </div>
+    <div class="phase-card ph-4">
+      <div class="phase-num">PHASE 4</div>
+      <div class="phase-title" style="color: var(--orange);">Prune &amp; Index（修剪与索引）</div>
+      <div class="phase-desc">
+        保持MEMORY.md在200行/25KB以内。删除过时指针，解决矛盾。<br>
+        <strong>"什么已经过时了？"</strong>
+      </div>
+    </div>
+  </div>
+
+  <h4>锁机制（consolidationLock.ts）</h4>
+
+  <div class="code-block">
+    <span class="code-title">锁机制设计</span>
+<span class="cmt">// 锁文件：.consolidate-lock</span>
+<span class="cmt">// 内容：持有者PID</span>
+<span class="cmt">// mtime：上次整合时间戳</span>
+<span class="cmt">// 失败回滚：恢复mtime以允许重试</span>
+
+<span class="kw">interface</span> <span class="type">ConsolidationLock</span> {
+  <span class="fn">lockFile</span>: <span class="str">".consolidate-lock"</span>
+  <span class="fn">content</span>: <span class="type">PID</span>        <span class="cmt">// 持有者进程ID</span>
+  <span class="fn">mtime</span>: <span class="type">Timestamp</span>    <span class="cmt">// 上次整合时间</span>
+  <span class="fn">onFailure</span>: <span class="str">"restore mtime"</span>  <span class="cmt">// 允许重试</span>
+}
+  </div>
+
+  <h4>与主Agent的互斥</h4>
+
+  <div class="callout callout-warn">
+    <div class="callout-title" style="color: var(--orange);">互斥设计</div>
+    如果主Agent在对话中已经写了记忆文件 &rarr; <code>extractMemories</code> 检测到 &rarr; 跳过本轮提取 &rarr; 游标前进。<strong>防止双重提取</strong>——"做事"和"反思"不同时进行。
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>四阶段映射认知科学的反思过程</strong>：定向 &rarr; 收集 &rarr; 整合 &rarr; 修剪</li>
+      <li><strong>"后台空闲时运行"</strong> —— 人类的记忆整合也发生在睡眠中</li>
+      <li><strong>锁机制确保单写者</strong> —— 多Agent共享记忆时的并发控制</li>
+      <li><strong>互斥设计</strong> —— "做事"和"反思"不同时进行</li>
+    </ul>
+  </div>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--red);">Smallville</div>
+      <ul>
+        <li style="font-size:13px;">反思只有<strong>Phase 3</strong>（归纳洞见）</li>
+        <li style="font-size:13px;">完全缺少Phase 1（定向）</li>
+        <li style="font-size:13px;">缺少Phase 2（收集新信号）</li>
+        <li style="font-size:13px;">缺少Phase 4（修剪过时信息）</li>
+      </ul>
+    </div>
+    <div class="vs-divider">VS</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">Claude Code</div>
+      <ul>
+        <li style="font-size:13px;">完整的四阶段整合流程</li>
+        <li style="font-size:13px;">带锁的并发安全设计</li>
+        <li style="font-size:13px;">Smallville反思机制的<strong>完整工程化版本</strong></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 6 ===== -->
+<div class="section" id="sec6">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--yellow);">06</div>
+    <h2>可借鉴原理五：记忆的"信任但验证"原则</h2>
+  </div>
+
+  <h3>源码位置：src/memdir/memoryTypes.ts L201-256, memoryAge.ts</h3>
+
+  <p>系统提示中的关键指令：</p>
+
+  <div class="code-block">
+    <span class="code-title">memoryTypes.ts - 验证规则</span>
+<span class="str">"A memory that names a specific function, file, or flag is a claim
+that it existed when the memory was written. It may have been renamed,
+removed, or never merged. Before recommending it — verify first."</span>
+
+<span class="cmt">// 具体规则：</span>
+<span class="cmt">// - 如果记忆提到文件路径：检查文件是否存在</span>
+<span class="cmt">// - 如果记忆提到函数或flag：grep搜索</span>
+<span class="cmt">// - "'记忆说X存在' 不等于 'X现在存在'"</span>
+  </div>
+
+  <h4>记忆年龄标记（memoryAge.ts）</h4>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>天数</th>
+          <th>标记</th>
+          <th>附加行为</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0天</td>
+          <td><span class="hl-green">"today"</span></td>
+          <td>无额外警告</td>
+        </tr>
+        <tr>
+          <td>1天</td>
+          <td><span class="hl-cyan">"yesterday"</span></td>
+          <td>无额外警告</td>
+        </tr>
+        <tr>
+          <td>2+天</td>
+          <td><span class="hl-orange">"N days ago"</span></td>
+          <td style="color: var(--orange);">附带过时警告</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-title" style="color: var(--orange);">&gt;1天记忆的过时警告</div>
+    "这是N天前的观察，不是实时状态。声称的代码行为或文件引用可能已过时。<strong>在作为事实断言前请验证。</strong>"
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>记忆是"提示"而非"事实"</strong> —— 这是对Smallville最深层的修正</li>
+      <li><strong>年龄标记让LLM自己判断可信度</strong> —— 不需要硬编码的遗忘曲线</li>
+      <li><strong>验证-before-推荐</strong> —— 防止基于过时记忆的错误建议</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color: var(--cyan);">设计启示</div>
+    任何Agent的记忆系统都应该区分<span class="hl">"我记得X"</span>和<span class="hl-green">"X现在是这样"</span>。记忆不是oracle，是需要验证的线索。
+  </div>
+</div>
+
+<!-- ===== SECTION 7 ===== -->
+<div class="section" id="sec7">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--pink);">07</div>
+    <h2>可借鉴原理六：多Agent的Mailbox通信模式</h2>
+  </div>
+
+  <h3>源码位置：src/tools/AgentTool/, src/tools/SendMessageTool/, src/utils/swarm/</h3>
+
+  <h4>三种执行模式</h4>
+
+  <div class="detail-grid">
+    <div class="detail-card dc-blue">
+      <div class="dc-title" style="color: var(--blue);">1. 同步子Agent</div>
+      <div class="dc-desc">
+        父Agent调用Agent工具，<strong>阻塞直到完成</strong>。子Agent有独立上下文窗口，只返回结果摘要。
+        <ul>
+          <li>入口：<code>AgentTool.tsx</code></li>
+          <li>适用：需要结果才能继续的场景</li>
+        </ul>
+      </div>
+    </div>
+    <div class="detail-card dc-green">
+      <div class="dc-title" style="color: var(--green);">2. 异步后台Agent</div>
+      <div class="dc-desc">
+        Fire-and-forget，通过 <code>LocalAgentTask</code> 追踪。
+        <ul>
+          <li>入口：<code>tasks/LocalAgentTask/</code></li>
+          <li>适用：独立的研究/验证任务</li>
+        </ul>
+      </div>
+    </div>
+    <div class="detail-card dc-purple">
+      <div class="dc-title" style="color: var(--accent);">3. 进程内Teammate</div>
+      <div class="dc-desc">
+        通过 <code>AsyncLocalStorage</code> 实现同进程内的并发Agent。
+        <ul>
+          <li>入口：<code>utils/swarm/inProcessRunner.ts</code></li>
+          <li>适用：Agent Teams（1个lead + 2-16个worker）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h4>Mailbox通信</h4>
+
+  <div class="code-block">
+    <span class="code-title">Mailbox 设计</span>
+<span class="cmt">// 路径</span>
+~/.claude/teams/{<span class="fn">teamName</span>}/{<span class="fn">agentName</span>}/inbox.jsonl
+
+<span class="cmt">// 消息格式</span>
+{
+  <span class="fn">from</span>: <span class="type">string</span>,
+  <span class="fn">text</span>: <span class="type">string</span>,
+  <span class="fn">summary</span>: <span class="type">string</span>,
+  <span class="fn">timestamp</span>: <span class="type">number</span>,
+  <span class="fn">color</span>: <span class="type">string</span>
+}
+
+<span class="cmt">// 轮询间隔：500ms</span>
+<span class="cmt">// 跨进程/跨AsyncLocalStorage均可用</span>
+  </div>
+
+  <h4>生成子Agent的决策树（AgentTool.tsx:269-290）</h4>
+
+  <div class="code-block">
+    <span class="code-title">子Agent生成决策树</span>
+有 <span class="fn">team_name</span>+<span class="fn">name</span>
+  <span class="op">&rarr;</span> InProcess 或 Tmux后端（<span class="str">teammate</span>）
+
+<span class="fn">isolation</span>: <span class="str">'remote'</span>
+  <span class="op">&rarr;</span> RemoteAgentTask
+
+<span class="fn">isolation</span>: <span class="str">'worktree'</span>
+  <span class="op">&rarr;</span> Git worktree隔离
+
+<span class="fn">run_in_background</span>: <span class="kw">true</span>
+  <span class="op">&rarr;</span> LocalAgentTask（异步）
+
+其他
+  <span class="op">&rarr;</span> 同步 <span class="fn">runAgent</span>
+  </div>
+
+  <h4>Coordinator模式（coordinator/coordinatorMode.ts）</h4>
+
+  <div class="card">
+    <ul>
+      <li><strong>Lead只做编排，不做实现</strong></li>
+      <li>Worker通过Agent工具生成</li>
+      <li>Lead收到结构化的 <code>&lt;task-notification&gt;</code> XML</li>
+      <li>Worker工具受限：只有 <span class="hl-cyan">Bash / Read / Edit / MCP</span>，没有编排工具</li>
+    </ul>
+  </div>
+
+  <h4>Fork Subagent（AgentTool/forkSubagent.ts）</h4>
+
+  <div class="card">
+    <ul>
+      <li>子Agent继承父Agent的<strong>对话、系统提示、工具池</strong>（字节精确）</li>
+      <li>防递归：检测 <code>&lt;fork-boilerplate&gt;</code> 标签</li>
+      <li>输出结构化：<span class="hl-accent">Scope &rarr; Result &rarr; Key files &rarr; Files changed &rarr; Issues</span></li>
+    </ul>
+  </div>
+
+  <h4>Team Memory同步（services/teamMemorySync/）</h4>
+
+  <div class="card">
+    <ul>
+      <li>基于 <span class="hl-green">sha256哈希</span> 的增量同步</li>
+      <li><strong>Push</strong>：比对本地hash vs 服务器checksums，只上传差异</li>
+      <li><strong>Pull</strong>：带ETag的条件GET</li>
+      <li><strong>冲突策略</strong>：Pull时 <span class="hl-orange">服务器wins</span></li>
+    </ul>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>Agent不能直接读对方记忆</strong> —— 只能通过消息交换信息（和Smallville相同！）</li>
+      <li><strong>Mailbox模式</strong>（异步、文件持久化、轮询）vs 直接调用 —— 解耦发送者和接收者的速度</li>
+      <li><strong>Coordinator/Worker分离</strong> —— Lead只分配不执行，防止"什么都自己做"</li>
+      <li><strong>Fork继承</strong> —— 子Agent继承父Agent的完整上下文，零成本克隆</li>
+    </ul>
+  </div>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--red);">Smallville</div>
+      <ul>
+        <li style="font-size:13px;">用<strong>物理空间</strong>做隐式协调</li>
+        <li style="font-size:13px;">你只能和看到的人说话</li>
+        <li style="font-size:13px;">空间即通信拓扑</li>
+      </ul>
+    </div>
+    <div class="vs-divider">VS</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">Claude Code</div>
+      <ul>
+        <li style="font-size:13px;">显式Mailbox通信</li>
+        <li style="font-size:13px;">三种执行模式灵活选择</li>
+        <li style="font-size:13px;">Coordinator/Worker编排</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color: var(--cyan);">共同原则</div>
+    两者的共同原则：<strong>Agent不能直接读对方的"脑子"，只能通过"对话"交换信息</strong>。这个约束不是技术限制，而是设计选择——它防止了全局共享状态的混乱。
+  </div>
+</div>
+
+<!-- ===== SECTION 8 ===== -->
+<div class="section" id="sec8">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--red);">08</div>
+    <h2>可借鉴原理七：工具系统的权限与隔离</h2>
+  </div>
+
+  <h3>源码位置：src/Tool.ts, src/tools/</h3>
+
+  <h4>工具基类设计</h4>
+
+  <p>每个工具是一个独立模块，必须实现以下接口：</p>
+
+  <div class="code-block">
+    <span class="code-title">Tool.ts - 工具基类接口</span>
+<span class="kw">interface</span> <span class="type">Tool</span> {
+  <span class="fn">inputSchema</span>: <span class="type">ZodSchema</span>          <span class="cmt">// Zod验证</span>
+  <span class="fn">checkPermissions</span>(): <span class="type">PermResult</span>   <span class="cmt">// 执行前权限检查</span>
+  <span class="fn">call</span>(): <span class="type">ToolResult</span>              <span class="cmt">// 实际执行</span>
+  <span class="fn">isConcurrencySafe</span>: <span class="type">boolean</span>      <span class="cmt">// 并发安全标记</span>
+  <span class="fn">isReadOnly</span>: <span class="type">boolean</span>             <span class="cmt">// 只读标记</span>
+}
+  </div>
+
+  <h4>并发执行策略（toolOrchestration.ts）</h4>
+
+  <div class="detail-grid">
+    <div class="detail-card dc-green">
+      <div class="dc-title" style="color: var(--green);">读操作</div>
+      <div class="dc-desc">
+        <strong>Glob, Grep, Read</strong> —— 并行执行
+        <ul>
+          <li>并发池上限：10</li>
+          <li>连续的只读工具合为一个并发批次</li>
+        </ul>
+      </div>
+    </div>
+    <div class="detail-card dc-orange">
+      <div class="dc-title" style="color: var(--orange);">写操作</div>
+      <div class="dc-desc">
+        <strong>Edit, Write, Bash（有副作用）</strong> —— 串行执行
+        <ul>
+          <li>单个写工具构成一个串行批次</li>
+          <li>contextModifiers在批次完成后顺序应用</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h4>权限三级决策</h4>
+
+  <div class="flow">
+    <div class="flow-step" style="border-color: var(--green); color: var(--green);">allow<br><span style="font-size:11px;color:var(--muted);">直接执行</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step" style="border-color: var(--red); color: var(--red);">deny<br><span style="font-size:11px;color:var(--muted);">拒绝并记录</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step" style="border-color: var(--yellow); color: var(--yellow);">ask<br><span style="font-size:11px;color:var(--muted);">弹出确认对话框</span></div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>工具是Agent的"手脚"，每只手都需要独立的权限检查</strong></li>
+      <li><strong>读写分离的并发策略</strong> —— 简单但有效</li>
+      <li><strong>Schema验证在边界执行</strong> —— 防止跨工具状态泄漏</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== SECTION 9 ===== -->
+<div class="section" id="sec9">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--cyan);">09</div>
+    <h2>可借鉴原理八：流式执行与延迟优化</h2>
+  </div>
+
+  <h3>源码位置：query.ts 中的 streaming tool execution</h3>
+
+  <div class="vs-grid">
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--muted);">传统模式</div>
+      <p style="font-size:13px;margin:0;">LLM生成完所有工具调用 &rarr; 批量执行</p>
+    </div>
+    <div class="vs-divider">&rarr;</div>
+    <div class="vs-card">
+      <div class="vs-label" style="color: var(--green);">流式模式</div>
+      <p style="font-size:13px;margin:0;">Feature gate: <code>tengu_streaming_tool_execution2</code></p>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <span class="code-title">流式工具执行伪码</span>
+<span class="kw">while</span>(<span class="fn">LLM还在生成</span>):
+  <span class="kw">if</span>(<span class="fn">收到一个tool_use block</span>):
+    <span class="cmt">// 立即开始执行（如果并发安全）</span>
+    <span class="fn">startExecution</span>(tool_use)
+
+<span class="kw">for</span>(<span class="fn">已完成的结果</span>):
+  <span class="kw">yield</span> <span class="fn">结果</span>  <span class="cmt">// 不等其他工具完成</span>
+  </div>
+
+  <h4>流式模式的优势</h4>
+
+  <div class="card">
+    <ul>
+      <li><span class="hl-green">LLM生成和工具执行并行</span> —— 显著降低端到端延迟</li>
+      <li><span class="hl-cyan">结果在API响应完成前就可用</span> —— 用户更早看到进度</li>
+      <li><span class="hl-accent">并发限制防止资源耗尽</span> —— 不会无限制地并行</li>
+      <li><span class="hl-orange">安全回退</span>：streaming失败时丢弃部分结果，不影响正确性</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color: var(--accent);">可借鉴的原理</div>
+    <ul style="margin-top:6px;">
+      <li><strong>不要等所有信息就绪才行动</strong> —— 能并行就并行</li>
+      <li><strong>安全回退比完美并行更重要</strong> —— 部分失败不应导致全部失败</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== SECTION 10 ===== -->
+<div class="section" id="sec10">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--accent);">10</div>
+    <h2>源码阅读推荐路线（按原理优先级）</h2>
+  </div>
+
+  <div class="route-card rc-purple">
+    <div class="route-num">A</div>
+    <div class="route-title" style="color: var(--accent);">路线A：理解Agent如何"思考"（核心循环）</div>
+    <div class="route-entry">src/query/query.ts &rarr; queryLoop()</div>
+    <div class="route-desc">
+      <ul class="route-focus">
+        <li>看State对象结构</li>
+        <li>看4个阶段的分界</li>
+        <li>看transition字段的所有可能值</li>
+        <li>看Terminal reasons</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">预计阅读时间：2-3小时</p>
+  </div>
+
+  <div class="route-card rc-blue">
+    <div class="route-num">B</div>
+    <div class="route-title" style="color: var(--blue);">路线B：理解Agent如何"记住"（记忆系统）</div>
+    <div class="route-entry">src/memdir/memoryTypes.ts &rarr; memdir.ts &rarr; findRelevantMemories.ts &rarr; memoryAge.ts &rarr; services/autoDream/ &rarr; services/extractMemories/</div>
+    <div class="route-desc">
+      <ul class="route-focus">
+        <li><code>memoryTypes.ts</code> &rarr; 4类记忆定义 + 负列表</li>
+        <li><code>memdir.ts</code> &rarr; MEMORY.md读写 + 200行约束</li>
+        <li><code>findRelevantMemories.ts</code> &rarr; 相关性选择（Sonnet排序）</li>
+        <li><code>memoryAge.ts</code> &rarr; 年龄标记与新鲜度警告</li>
+        <li><code>services/autoDream/</code> &rarr; 四阶段整合</li>
+        <li><code>services/extractMemories/</code> &rarr; 后台记忆提取</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">预计阅读时间：3-4小时</p>
+  </div>
+
+  <div class="route-card rc-green">
+    <div class="route-num">C</div>
+    <div class="route-title" style="color: var(--green);">路线C：理解Agent如何"遗忘"（上下文压缩）</div>
+    <div class="route-entry">src/query/query.ts L379-L543 &rarr; services/compact/autoCompact.ts &rarr; services/compact/compact.ts</div>
+    <div class="route-desc">
+      <ul class="route-focus">
+        <li><code>query.ts L379-L543</code> &rarr; 5级压缩瀑布</li>
+        <li><code>autoCompact.ts</code> &rarr; 触发条件与断路器</li>
+        <li><code>compact.ts</code> &rarr; 摘要生成</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">预计阅读时间：2小时</p>
+  </div>
+
+  <div class="route-card rc-orange">
+    <div class="route-num">D</div>
+    <div class="route-title" style="color: var(--orange);">路线D：理解Agent如何"协作"（多Agent）</div>
+    <div class="route-entry">src/tools/AgentTool/AgentTool.tsx &rarr; SendMessageTool/ &rarr; coordinator/coordinatorMode.ts &rarr; utils/swarm/ &rarr; utils/teammateMailbox.ts</div>
+    <div class="route-desc">
+      <ul class="route-focus">
+        <li><code>AgentTool.tsx</code> &rarr; 子Agent生成决策树</li>
+        <li><code>SendMessageTool/</code> &rarr; Mailbox通信</li>
+        <li><code>coordinatorMode.ts</code> &rarr; Coordinator/Worker模式</li>
+        <li><code>utils/swarm/</code> &rarr; 后端实现（InProcess/Tmux/iTerm）</li>
+        <li><code>teammateMailbox.ts</code> &rarr; JSONL邮箱</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">预计阅读时间：3小时</p>
+  </div>
+
+  <div class="route-card rc-cyan">
+    <div class="route-num">E</div>
+    <div class="route-title" style="color: var(--cyan);">路线E：理解Agent如何"行动"（工具系统）</div>
+    <div class="route-entry">src/Tool.ts &rarr; src/tools/ &rarr; hooks/toolPermission/</div>
+    <div class="route-desc">
+      <ul class="route-focus">
+        <li><code>Tool.ts</code> &rarr; 工具基类</li>
+        <li><code>src/tools/</code> 任选3-4个具体工具（推荐BashTool, FileEditTool, AgentTool）</li>
+        <li><code>hooks/toolPermission/</code> &rarr; 权限系统</li>
+      </ul>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">预计阅读时间：2小时</p>
+  </div>
+</div>
+
+<!-- ===== SECTION 11 ===== -->
+<div class="section" id="sec11">
+  <div class="sec-head">
+    <div class="sec-num" style="background: var(--blue);">11</div>
+    <h2>八大原理总览表</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>可借鉴原理</th>
+          <th>源码位置</th>
+          <th>Smallville对比</th>
+          <th>设计启示</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--accent);font-weight:700;">1</td>
+          <td><span class="hl-accent">显式State状态机</span></td>
+          <td><code>query.ts queryLoop()</code></td>
+          <td>Smallville无显式State</td>
+          <td>任何Agent都需要可序列化的State对象</td>
+        </tr>
+        <tr>
+          <td style="color:var(--blue);font-weight:700;">2</td>
+          <td><span class="hl-blue">五级压缩瀑布</span></td>
+          <td><code>query.ts L379-543</code></td>
+          <td>Smallville无上下文管理</td>
+          <td>渐进式降级，便宜的先试</td>
+        </tr>
+        <tr>
+          <td style="color:var(--green);font-weight:700;">3</td>
+          <td><span class="hl-green">四类记忆分类学</span></td>
+          <td><code>memdir/memoryTypes.ts</code></td>
+          <td>Smallville无类型记忆流</td>
+          <td>不同类型记忆有不同生命周期</td>
+        </tr>
+        <tr>
+          <td style="color:var(--orange);font-weight:700;">4</td>
+          <td><span class="hl-orange">四阶段记忆整合</span></td>
+          <td><code>services/autoDream/</code></td>
+          <td>Smallville只有归纳（Phase 3）</td>
+          <td>完整的定向&rarr;收集&rarr;整合&rarr;修剪</td>
+        </tr>
+        <tr>
+          <td style="color:var(--yellow);font-weight:700;">5</td>
+          <td><span class="hl">信任但验证</span></td>
+          <td><code>memoryTypes.ts L201+</code></td>
+          <td>Smallville信任自己的记忆</td>
+          <td>记忆是线索不是事实</td>
+        </tr>
+        <tr>
+          <td style="color:var(--pink);font-weight:700;">6</td>
+          <td><span style="background:rgba(244,114,182,0.12);color:var(--pink);padding:1px 5px;border-radius:3px;font-weight:500;">Mailbox通信</span></td>
+          <td><code>tools/SendMessageTool</code></td>
+          <td>Smallville物理空间触发</td>
+          <td>Agent不能读对方脑子，只能对话</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red);font-weight:700;">7</td>
+          <td><span class="hl-red">工具权限与隔离</span></td>
+          <td><code>Tool.ts, tools/</code></td>
+          <td>Smallville无权限概念</td>
+          <td>读写分离 + Schema验证 + 权限门控</td>
+        </tr>
+        <tr>
+          <td style="color:var(--cyan);font-weight:700;">8</td>
+          <td><span class="hl-cyan">流式并行执行</span></td>
+          <td><code>query.ts streaming</code></td>
+          <td>Smallville同步执行</td>
+          <td>能并行就并行，安全回退更重要</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== SECTION 12 ===== -->
+<div class="section" id="sec12">
+  <div class="sec-head">
+    <div class="sec-num" style="background: linear-gradient(135deg, var(--accent), var(--cyan));">12</div>
+    <h2>结论：从学术原型到生产系统的8个跃迁</h2>
+  </div>
+
+  <div class="quote-block">
+    Smallville是<strong>"概念验证"</strong>——证明了记忆+反思+规划的Agent架构可以产生涌现行为。<br>
+    Claude Code是<strong>"工程实现"</strong>——证明了同一架构在生产环境中如何处理上下文有限、记忆衰减、多Agent协调、错误恢复、延迟优化等现实约束。
+    <div class="quote-src">基于512,000行TypeScript源码的实证分析</div>
+  </div>
+
+  <h3>8个跃迁</h3>
+
+  <div class="trans-grid">
+    <div class="trans-card">
+      <div class="trans-num">1</div>
+      <div class="trans-body">
+        <div class="trans-from">隐式循环</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--accent);">显式状态机</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">2</div>
+      <div class="trans-body">
+        <div class="trans-from">无限记忆</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--blue);">分级压缩</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">3</div>
+      <div class="trans-body">
+        <div class="trans-from">无类型记忆</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--green);">四类分类学</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">4</div>
+      <div class="trans-body">
+        <div class="trans-from">只做归纳</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--orange);">四阶段整合（含修剪）</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">5</div>
+      <div class="trans-body">
+        <div class="trans-from">信任记忆</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--yellow);">验证后使用</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">6</div>
+      <div class="trans-body">
+        <div class="trans-from">空间触发</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--pink);">Mailbox通信</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">7</div>
+      <div class="trans-body">
+        <div class="trans-from">无权限</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--red);">分级权限门控</div>
+      </div>
+    </div>
+    <div class="trans-card">
+      <div class="trans-num">8</div>
+      <div class="trans-body">
+        <div class="trans-from">同步执行</div>
+        <div class="trans-arrow-text">&rarr;</div>
+        <div class="trans-to" style="color: var(--cyan);">流式并行</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color: var(--cyan);">核心洞见</div>
+    这8个跃迁不是"改进"，而是<strong>"从实验室到现实"的必然要求</strong>。任何试图将Smallville式架构工程化的团队，都会独立发现这些问题并做出类似的设计选择——Claude Code的源码只是让这些选择第一次以完整代码的形式暴露在阳光下。
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  Deep-Dive 系列 #06 &mdash; Claude Code 源码可借鉴原理<br>
+  基于 <code>src/</code> 目录 512,000 行 TypeScript 源码的实证分析<br>
+  <a href="https://arxiv.org/abs/2304.03442" target="_blank">Smallville</a> &times; Claude Code 架构对照研究
+</div>
+
+</body>
+</html>

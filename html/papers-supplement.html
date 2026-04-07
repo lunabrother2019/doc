@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Agents 补充论文（12 篇）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f1117;
+      --bg2:     #1a1d27;
+      --bg3:     #242837;
+      --border:  #2d2d3a;
+      --text:    #e2e8f0;
+      --muted:   #8b95a5;
+      --accent:  #a78bfa;
+      --blue:    #60a5fa;
+      --green:   #34d399;
+      --red:     #f87171;
+      --orange:  #fb923c;
+      --yellow:  #fbbf24;
+      --cyan:    #22d3ee;
+      --pink:    #f472b6;
+      --lime:    #a3e635;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #1a1b3b 0%, #0f1117 50%, #0c1a2e 100%);
+      padding: 56px 24px 40px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 30px); color: var(--orange); margin-bottom: 10px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 700px; margin: 0 auto; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,17,23,0.94); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px; overflow-x: auto; white-space: nowrap;
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; gap: 2px; padding: 6px 0;
+    }
+    .nav a {
+      color: var(--muted); text-decoration: none; font-size: 12px;
+      padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0;
+    }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+    .cat-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+
+    .cat-section { margin-bottom: 48px; }
+    .cat-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .cat-badge {
+      padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .cat-header h2 { font-size: 20px; font-weight: 600; }
+    .cat-header .count { color: var(--muted); font-size: 13px; margin-left: auto; }
+
+    .paper {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      transition: border-color .2s;
+      overflow: hidden;
+    }
+    .paper:hover { border-color: var(--accent); }
+    .paper-top {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 20px 24px 16px;
+    }
+    .paper-num {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #0f1117;
+    }
+    .paper-meta { flex: 1; min-width: 0; }
+    .paper-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; line-height: 1.5; }
+    .paper-title a { color: var(--text); text-decoration: none; }
+    .paper-title a:hover { color: var(--blue); text-decoration: underline; }
+    .paper-title .ext-icon { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    .paper-venue { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .paper-venue .year { color: var(--orange); font-weight: 600; }
+
+    .concepts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .concept {
+      display: inline-block; font-size: 11px; padding: 2px 10px;
+      border-radius: 20px; font-weight: 500;
+    }
+    .concept-key {
+      background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3);
+    }
+    .concept-normal {
+      background: rgba(167,139,250,0.1); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.2);
+    }
+
+    .paper-body {
+      padding: 0 24px 20px;
+      font-size: 14px; color: #c9d1d9; line-height: 1.8;
+    }
+    .paper-body p { margin-bottom: 8px; }
+    .paper-body .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
+    .paper-body .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 4px; border-radius: 3px; }
+    .paper-body ul { margin: 4px 0 8px 20px; }
+    .paper-body li { margin-bottom: 3px; }
+
+    .priority {
+      flex-shrink: 0; font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      font-weight: 600; align-self: flex-start; margin-top: 2px;
+    }
+    .p-must { background: rgba(248,113,113,0.15); color: var(--red); }
+    .p-high { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .p-med  { background: rgba(96,165,250,0.12); color: var(--blue); }
+
+    .badge-memory .cat-badge { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .badge-memory .paper-num { background: var(--blue); }
+    .badge-reflection .cat-badge { background: rgba(248,113,113,0.12); color: var(--red); }
+    .badge-reflection .paper-num { background: var(--red); }
+    .badge-scale .cat-badge { background: rgba(192,132,252,0.12); color: #c084fc; }
+    .badge-scale .paper-num { background: #c084fc; }
+    .badge-embodied .cat-badge { background: rgba(244,114,182,0.12); color: var(--pink); }
+    .badge-embodied .paper-num { background: var(--pink); }
+    .badge-game .cat-badge { background: rgba(163,230,53,0.12); color: var(--lime); }
+    .badge-game .paper-num { background: var(--lime); }
+
+    .footer {
+      text-align: center; color: var(--muted); font-size: 12px;
+      padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 16px 12px 60px; }
+      .paper-top { flex-direction: column; gap: 8px; padding: 16px; }
+      .paper-body { padding: 0 16px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>补充论文（12 篇）</h1>
+  <p class="sub">在 64 篇论文参考手册基础上，补充遗漏的 12 篇与斯坦福小镇直接相关的重要工作。覆盖记忆系统最新顶会论文、社会仿真框架、以及同期标志性工作。</p>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sup-memory"><span class="cat-dot" style="background:#60a5fa"></span>记忆系统 (4)</a>
+    <a href="#sup-reflection"><span class="cat-dot" style="background:#f87171"></span>反思机制 (1)</a>
+    <a href="#sup-scale"><span class="cat-dot" style="background:#c084fc"></span>社会仿真与框架 (5)</a>
+    <a href="#sup-embodied"><span class="cat-dot" style="background:#f472b6"></span>具身/开放世界 (1)</a>
+    <a href="#sup-game"><span class="cat-dot" style="background:#a3e635"></span>游戏/生活仿真 (1)</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ══ 记忆系统 ══ -->
+<section class="cat-section badge-memory" id="sup-memory">
+  <div class="cat-header">
+    <span class="cat-badge">记忆系统</span>
+    <h2>2025 顶会新增</h2>
+    <span class="count">4 篇</span>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S1</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2025.12</span> &middot; arXiv &middot; Yuyang Hu, Shichun Liu et al.</div>
+        <div class="concepts">
+          <span class="concept concept-key">Factual / Experiential / Working Memory</span>
+          <span class="concept concept-key">Memory Taxonomy</span>
+          <span class="concept concept-normal">Benchmark Compilation</span>
+          <span class="concept concept-normal">RL Integration</span>
+          <span class="concept concept-normal">Multi-agent Memory</span>
+          <span class="concept concept-normal">Trustworthiness</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>目前<span class="hl">最全面的 Agent 记忆综述</span>。明确区分了 Agent Memory 与 LLM Memory、RAG、Context Engineering 的边界。从<span class="hl">功能维度</span>将记忆分为事实记忆（Factual）、经验记忆（Experiential）、工作记忆（Working）；从<span class="hl">动态维度</span>分析记忆的形成、演化和检索过程。</p>
+      <p>额外贡献：编制了<span class="hl">记忆基准和开源框架的完整目录</span>，并展望了记忆自动化、RL 集成、多模态记忆、多 Agent 记忆和可信性等前沿方向。配套 <a href="https://github.com/Shichun-Liu/Agent-Memory-Paper-List" target="_blank">GitHub Paper List</a> 持续更新。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S2</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; EMNLP 2025 Oral &middot; Jiazheng Kang, Mingming Ji, Zhe Zhao, Ting Bai</div>
+        <div class="concepts">
+          <span class="concept concept-key">Memory Operating System</span>
+          <span class="concept concept-key">Three-Level Storage</span>
+          <span class="concept concept-normal">Short/Mid/Long-term Memory</span>
+          <span class="concept concept-normal">FIFO + Segmented Paging</span>
+          <span class="concept concept-normal">F1 +49%</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>借鉴<span class="hl">操作系统内存管理</span>思想，设计了 Agent 的<span class="hl">三级记忆架构</span>：短期记忆、中期记忆、长期个人记忆，配套四个核心模块（存储、更新、检索、生成）。</p>
+      <p>关键机制：短期→中期更新遵循<span class="hl">对话链 FIFO</span> 原则，中期→长期更新采用<span class="hl">分段页式组织策略</span>。在 LoCoMo 基准上 <span class="hl">F1 提升 49.11%</span>，BLEU-1 提升 46.18%。是将 OS 概念迁移到 Agent 记忆的代表性工作。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S3</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2503.08026" target="_blank">In Prospect and Retrospect: Reflective Memory Management for Long-term Personalized Dialogue Agents <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; ACL 2025 &middot; Zhen Tan, Jun Yan, I-Hung Hsu, Rujun Han et al.</div>
+        <div class="concepts">
+          <span class="concept concept-key">Prospective Reflection</span>
+          <span class="concept concept-key">Retrospective Reflection</span>
+          <span class="concept concept-key">Online RL Retrieval</span>
+          <span class="concept concept-normal">Multi-granularity Summarization</span>
+          <span class="concept concept-normal">LongMemEval +10%</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>提出<span class="hl">反思式记忆管理（RMM）</span>，融合前瞻与回顾两个方向的反思：</p>
+      <ul>
+        <li><strong>前瞻反思（Prospective）</strong>：跨粒度（语句/轮次/会话）动态摘要，写入个性化记忆库</li>
+        <li><strong>回顾反思（Retrospective）</strong>：用<span class="hl">在线 RL</span> 基于 LLM 引用证据迭代优化检索策略</li>
+      </ul>
+      <p>解决了两个痛点：<span class="hl">固定记忆粒度</span>导致语义碎片化，<span class="hl">固定检索机制</span>无法适应多样对话场景。LongMemEval 上准确率提升 <span class="hl">10%+</span>。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S4</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://aclanthology.org/2025.emnlp-main.1683.pdf" target="_blank">Autonomous Memory Augmentation for LLM Agents <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; EMNLP 2025</div>
+        <div class="concepts">
+          <span class="concept concept-key">Autonomous Memory Management</span>
+          <span class="concept concept-normal">Write / Update / Forget</span>
+          <span class="concept concept-normal">Self-Determined Timing</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>Agent <span class="hl">自主决定何时写入、更新、遗忘记忆</span>，而非依赖预设规则（如 Smallville 的重要性阈值）。将记忆管理从"规则驱动"推向"Agent 自治"，是记忆系统走向自动化的重要一步。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 反思机制 ══ -->
+<section class="cat-section badge-reflection" id="sup-reflection">
+  <div class="cat-header">
+    <span class="cat-badge">反思机制</span>
+    <h2>正面经验反思</h2>
+    <span class="count">1 篇</span>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S5</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2411.02223" target="_blank">Sweet&amp;Sour: Positive Experience Reflection for Agents in Interactive Text Environments <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; NeurIPS 2024</div>
+        <div class="concepts">
+          <span class="concept concept-key">Positive Experience Reflection</span>
+          <span class="concept concept-key">Success + Failure Reflection</span>
+          <span class="concept concept-normal">Managed Memory</span>
+          <span class="concept concept-normal">Small LLM Effectiveness</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>Reflexion 的重要补充。Reflexion 只在<span class="hl">失败后反思</span>，本文提出 Sweet&amp;Sour：<span class="hl">每完成一个子目标也进行反思</span>（正面经验），并立即写入可用记忆。</p>
+      <p>解决了两个问题：(1) Agent 初始就成功时 Reflexion 无法触发；(2) 小模型上 Reflexion 效果衰减。<span class="hl">在 closed 和 open-source LLM 上均有效</span>，特别是在小模型场景下优势明显。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 社会仿真与框架 ══ -->
+<section class="cat-section badge-scale" id="sup-scale">
+  <div class="cat-header">
+    <span class="cat-badge">社会仿真与框架</span>
+    <h2>Smallville 思想的直接继承者</h2>
+    <span class="count">5 篇</span>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S6</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://github.com/google-deepmind/concordia" target="_blank">Concordia: A Library for Generative Social Simulation <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; Google DeepMind &middot; NeurIPS 2025 Competition Track</div>
+        <div class="concepts">
+          <span class="concept concept-key">Game Master Architecture</span>
+          <span class="concept concept-key">Mediated Multi-Agent Games</span>
+          <span class="concept concept-normal">Mixed-Motive Scenarios</span>
+          <span class="concept concept-normal">Generalization Evaluation</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>Google DeepMind 开源的<span class="hl">生成式社会仿真库</span>。核心设计：引入 <span class="hl">Game Master</span> 角色作为环境中介，形式化 LLM 在多 Agent 博弈中的交互。支持合作/竞争/混合动机等多种社交场景。</p>
+      <p>已有 <a href="https://arxiv.org/html/2512.03318v1" target="_blank">NeurIPS 2025 论文</a>用 Concordia 评估 LLM Agent 在混合动机场景下的泛化能力。2025 年举办了 NeurIPS Concordia Contest 竞赛。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S7</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://sotopia.world/projects/sotopia" target="_blank">Sotopia / SOTOPIA-S4: Social Intelligence Evaluation and Simulation <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2024-2025</span> &middot; CMU</div>
+        <div class="concepts">
+          <span class="concept concept-key">Social Intelligence Benchmark</span>
+          <span class="concept concept-key">90 Scenarios / 40 Characters</span>
+          <span class="concept concept-normal">Goal Completion</span>
+          <span class="concept concept-normal">Believability Evaluation</span>
+          <span class="concept concept-normal">Secret-keeping</span>
+        </div>
+      </div>
+      <span class="priority p-high">推荐</span>
+    </div>
+    <div class="paper-body">
+      <p>CMU 出品的 <span class="hl">Agent 社交智能评测框架</span>：90 个社交场景 + 40 个带个性/职业/秘密的角色。评测维度包括<span class="hl">目标完成度、可信度、知识运用、秘密保守</span>等。</p>
+      <p>SOTOPIA-S4（2025）升级为<span class="hl">用户友好的大规模社会仿真系统</span>，支持灵活定制和扩展。是评估 Agent "像不像人"的标准基准之一。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S8</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2504.10157" target="_blank">SocioVerse: A World Model for Social Simulation Powered by LLM Agents and A Pool of 10 Million Real-World Users <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2025.04</span> &middot; arXiv &middot; Fudan University</div>
+        <div class="concepts">
+          <span class="concept concept-key">10 Million User Pool</span>
+          <span class="concept concept-key">World Model for Social Sim</span>
+          <span class="concept concept-normal">User Engine / Scenario Engine / Behavior Engine</span>
+          <span class="concept concept-normal">Politics / News / Economics Validation</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>复旦大学提出的<span class="hl">社会仿真世界模型</span>，最大亮点：<span class="hl">1000 万真实用户池</span>（来自社交媒体数据，相当于匈牙利或希腊的全国人口）。</p>
+      <p>四大组件：Social Environment（注入实时真实信息）、User Engine（重建用户画像）、Scenario Engine（编排仿真流程）、<span class="hl">Behavior Engine</span>（驱动 Agent 复现人类行为）。在政治、新闻、经济三个领域验证了群体动态的多样性、可信度和代表性。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S9</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2603.19649" target="_blank">PolicySim: An LLM-Based Agent Social Simulation Sandbox for Proactive Policy Optimization <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2026.03</span> &middot; arXiv</div>
+        <div class="concepts">
+          <span class="concept concept-key">Proactive Policy Evaluation</span>
+          <span class="concept concept-key">Contextual Bandit + Message Passing</span>
+          <span class="concept concept-normal">SFT + DPO for User Agent</span>
+          <span class="concept concept-normal">Echo Chamber / Polarization</span>
+          <span class="concept concept-normal">Pre-deployment Testing</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>用 Agent 仿真沙盒<span class="hl">在部署前主动评估社交平台干预政策</span>，替代传统的事后 A/B 测试。两大核心组件：</p>
+      <ul>
+        <li><strong>用户 Agent 模块</strong>：通过 <span class="hl">SFT + DPO</span> 微调实现平台特定的行为真实感</li>
+        <li><strong>自适应干预模块</strong>：用<span class="hl">上下文赌博机 + 消息传递</span>捕捉动态网络结构</li>
+      </ul>
+      <p>目标场景：推荐/内容过滤等政策可能无意中<span class="hl">放大回音室和极化效应</span>，PolicySim 能在上线前发现风险。</p>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S10</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://github.com/OpenBMB/AgentVerse" target="_blank">AgentVerse: Multi-LLM-Agent Deployment for Task-Solving and Simulation <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2023-2025</span> &middot; OpenBMB (Tsinghua)</div>
+        <div class="concepts">
+          <span class="concept concept-key">Dual-Mode Framework</span>
+          <span class="concept concept-normal">Task-Solving Mode</span>
+          <span class="concept concept-normal">Simulation Mode</span>
+          <span class="concept concept-normal">Pluggable Agent Design</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>清华 OpenBMB 开源的多 Agent 部署框架，独特之处：<span class="hl">同时支持任务求解和社会仿真两种模式</span>。任务模式下 Agent 协作解决问题（类似 ChatDev），仿真模式下 Agent 在虚拟社会中自主交互（类似 Smallville）。可插拔的 Agent 设计使其易于扩展。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 具身/开放世界 ══ -->
+<section class="cat-section badge-embodied" id="sup-embodied">
+  <div class="cat-header">
+    <span class="cat-badge">具身/开放世界</span>
+    <h2>与 Smallville 同期的标志性工作</h2>
+    <span class="count">1 篇</span>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S11</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager: An Open-Ended Embodied Agent with Large Language Models <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; NeurIPS &middot; Wang, Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar</div>
+        <div class="concepts">
+          <span class="concept concept-key">Lifelong Learning Agent</span>
+          <span class="concept concept-key">Skill Library</span>
+          <span class="concept concept-key">Automatic Curriculum</span>
+          <span class="concept concept-normal">Iterative Prompting</span>
+          <span class="concept concept-normal">Self-Verification</span>
+          <span class="concept concept-normal">Minecraft</span>
+        </div>
+      </div>
+      <span class="priority p-must">必读</span>
+    </div>
+    <div class="paper-body">
+      <p>与 Smallville 同期的<span class="hl">另一个标志性工作</span>。Voyager 是 Minecraft 中首个 LLM 驱动的<span class="hl">终身学习具身 Agent</span>，通过 GPT-4 黑盒调用（无需微调）实现持续探索和技能获取。</p>
+      <p>三大核心组件：</p>
+      <ul>
+        <li><span class="hl">自动课程（Automatic Curriculum）</span>：最大化探索多样性</li>
+        <li><span class="hl">技能库（Skill Library）</span>：用可执行代码存储和检索复杂行为，不断增长</li>
+        <li><span class="hl">迭代 Prompting + 自验证</span>：整合环境反馈、执行错误进行程序改进</li>
+      </ul>
+      <p>效果：获取独特物品 <span class="hl">3.3x</span>，移动距离 <span class="hl">2.3x</span>，解锁科技树速度 <span class="hl">15.3x</span>（vs 前 SOTA）。</p>
+      <p>与 Smallville 的对比：Smallville 关注社会行为涌现，Voyager 关注<span class="hl">技能积累和开放世界探索</span>。两者共同定义了 2023 年 LLM Agent 的两大方向——社会仿真 vs 具身探索。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 游戏/生活仿真 ══ -->
+<section class="cat-section badge-game" id="sup-game">
+  <div class="cat-header">
+    <span class="cat-badge">游戏/生活仿真</span>
+    <h2>Smallville 思想的产品化</h2>
+    <span class="count">1 篇</span>
+  </div>
+
+  <div class="paper">
+    <div class="paper-top">
+      <span class="paper-num">S12</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2410.18975" target="_blank">Unbounded: A Generative Infinite Game of Character Life Simulation <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-venue"><span class="year">2024.10</span> &middot; arXiv</div>
+        <div class="concepts">
+          <span class="concept concept-key">Generative Infinite Game</span>
+          <span class="concept concept-key">Two-Agent Architecture</span>
+          <span class="concept concept-normal">World Simulation Model</span>
+          <span class="concept concept-normal">User Interaction Model</span>
+          <span class="concept concept-normal">IP-Adapter for Visual Consistency</span>
+          <span class="concept concept-normal">Gemma-2B Distillation</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将 Smallville 的思想做成<span class="hl">可玩的消费级产品</span>。受 James P. Carse "有限与无限游戏"启发，Unbounded 是完全由生成模型驱动的<span class="hl">无限生命仿真游戏</span>。</p>
+      <p>双 Agent 架构：</p>
+      <ul>
+        <li><strong>世界仿真模型</strong>：设置环境、生成叙事、追踪角色状态、模拟行为</li>
+        <li><strong>用户交互模型</strong>：管理玩家交互，包括叙事推进、环境变化、角色行动</li>
+      </ul>
+      <p>技术亮点：从 GPT-4o 蒸馏到 <span class="hl">Gemma-2B</span>（仅 5000 样本），性能接近 GPT-4o；使用 <span class="hl">Dynamic Regional IP-Adapter</span> 保持角色在不同环境下的视觉一致性。</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  共 12 篇补充论文 | 整理于 2026-04-05 | 作为 papers-reference.html（64 篇）的增补
+</div>
+
+</body>
+</html>
