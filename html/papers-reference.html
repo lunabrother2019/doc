@@ -187,6 +187,7 @@
     .cat-halluc     { --cat: #fb7185; }
     .cat-protocol   { --cat: #38bdf8; }
     .cat-company    { --cat: #fbbf24; }
+    .cat-personal   { --cat: #f472b6; }
 
     .cat-origin .cat-badge     { background: rgba(167,139,250,0.15); color: var(--accent); }
     .cat-memory .cat-badge     { background: rgba(96,165,250,0.12);  color: var(--blue); }
@@ -205,6 +206,7 @@
     .cat-halluc .cat-badge     { background: rgba(251,113,133,0.12); color: #fb7185; }
     .cat-protocol .cat-badge   { background: rgba(56,189,248,0.12);  color: #38bdf8; }
     .cat-company .cat-badge    { background: rgba(251,191,36,0.12);  color: var(--yellow); }
+    .cat-personal .cat-badge   { background: rgba(244,114,182,0.15); color: #f472b6; }
 
     .cat-origin .paper-num     { background: var(--accent); }
     .cat-memory .paper-num     { background: var(--blue); }
@@ -223,6 +225,15 @@
     .cat-halluc .paper-num     { background: #fb7185; }
     .cat-protocol .paper-num   { background: #38bdf8; }
     .cat-company .paper-num    { background: var(--yellow); }
+    .cat-personal .paper-num   { background: #f472b6; }
+
+    /* Personal tag style */
+    .personal-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px; margin-left: 8px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
 
     /* ── View toggle tabs ── */
     .view-tabs {
@@ -417,6 +428,14 @@
     #rl-panel .rl-c-bench   { background:#1a2030; color:#c7d2fe; }
     #rl-panel .rl-c-halluc  { background:#3b2a1a; color:#fde68a; }
     #rl-panel .rl-c-protocol { background:#1a2d1a; color:#d9f99d; }
+    #rl-panel .rl-c-personal { background:#2d1a2a; color:#f9a8d4; }
+    #rl-panel .rl-card[data-cat="personal"] { --rl-cat: #f472b6; }
+    #rl-panel .rl-personal-badge {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -452,6 +471,7 @@
     <a href="#cat-survey"><span class="cat-dot" style="background:#8b95a5"></span>综述</a>
     <a href="#cat-patent"><span class="cat-dot" style="background:#fbbf24"></span>专利</a>
     <a href="#cat-company"><span class="cat-dot" style="background:#fbbf24"></span>公司技术</a>
+    <a href="#cat-personal"><span class="cat-dot" style="background:#f472b6"></span>个人补充</a>
   </div>
 </nav>
 
@@ -2113,6 +2133,39 @@
   </div>
 </section>
 
+<!-- ════════════════════════════════════════════════ -->
+<!-- 18. PERSONAL -->
+<!-- ════════════════════════════════════════════════ -->
+<section class="cat-section cat-personal" id="cat-personal">
+  <div class="cat-header">
+    <span class="cat-badge">个人补充</span>
+    <h2>跨领域方法论启发</h2>
+    <span class="personal-badge">后加 · 待讨论</span>
+    <span class="count">1 篇</span>
+  </div>
+
+  <div class="paper" data-search="alcs automatic laplace collapsed sampling bayesian latent variable marginalization cambridge 自动折叠采样 贝叶斯 潜变量 记忆压缩">
+    <div class="paper-top">
+      <span class="paper-num">78</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2603.26644" target="_blank">ALCS: Automatic Laplace-approximation-based Collapsed Sampling <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2026</span> &middot; Cambridge</div>
+        <div class="concepts">
+          <span class="concept concept-key">Laplace Approximation</span>
+          <span class="concept concept-key">Latent Variable Marginalization</span>
+          <span class="concept concept-normal">Automatic Differentiation</span>
+          <span class="concept concept-normal">Nested Sampling</span>
+          <span class="concept concept-normal">Bayesian Inference</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>用 MAP + Laplace 近似将高维潜变量"折叠"成标量贡献，有效维度从 <span class="hl">d_θ + d_z 降至 d_θ</span>。</p>
+      <p><strong>与 Agent 记忆的概念桥接：</strong>记忆压缩 ≈ 潜变量折叠（将冗余记忆折叠为摘要）；未来可为记忆加<span class="hl">不确定性量化</span>（置信度建模）。目前无直接引用关系，属于跨领域方法论启发。</p>
+    </div>
+  </div>
+</section>
+
 </div><!-- .container -->
 </div><!-- .card-view -->
 
@@ -2665,6 +2718,7 @@
   <button class="rl-btn" data-cat="bench">Agent评测</button>
   <button class="rl-btn" data-cat="halluc">幻觉控制</button>
   <button class="rl-btn" data-cat="protocol">通信协议</button>
+  <button class="rl-btn" data-cat="personal">个人补充</button>
 </div>
 
 <div class="rl-grid">
@@ -3896,6 +3950,17 @@
     <div class="rl-venue">Anthropic · 2024.11</div>
     <div class="rl-abstract">LLM 与工具/数据源的标准接口：tools + resources + prompts 三原语。已被多家采纳，Agent 工具使用事实标准。</div>
     <div class="rl-tags"><span class="rl-tag">Tools/Resources/Prompts</span><span class="rl-tag">Client-Server</span><span class="rl-tag">Industry Standard</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">Cambridge 2026</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2603.26644" target="_blank">ALCS: Automatic Laplace-approximation-based Collapsed Sampling</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Cambridge · 2026</div>
+    <div class="rl-abstract">用 MAP + Laplace 近似将高维潜变量"折叠"成标量贡献，有效维度从 d_θ+d_z 降至 d_θ。与 Agent 记忆的概念桥接：记忆压缩 ≈ 潜变量折叠；未来可为记忆加不确定性量化（置信度建模）。跨领域方法论启发。</div>
+    <div class="rl-tags"><span class="rl-tag">Laplace Approximation</span><span class="rl-tag">Latent Variable</span><span class="rl-tag">Bayesian Inference</span><span class="rl-tag">Memory Compression Analogy</span></div>
   </div>
 
 </div><!-- end grid -->
