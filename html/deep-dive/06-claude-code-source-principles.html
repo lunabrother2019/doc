@@ -213,6 +213,11 @@
       .layer-content { border-left: 1px solid var(--border); border-radius: 0 0 8px 8px; }
       .route-card .route-num { display: none; }
     }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -251,6 +256,12 @@
     <a href="#sec11">11.总览表</a>
     <a href="#sec12">12.结论</a>
   </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-framework">论文库 · 框架</a>
 </div>
 
 <!-- ==================== CONTENT ==================== -->

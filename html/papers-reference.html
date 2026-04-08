@@ -151,6 +151,8 @@
     .paper-body p { margin-bottom: 8px; }
     .paper-body .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
     .paper-body .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 4px; border-radius: 3px; }
+    .deep-dive-link { display: inline-block; margin-top: 8px; font-size: 12px; padding: 3px 12px; border-radius: 6px; background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.25); color: #22d3ee; text-decoration: none; font-weight: 600; transition: all .15s; }
+    .deep-dive-link:hover { background: rgba(34,211,238,0.18); text-decoration: none; }
     .paper-body ul { margin: 4px 0 8px 20px; }
     .paper-body li { margin-bottom: 3px; }
 
@@ -520,6 +522,8 @@
     <div class="paper-body">
       <p>提出 <span class="hl">Generative Agents</span> 架构，将 LLM 与三个核心机制结合：<span class="hl">记忆流（Memory Stream）</span>按时间顺序存储所有经历，通过 <span class="hl">Recency + Importance + Relevance</span> 三维加权检索；<span class="hl">反思（Reflection）</span>在重要性累计超过阈值时触发，对记忆做高层归纳生成抽象洞见；<span class="hl">规划（Planning）</span>将日程递归分解为具体行动序列。</p>
       <p>25 个 Agent 在沙盒小镇 Smallville 中运行，<span class="hl">涌现</span>出自发组织派对、建立社交关系、协调时间等社会行为——没有人写死这些行为，它们是架构的副产品。这篇论文开创了"LLM + 多智能体社会仿真"方向。</p>
+      <a class="deep-dive-link" href="deep-dive/04-claude-code-leak-vs-smallville.html">深度解读04 · Claude Code vs Smallville →</a>
+      <a class="deep-dive-link" href="deep-dive/05-technical-correlation-and-source-reading-guide.html">深度解读05 · 源码阅读指南 →</a>
     </div>
   </div>
 </section>
@@ -897,6 +901,7 @@
         <li><strong>内环（Introspection）</strong>：推理时从 Reflection Bank 检索历史经验指导当前决策</li>
       </ul>
       <p>灵感来源：认知科学的<span class="hl">元认知（Metacognition）</span>理论。代表了反思从"被动→主动→外部驱动→元认知闭环"的完整演进终点。</p>
+      <a class="deep-dive-link" href="deep-dive/02-dual-loop-reflection.html">深度解读 →</a>
     </div>
   </div>
 
@@ -1325,6 +1330,7 @@
     </div>
     <div class="paper-body">
       <p>用 Agent 仿真沙盒<span class="hl">在部署前评估社交平台干预政策</span>，替代事后 A/B 测试。用户 Agent 通过 SFT+DPO 实现行为真实感，自适应干预模块用上下文赌博机捕捉动态网络结构。</p>
+      <a class="deep-dive-link" href="deep-dive/03-policysim.html">深度解读 →</a>
     </div>
   </div>
 
@@ -2180,6 +2186,7 @@
     </div>
     <div class="paper-body">
       <p>发现 LLM 的拒绝行为由残差流中单一方向介导。通过对比有害/无害 prompt 的激活差异，可提取"拒绝向量"并通过正交化移除，从而解除模型安全限制。Abliteration 技术的理论基础。</p>
+      <a class="deep-dive-link" href="deep-dive/10-abliteration.html">深度解读10 · Abliteration →</a>
     </div>
   </div>
 
@@ -2255,6 +2262,7 @@
     </div>
     <div class="paper-body">
       <p>将 LLM 的 <span class="hl">decoder-only 范式</span>迁移到时间序列预测。200M 参数 + 1000 亿真实数据点预训练，<span class="hl">zero-shot 性能匹配有监督 SOTA</span>。Patch 机制将连续时间点分组为 token，输出 patch 长于输入 patch 以减少累积误差。与 Agent 的概念桥接：可作为 Agent 的环境预测模块（World Model），在规划阶段 zero-shot 预测不同行动的后果。</p>
+      <a class="deep-dive-link" href="deep-dive/11-timesfm.html">深度解读11 · TimesFM →</a>
     </div>
   </div>
 
