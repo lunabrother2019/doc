@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>验证试验田 — 推荐系统与在线社区：Agent 仿真走向科学的最佳突破口</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #0a1e0a 0%, #0f1117 40%, #0a1628 70%, #0a2818 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--green); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 56px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 5px; border-radius: 3px; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .flow { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 16px 0 24px; font-family: monospace; font-size: 13px; color: var(--cyan); line-height: 2; text-align: center; }
+    .flow .arrow { color: var(--muted); }
+
+    .level-grid { display: grid; gap: 10px; margin: 16px 0 24px; }
+    .level-item { display: flex; gap: 14px; align-items: flex-start; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .level-num { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #0f1117; flex-shrink: 0; }
+    .level-info { flex: 1; }
+    .level-name { font-size: 14px; font-weight: 600; color: #f0e6ff; }
+    .level-desc { font-size: 13px; color: #c9d1d9; }
+    .level-status { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+
+    .paper-ref-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; border-left: 3px solid var(--accent); margin-bottom: 12px; }
+    .paper-ref-card .pr-title { font-size: 13px; font-weight: 600; color: #e9d5ff; margin-bottom: 4px; }
+    .paper-ref-card .pr-title a { color: inherit; }
+    .paper-ref-card .pr-meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .paper-ref-card .pr-note { font-size: 12px; color: #9ca3af; line-height: 1.6; }
+    .paper-ref-card .pr-link { display: inline-block; margin-top: 6px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.2); color: #22d3ee; text-decoration: none; }
+
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>验证试验田</h1>
+  <div class="sub">
+    推荐系统与在线社区：Agent 仿真走向科学的最佳突破口<br>
+    为什么这两个领域能补齐仿真验证的三大缺失——ground truth 数据、快速反馈循环、量化评价指标
+  </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="validation-gap.html">仿真验证鸿沟</a>
+  <a href="open-problems.html">五大未解难题</a>
+  <a href="../papers-reference.html">论文库</a>
+  <a href="../deep-dive/03-policysim.html">PolicySim 解读</a>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#s1">推荐系统</a>
+    <a href="#s2">在线社区</a>
+    <a href="#s3">互补关系</a>
+    <a href="#s4">理想路径</a>
+    <a href="#s5">论文总览</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ═══ 1 推荐系统 ═══ -->
+<div class="section" id="s1">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--green);">1</span>
+    <h2>推荐系统：最接近完美的验证场</h2>
+  </div>
+
+  <h3>为什么数据最丰富</h3>
+
+  <p>推荐系统可能是人类行为数据最密集的领域：</p>
+  <ul>
+    <li><span class="hl">行为粒度极细</span>：每次点击、浏览时长、滑动距离、购买、退货都被记录</li>
+    <li><span class="hl">数据量极大</span>：抖音日活 10 亿+，每人每天产生数百条行为记录</li>
+    <li><span class="hl">时间跨度长</span>：用户行为历史可追溯数年</li>
+    <li><span class="hl">因果数据可得</span>：A/B 测试是推荐系统的日常操作，每天可能同时跑几百个实验</li>
+  </ul>
+
+  <h3>验证闭环怎么做</h3>
+
+  <p>RecAgent（论文库 #77）已经开始了这个方向：</p>
+
+  <div class="flow">
+    Step 1: 用真实用户历史数据初始化 Agent 的记忆和偏好<br>
+    <span class="arrow">↓</span><br>
+    Step 2: 给 Agent 推荐候选商品，记录 Agent 的点击/购买决策<br>
+    <span class="arrow">↓</span><br>
+    Step 3: 与同一用户在真实系统中的行为对比<br>
+    <span class="arrow">↓</span><br>
+    Step 4: 计算行为分布的 KL 散度、点击率预测准确率等
+  </div>
+
+  <div class="callout callout-green">
+    <div class="callout-title" style="color:var(--green);">关键优势</div>
+    <p>Step 3 的 ground truth 是<span class="hl-green">自动产生</span>的——用户每天都在真实系统中产生新行为，不需要额外的人类实验。这是 Smallville 验证中最缺失的环节。</p>
+  </div>
+
+  <h3>具体可验证的指标</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>指标</th><th>含义</th><th>验证方式</th><th>数据来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>CTR 预测</strong></td><td>Agent 预测用户会点击哪些内容</td><td>与真实点击率对比</td><td>推荐系统日志</td></tr>
+        <tr><td><strong>偏好漂移</strong></td><td>Agent 偏好随时间变化的轨迹</td><td>与真实用户的兴趣演化对比</td><td>用户行为时间序列</td></tr>
+        <tr><td><strong>冷启动行为</strong></td><td>新用户的探索模式</td><td>与真实新用户行为对比</td><td>新用户首周行为数据</td></tr>
+        <tr><td><strong>社交影响</strong></td><td>好友推荐对决策的影响</td><td>与社交推荐的真实转化率对比</td><td>社交电商数据</td></tr>
+        <tr><td><strong>疲劳效应</strong></td><td>重复推荐后的点击率衰减</td><td>与真实曝光频次-CTR 曲线对比</td><td>频次控制实验数据</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>每一个指标都有<span class="hl">明确的数值</span>可以量化差异。这是 Smallville "观察到派对涌现"无法比拟的精度。</p>
+
+  <h3>如果在这里成功了意味着什么</h3>
+
+  <p>如果 Agent 能在推荐系统中精确模拟用户行为（比如 CTR 预测误差 < 5%），那就证明了：</p>
+  <ol>
+    <li>LLM Agent <span class="hl-green">可以</span>学习和重现特定领域的人类决策模式</li>
+    <li>记忆/反思/规划架构对行为仿真<span class="hl-green">有实际价值</span>（vs 简单统计模型）</li>
+    <li>仿真结果可以<span class="hl">替代部分 A/B 测试</span>——这有巨大的商业价值（一次 A/B 测试的机会成本可能是百万级）</li>
+  </ol>
+
+  <h3>难点</h3>
+
+  <div class="callout callout-warn">
+    <div class="callout-title" style="color:var(--orange);">仍然存在的挑战</div>
+    <ul>
+      <li><strong>动机不透明</strong>：用户为什么点击某个内容？真实动机比行为本身更难模拟</li>
+      <li><strong>外部因素</strong>：用户在通勤中刷手机 vs 睡前刷手机的行为差异，Agent 很难捕捉</li>
+      <li><strong>群体效应</strong>：热搜、病毒传播等群体行为需要多 Agent 协同，复杂度急剧上升</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══ 2 在线社区 ═══ -->
+<div class="section" id="s2">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--cyan);">2</span>
+    <h2>在线社区：涌现行为的最佳观测窗口</h2>
+  </div>
+
+  <h3>为什么最适合验证涌现</h3>
+
+  <p>Smallville 最吸引人的是"涌现行为"——Agent 自发产生未编程的群体协作。在线社区恰好是现实世界中涌现行为<span class="hl">最密集、最可观测</span>的场所：</p>
+  <ul>
+    <li><strong>信息传播</strong>：一条推文如何从 0 变成 10 万转发？传播路径完全可追踪</li>
+    <li><strong>观点极化</strong>：一个话题下正反方的比例如何随时间变化？有完整的时间序列</li>
+    <li><strong>社区规范涌现</strong>：Reddit 子版块如何自发形成规则？有版规变更历史</li>
+    <li><strong>群体行动</strong>：WallStreetBets 如何协调散户买入 GME？有完整的帖子和交易数据</li>
+  </ul>
+
+  <h3>OASIS 的验证方向</h3>
+
+  <p>OASIS（北京大学）已经在做百万级社交媒体仿真：</p>
+
+  <div class="flow">
+    真实 Twitter/Reddit 数据<br>
+    <span class="arrow">↓</span><br>
+    初始化 Agent（角色、关注关系、历史发帖）<br>
+    <span class="arrow">↓</span><br>
+    让 Agent 自由发帖、评论、转发<br>
+    <span class="arrow">↓</span><br>
+    对比仿真中的信息传播模式 vs 真实传播模式
+  </div>
+
+  <h3>可验证的涌现现象</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>涌现现象</th><th>真实世界数据源</th><th>验证方法</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>信息级联</strong>（cascade）</td><td>Twitter 转发链</td><td>比较传播树的深度/宽度分布</td></tr>
+        <tr><td><strong>回音室形成</strong></td><td>Reddit 用户的子版块迁移</td><td>比较群体极化速度和程度</td></tr>
+        <tr><td><strong>意见领袖涌现</strong></td><td>微博大 V 的成长轨迹</td><td>Agent 中是否自发涌现高影响力节点</td></tr>
+        <tr><td><strong>谣言传播与辟谣</strong></td><td>微信/微博辟谣数据</td><td>比较谣言传播范围和辟谣效果</td></tr>
+        <tr><td><strong>协调行动</strong></td><td>WallStreetBets / 散户运动</td><td>比较从讨论到行动的转化率</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>独特优势：因果干预实验</h3>
+
+  <p>在线社区的仿真有一个推荐系统没有的优势：<span class="hl">可以做在真实世界中不可能做的干预实验</span>。</p>
+
+  <div class="card">
+    <p><strong style="color:var(--cyan);">反事实推理（Counterfactual Reasoning）</strong>：用仿真评估"如果…会怎样？"</p>
+    <ul>
+      <li>"如果 Twitter 禁止转发功能，信息传播会怎样变化？"——不可能让真的 Twitter 关闭转发来测试</li>
+      <li>"如果 Reddit 没有 downvote，社区质量会如何？"——不可能在真实 Reddit 上实验</li>
+      <li>"如果封禁某个意见领袖，极化是加速还是减缓？"——伦理上不可能在真人上做</li>
+    </ul>
+    <p><a href="../deep-dive/03-policysim.html">PolicySim（深度解读 03）</a>走的就是这条路：用仿真做反事实推理，评估政策干预效果。<strong>但前提是——仿真本身得先被验证是可靠的。</strong></p>
+  </div>
+
+  <h3>分级验证策略</h3>
+
+  <p>不需要一步到位证明"Agent 完美模拟了 Twitter"。可以<span class="hl">分级验证</span>：</p>
+
+  <div class="level-grid">
+    <div class="level-item">
+      <span class="level-num" style="background:var(--green);">L1</span>
+      <div class="level-info">
+        <div class="level-name">个体行为统计匹配</div>
+        <div class="level-desc">发帖频率分布、帖子长度分布、活跃时间分布是否一致</div>
+      </div>
+      <span class="level-status" style="background:rgba(52,211,153,0.12);color:var(--green);">有初步工作</span>
+    </div>
+    <div class="level-item">
+      <span class="level-num" style="background:var(--green);">L2</span>
+      <div class="level-info">
+        <div class="level-name">二元交互模式匹配</div>
+        <div class="level-desc">回复率、关注/取关比例、@提及模式是否一致</div>
+      </div>
+      <span class="level-status" style="background:rgba(52,211,153,0.12);color:var(--green);">有初步工作</span>
+    </div>
+    <div class="level-item">
+      <span class="level-num" style="background:var(--yellow);">L3</span>
+      <div class="level-info">
+        <div class="level-name">信息传播动力学匹配</div>
+        <div class="level-desc">级联大小分布（幂律指数）、传播速度曲线是否一致</div>
+      </div>
+      <span class="level-status" style="background:rgba(251,191,36,0.12);color:var(--yellow);">OASIS 开始探索</span>
+    </div>
+    <div class="level-item">
+      <span class="level-num" style="background:var(--orange);">L4</span>
+      <div class="level-info">
+        <div class="level-name">涌现现象定性匹配</div>
+        <div class="level-desc">是否自发出现极化、协调行动、社区分裂等宏观现象</div>
+      </div>
+      <span class="level-status" style="background:rgba(248,113,113,0.12);color:var(--red);">基本空白</span>
+    </div>
+    <div class="level-item">
+      <span class="level-num" style="background:var(--red);">L5</span>
+      <div class="level-info">
+        <div class="level-name">涌现现象定量匹配</div>
+        <div class="level-desc">极化程度、协调行动规模等的数值是否接近真实数据</div>
+      </div>
+      <span class="level-status" style="background:rgba(248,113,113,0.12);color:var(--red);">基本空白</span>
+    </div>
+  </div>
+
+  <h3>难点</h3>
+
+  <div class="callout callout-warn">
+    <div class="callout-title" style="color:var(--orange);">仍然存在的挑战</div>
+    <ul>
+      <li><strong>多模态</strong>：真实社交不只是文字——图片、视频、表情包、梗都影响传播</li>
+      <li><strong>外部事件</strong>：现实中的突发事件（地震、政治事件）会突然改变社区动态，Agent 无法预见</li>
+      <li><strong>机器人账号</strong>：真实社交网络中有大量机器人，它们本身就不是"人类行为"</li>
+      <li><strong>平台算法</strong>：推荐算法本身在塑造用户行为——Agent 仿真需要同时模拟用户和平台</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══ 3 互补关系 ═══ -->
+<div class="section" id="s3">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent);">3</span>
+    <h2>两个领域的互补关系</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>推荐系统</th><th>在线社区</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>验证目标</strong></td><td>个体决策精度</td><td>群体涌现模式</td></tr>
+        <tr><td><strong>数据类型</strong></td><td>结构化行为日志</td><td>非结构化文本 + 网络</td></tr>
+        <tr><td><strong>反馈速度</strong></td><td>小时级（CTR）</td><td>天级（传播）</td></tr>
+        <tr><td><strong>Ground truth</strong></td><td>A/B 测试数据</td><td>历史行为数据</td></tr>
+        <tr><td><strong>与 Smallville 的关系</strong></td><td>验证记忆/检索机制</td><td>验证涌现行为</td></tr>
+        <tr><td><strong>商业价值</strong></td><td>替代 A/B 测试（百万级成本）</td><td>政策预评估（PolicySim 方向）</td></tr>
+        <tr><td><strong>验证层级</strong></td><td>行为层（"像不像"）</td><td>涌现层（"是否自发产生"）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title" style="color:var(--cyan);">互补逻辑</div>
+    <p>推荐系统验证的是 Smallville 架构的<span class="hl-blue">微观基础</span>——个体 Agent 的记忆、检索、决策是否可靠。<br>
+    在线社区验证的是 Smallville 架构的<span class="hl">宏观产出</span>——多 Agent 互动是否能产生真实的涌现行为。<br>
+    两者结合，才能完整回答"Agent 仿真是否可靠"这个问题。</p>
+  </div>
+</div>
+
+<!-- ═══ 4 理想路径 ═══ -->
+<div class="section" id="s4">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--green);">4</span>
+    <h2>理想验证路径</h2>
+  </div>
+
+  <div class="level-grid">
+    <div class="level-item" style="border-left: 3px solid var(--green);">
+      <span class="level-num" style="background:var(--green);">1</span>
+      <div class="level-info">
+        <div class="level-name">推荐系统：个体行为验证</div>
+        <div class="level-desc">在数据最丰富、反馈最快的领域，验证单个 Agent 的记忆/检索/决策机制是否能精确模拟真实用户行为（CTR 误差 < 5%）</div>
+      </div>
+      <span class="level-status" style="background:rgba(52,211,153,0.12);color:var(--green);">RecAgent 已开始</span>
+    </div>
+    <div class="level-item" style="border-left: 3px solid var(--cyan);">
+      <span class="level-num" style="background:var(--cyan);">2</span>
+      <div class="level-info">
+        <div class="level-name">在线社区：群体行为验证</div>
+        <div class="level-desc">在个体验证通过后，扩展到多 Agent 互动，验证信息传播、极化、协调行动等涌现现象的统计分布</div>
+      </div>
+      <span class="level-status" style="background:rgba(34,211,238,0.12);color:var(--cyan);">OASIS 探索中</span>
+    </div>
+    <div class="level-item" style="border-left: 3px solid var(--accent);">
+      <span class="level-num" style="background:var(--accent);">3</span>
+      <div class="level-info">
+        <div class="level-name">因果干预验证</div>
+        <div class="level-desc">在群体验证通过后，做反事实干预实验——仿真预测"如果改变 X，Y 会怎样"，然后在真实系统中验证（需要平台合作）</div>
+      </div>
+      <span class="level-status" style="background:rgba(248,113,113,0.12);color:var(--red);">PolicySim 概念阶段</span>
+    </div>
+    <div class="level-item" style="border-left: 3px solid var(--yellow);">
+      <span class="level-num" style="background:var(--yellow);">4</span>
+      <div class="level-info">
+        <div class="level-name">泛化到复杂社会仿真</div>
+        <div class="level-desc">在窄域充分验证后，逐步扩展到 Smallville 级别的通用社会仿真——此时已有可靠的验证方法论积累</div>
+      </div>
+      <span class="level-status" style="background:rgba(248,113,113,0.12);color:var(--red);">尚未开始</span>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title" style="color:var(--accent);">核心逻辑</div>
+    <p>先在数据丰富的窄域证明可行性，再逐步扩展到更复杂的社会行为。<br>
+    每一步都需要前一步的验证结果作为基础——<span class="hl">不能跳级</span>。<br>
+    Smallville 的问题恰恰是跳过了 Step 1-3，直接做了 Step 4。</p>
+  </div>
+</div>
+
+<!-- ═══ 5 论文总览 ═══ -->
+<div class="section" id="s5">
+  <div class="sec-head">
+    <span class="sec-num" style="background:var(--accent);">5</span>
+    <h2>关联论文</h2>
+  </div>
+
+  <h3>推荐系统方向</h3>
+
+  <div class="paper-ref-card" style="border-left-color:var(--green);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2306.02552" target="_blank">RecAgent: Simulating User Behavior for Recommendation</a></div>
+    <div class="pr-meta">Wang et al. · arXiv 2023</div>
+    <div class="pr-note">用 LLM Agent 模拟推荐系统用户行为，含记忆机制追踪偏好演化。窄域验证的代表性工作。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-scale">论文库 →</a>
+  </div>
+
+  <div class="paper-ref-card" style="border-left-color:var(--green);">
+    <div class="pr-title"><a href="https://github.com/RUC-GSAI/YuLan-Rec" target="_blank">YuLan-Rec: User Simulation with LLM Agents</a></div>
+    <div class="pr-meta">RUC GSAI · GitHub 2023</div>
+    <div class="pr-note">另一个推荐系统用户仿真框架，支持偏好演化研究和推荐算法评估。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-scale">论文库 →</a>
+  </div>
+
+  <h3>在线社区方向</h3>
+
+  <div class="paper-ref-card" style="border-left-color:var(--cyan);">
+    <div class="pr-title"><a href="https://github.com/camel-ai/oasis" target="_blank">OASIS: Open Agent Social Interaction Simulations</a></div>
+    <div class="pr-meta">Peking University · 2024</div>
+    <div class="pr-note">百万级社交媒体仿真，Agent 在模拟的 Twitter/Reddit 上发帖互动，研究信息传播和群体极化。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-scale">论文库 →</a>
+  </div>
+
+  <div class="paper-ref-card" style="border-left-color:var(--cyan);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety: Large-Scale Social Simulation</a></div>
+    <div class="pr-meta">arXiv 2025 · 500 万次交互</div>
+    <div class="pr-note">模拟政治极化、谣言传播、UBI 政策效果。可从真实用户画像初始化。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-scale">论文库 →</a>
+  </div>
+
+  <div class="paper-ref-card" style="border-left-color:var(--cyan);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2504.10157" target="_blank">SocioVerse: 10 Million Real-World Users</a></div>
+    <div class="pr-meta">Fudan University · arXiv 2025</div>
+    <div class="pr-note">目前最大规模验证尝试：1000 万真实用户池做 Population-Scale Calibration。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-scale">论文库 →</a>
+  </div>
+
+  <h3>因果干预方向</h3>
+
+  <div class="paper-ref-card" style="border-left-color:var(--accent);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2603.19649" target="_blank">PolicySim: Proactive Policy Optimization</a></div>
+    <div class="pr-meta">arXiv 2026</div>
+    <div class="pr-note">用仿真替代 A/B 测试评估政策干预，SFT+DPO 微调用户 Agent。反事实推理的代表性工作。</div>
+    <a class="pr-link" href="../deep-dive/03-policysim.html">深度解读 →</a>
+  </div>
+
+  <h3>游戏领域（额外试验田）</h3>
+
+  <div class="paper-ref-card" style="border-left-color:var(--orange);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2506.04699" target="_blank">Empowering Economic Simulation for MMO through GABM</a></div>
+    <div class="pr-meta">KDD 2025</div>
+    <div class="pr-note">LLM Agent 模拟 MMO 玩家经济行为，涌现出角色分工和价格波动。游戏有完整行为日志可做精确验证。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-game">论文库 →</a>
+  </div>
+
+  <div class="paper-ref-card" style="border-left-color:var(--orange);">
+    <div class="pr-title"><a href="https://arxiv.org/abs/2512.02358" target="_blank">Beyond Playtesting: Generative Multi-Agent Simulation for MMO</a></div>
+    <div class="pr-meta">arXiv 2025</div>
+    <div class="pr-note">SFT+RL 在真实玩家数据上训练 Agent，支持因果干预实验优化数值设计。</div>
+    <a class="pr-link" href="../papers-reference.html#cat-game">论文库 →</a>
+  </div>
+</div>
+
+</div><!-- .container -->
+
+<footer>
+  验证试验田 — 推荐系统与在线社区 &mdash; Agent 仿真走向科学的最佳突破口 &mdash; 2026-04
+</footer>
+
+</body>
+</html>
