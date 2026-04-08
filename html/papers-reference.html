@@ -447,7 +447,7 @@
   <h1>Generative Agents 全论文参考手册</h1>
   <p class="sub">从斯坦福小镇出发，覆盖记忆、反思、规划、多智能体、大规模仿真、具身智能、商业落地等 17 个方向的完整论文索引。所有标题可点击跳转原文。</p>
   <div class="stats">
-    <div class="stat"><div class="stat-num">83</div><div class="stat-label">论文 / 资料</div></div>
+    <div class="stat"><div class="stat-num">84</div><div class="stat-label">论文 / 资料</div></div>
     <div class="stat"><div class="stat-num">17</div><div class="stat-label">分类方向</div></div>
     <div class="stat"><div class="stat-num">2022-26</div><div class="stat-label">时间跨度</div></div>
   </div>
@@ -2147,7 +2147,7 @@
     <span class="cat-badge">个人补充</span>
     <h2>跨领域方法论启发</h2>
     <span class="personal-badge">后加 · 待讨论</span>
-    <span class="count">6 篇</span>
+    <span class="count">7 篇</span>
   </div>
 
   <div class="paper" data-search="alcs automatic laplace collapsed sampling bayesian latent variable marginalization cambridge 自动折叠采样 贝叶斯 潜变量 记忆压缩">
@@ -2263,6 +2263,26 @@
     <div class="paper-body">
       <p>将 LLM 的 <span class="hl">decoder-only 范式</span>迁移到时间序列预测。200M 参数 + 1000 亿真实数据点预训练，<span class="hl">zero-shot 性能匹配有监督 SOTA</span>。Patch 机制将连续时间点分组为 token，输出 patch 长于输入 patch 以减少累积误差。与 Agent 的概念桥接：可作为 Agent 的环境预测模块（World Model），在规划阶段 zero-shot 预测不同行动的后果。</p>
       <a class="deep-dive-link" href="deep-dive/05-timesfm.html">深度解读05 · TimesFM →</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="memori persistent memory layer semantic triples conversation summarization locomo faiss hybrid search 持久化记忆 语义三元组 会话摘要">
+    <div class="paper-top">
+      <span class="paper-num">84</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2603.19935" target="_blank">Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2026.03</span> &middot; arXiv &middot; Borro, Macarini, Tindall, Montero, Struck</div>
+        <div class="concepts">
+          <span class="concept concept-key">Persistent Memory Layer</span>
+          <span class="concept concept-key">Semantic Triples</span>
+          <span class="concept concept-normal">FAISS + BM25 Hybrid</span>
+          <span class="concept concept-normal">67% Token Reduction</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将记忆视为<span class="hl">数据结构问题</span>而非上下文窗口问题。Advanced Augmentation Pipeline 将对话并行转为<span class="hl">语义三元组</span>（主-谓-宾）+ 会话摘要，实现低噪声高信号索引。LoCoMo 基准 <span class="hl">81.95%</span>（超 Zep 79.09%、Mem0 62.47%），仅用 1,294 tokens/query（全上下文的 5%），成本降低 <span class="hl">20 倍</span>。LLM 无关设计，无厂商锁定。</p>
+      <a class="deep-dive-link" href="deep-dive/06-memori.html">深度解读06 · Memori →</a>
     </div>
   </div>
 
@@ -4120,11 +4140,22 @@
     <div class="rl-tags"><span class="rl-tag">Decoder-Only</span><span class="rl-tag">Zero-Shot Forecasting</span><span class="rl-tag">100B Time-Points</span><span class="rl-tag">World Model Analogy</span></div>
   </div>
 
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2026.03</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2603.19935" target="_blank">Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Borro, Macarini, Tindall, Montero, Struck · arXiv 2026</div>
+    <div class="rl-abstract">将记忆视为数据结构问题。对话并行转为语义三元组 + 会话摘要，FAISS + BM25 混合检索。LoCoMo 81.95%，仅用 1,294 tokens/query（全上下文的 5%），成本降 20 倍。LLM 无关设计。</div>
+    <div class="rl-tags"><span class="rl-tag">Semantic Triples</span><span class="rl-tag">Persistent Memory</span><span class="rl-tag">FAISS + BM25</span><span class="rl-tag">67% Token Reduction</span></div>
+  </div>
+
 </div><!-- end grid -->
 </div>
 
 <div class="footer">
-  共收录 83 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
+  共收录 84 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
   基于 2026-04 研讨会话的完整记录
 </div>
 

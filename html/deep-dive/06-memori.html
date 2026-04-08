@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读06：Memori — LLM Agent 的持久化记忆层</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Memori — LLM Agent 的持久化记忆层 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：将记忆视为数据结构问题而非上下文窗口问题 —— 语义三元组 + 混合检索实现高效持久记忆</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2603.19935" target="_blank">arXiv 2603.19935</a> &middot; Borro, Macarini, Tindall, Montero, Struck &middot; 2026</div>
+    <div class="paper-ref">CC BY 4.0</div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 核心贡献</a>
+    <a href="#sec2">2. 架构设计</a>
+    <a href="#sec3">3. 增强管线</a>
+    <a href="#sec4">4. 检索系统</a>
+    <a href="#sec5">5. 实验结果</a>
+    <a href="#sec6">6. 体系关联</a>
+    <a href="#sec7">7. 关键启示</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库 · #84</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>核心贡献：记忆是数据结构问题</h2>
+    </div>
+
+    <p>Memori 论文的核心洞见非常直接：<span class="hl">有效的记忆取决于结构化表示，而非更大的上下文窗口</span>。当整个行业都在追逐百万 token 上下文窗口的时候，Borro 等人提出了一个反直觉的立场 —— 将记忆视为一个<strong>数据结构问题</strong>来解决。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心论点</div>
+      Memori 是一个 LLM 无关的持久化记忆层，它不依赖特定模型的上下文长度或记忆机制，而是通过语义三元组提取和摘要生成来构建结构化记忆表示，实现跨会话、跨模型的记忆持久化。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">81.95%</div>
+        <div class="stat-label">LoCoMo 总体准确率</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">67%</div>
+        <div class="stat-label">Token 节省率（vs 竞品）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">20x</div>
+        <div class="stat-label">成本节省（vs 全上下文）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">1,294</div>
+        <div class="stat-label">每次查询平均 Token 数</div>
+      </div>
+    </div>
+
+    <p>这组数据说明了一个关键事实：在 LoCoMo 长对话记忆基准测试上，Memori 以仅 1,294 token/查询的代价达到了 81.95% 的准确率，而全上下文方案虽然准确率稍高（87.52%），却需要 26,031 token/查询 —— 成本相差 20 倍。对于需要大规模部署的 Agent 系统来说，这种差距意味着结构化记忆方案在实际生产中的可行性远超暴力全上下文方案。</p>
+
+    <div class="sv-link">
+      斯坦福小镇的 Memory Stream 是最早的 Agent 记忆系统之一。它采用平坦的时序日志 + 三维评分（新近度、重要性、相关性）进行检索。Memori 的贡献在于将这一思路推进到了结构化表示层面：不再依赖原始文本的相似度匹配，而是先将对话提炼为语义三元组，再在三元组上进行检索。这代表了从「记录一切」到「结构化理解」的演进。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>架构设计：解耦记忆层</h2>
+    </div>
+
+    <p>Memori 的架构设计遵循一个清晰的原则：<span class="hl">将记忆管理从应用逻辑和 LLM 调用中完全解耦</span>。它作为一个中间层，位于应用代码与 LLM API 之间，拦截请求并自动管理记忆操作。</p>
+
+    <h3>三层架构</h3>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">应用层</div>
+        <div class="tool-desc">开发者的应用逻辑代码。通过轻量级 SDK 与 Memori 交互，无需关心底层记忆管理细节。SDK 包装现有 LLM 客户端，实现零迁移成本。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">Memori 记忆层</div>
+        <div class="tool-desc">核心中间件。拦截 LLM 请求，执行记忆增强（写入时提取三元组和摘要，读取时检索相关记忆）。对上下两层透明。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">LLM 服务层</div>
+        <div class="tool-desc">任意 LLM 提供商（OpenAI、Anthropic、Google 等）。Memori 不绑定特定模型，实现真正的 LLM 无关性，避免供应商锁定。</div>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">设计亮点：轻量 SDK 包装</div>
+      Memori 的集成方式非常优雅 —— 它提供的 SDK 直接包装开发者已有的 LLM 客户端。这意味着迁移成本几乎为零：开发者不需要重构代码，只需将 LLM 客户端实例传入 Memori SDK 即可获得持久化记忆能力。这种设计降低了采纳门槛，也确保了在不同 LLM 之间切换时记忆数据不会丢失。
+    </div>
+
+    <h3>工作流程</h3>
+    <ol>
+      <li><strong>请求拦截</strong>：用户消息到达时，Memori SDK 在转发给 LLM 之前拦截请求</li>
+      <li><strong>记忆检索</strong>：基于当前查询从持久化存储中检索相关记忆片段</li>
+      <li><strong>上下文增强</strong>：将检索到的记忆注入到 LLM 提示中，丰富上下文</li>
+      <li><strong>响应处理</strong>：LLM 生成响应后，Memori 从对话中提取新的记忆并持久化</li>
+      <li><strong>异步更新</strong>：三元组提取和摘要生成以异步方式进行，不阻塞主对话流</li>
+    </ol>
+
+    <p>这种「拦截-增强-提取」的模式使得 Memori 对上层应用和下层 LLM 都是透明的，实现了真正的关注点分离。</p>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>Advanced Augmentation Pipeline：增强管线</h2>
+    </div>
+
+    <p>Memori 的记忆增强管线由两个<strong>并行处理流程</strong>组成，这是其架构中最核心的创新点。每次对话结束后，两个流程同时运行，分别从不同维度提炼记忆。</p>
+
+    <h3>流程一：语义三元组提取</h3>
+
+    <div class="card">
+      <h4>原始对话 &rarr; 主语-谓语-宾语 三元组</h4>
+      <p>将自由形式的对话内容转化为结构化的三元组表示。例如：</p>
+      <ul>
+        <li>对话：「我昨天搬到了上海，在浦东新区租了一套公寓」</li>
+        <li>三元组 1：<span class="hl">(用户, 搬到, 上海)</span></li>
+        <li>三元组 2：<span class="hl">(用户, 租住, 浦东新区公寓)</span></li>
+      </ul>
+      <p>每个三元组都链接回其源对话，确保可追溯性。这种结构提供了<strong>低噪声、高信号</strong>的索引能力，同时实现了显著的信息压缩。</p>
+    </div>
+
+    <h3>流程二：对话摘要生成</h3>
+
+    <div class="card">
+      <h4>并发摘要 &rarr; 意图 + 时序 + 隐含上下文</h4>
+      <p>与三元组提取并行运行的摘要生成流程，捕获三种关键维度：</p>
+      <ul>
+        <li><strong>用户意图</strong>：对话背后的目标和动机</li>
+        <li><strong>时序进展</strong>：对话主题的演变轨迹</li>
+        <li><strong>隐含上下文</strong>：未明确表达但可推断的背景信息</li>
+      </ul>
+      <p>三元组通过链接关系关联到其来源摘要，<span class="hl">保留了叙事上下文</span>。这意味着在检索时不仅能找到事实性三元组，还能恢复其所处的对话语境。</p>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">双流程协同的优势</div>
+      三元组提供精确的事实索引（「谁做了什么」），摘要提供语境理解（「为什么这样做」）。两者结合实现了从精确查找到语义理解的完整覆盖。这种设计避免了纯三元组系统缺乏上下文、纯摘要系统缺乏精确性的问题。
+    </div>
+
+    <div class="formula">
+      <span class="label">增强管线数据流</span>
+      对话 &rarr; [三元组提取 || 摘要生成] &rarr; 三元组&harr;摘要链接 &rarr; FAISS 向量化索引
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">4</div>
+      <h2>检索系统：混合搜索策略</h2>
+    </div>
+
+    <p>Memori 的检索系统采用混合搜索策略，融合语义相似度和关键词匹配，确保在不同类型的查询上都能获得高质量的召回。</p>
+
+    <h3>技术栈</h3>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">Gemma-300 嵌入模型</div>
+        <div class="tool-desc">用于将三元组和摘要文本转化为高维向量表示。Gemma-300 提供了良好的语义理解能力，能够捕获文本间的深层语义关联。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">FAISS 本地索引</div>
+        <div class="tool-desc">Facebook AI Similarity Search，本地部署的高效向量相似度搜索引擎。支持快速的余弦相似度计算，无需依赖外部向量数据库服务。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">BM25 关键词匹配</div>
+        <div class="tool-desc">经典的基于词频的检索算法，擅长处理精确的实体名称和专有名词匹配，弥补向量检索在精确匹配上的不足。</div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">GPT-4.1-mini 生成</div>
+        <div class="tool-desc">检索到相关记忆后，使用 GPT-4.1-mini 作为答案生成模型，将记忆片段整合为连贯的回答。选择 mini 版本以控制成本。</div>
+      </div>
+    </div>
+
+    <h3>混合检索流程</h3>
+
+    <div class="formula">
+      <span class="label">检索评分公式</span>
+      Score(q, d) = &alpha; &middot; CosineSim(Embed(q), Embed(d)) + (1 - &alpha;) &middot; BM25(q, d)
+    </div>
+
+    <p>混合检索同时利用了两种互补的信号：</p>
+    <ul>
+      <li><strong>余弦相似度</strong>：捕获语义层面的相关性（「搬家」与「迁居」的关联）</li>
+      <li><strong>BM25 关键词匹配</strong>：捕获词汇层面的精确匹配（人名、地名、日期等）</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">为什么需要混合检索？</div>
+      纯向量检索在处理专有名词、数字、日期等精确信息时容易出错 —— 向量空间中「2024年3月」和「2024年9月」的距离可能很近，但语义完全不同。BM25 的精确匹配能力恰好弥补了这一缺陷。Memori 的实验数据表明，混合检索在时序类问题上的提升尤为显著。
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>实验结果：LoCoMo 基准测试</h2>
+    </div>
+
+    <p>Memori 在 LoCoMo（Long Conversation Memory）基准测试上进行了全面评估。该基准涵盖四类问题，测试长对话中的记忆检索与推理能力。</p>
+
+    <h3>分类别表现</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>问题类别</th>
+            <th>题数</th>
+            <th>准确率</th>
+            <th>难度说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>单跳 (Single-Hop)</strong></td>
+            <td>830</td>
+            <td style="color:var(--green);">87.87%</td>
+            <td>直接事实查询，只需定位一条记忆即可回答</td>
+          </tr>
+          <tr>
+            <td><strong>时序 (Temporal)</strong></td>
+            <td>321</td>
+            <td style="color:var(--cyan);">80.37%</td>
+            <td>涉及时间线推理，需要理解事件发生的先后顺序</td>
+          </tr>
+          <tr>
+            <td><strong>多跳 (Multi-Hop)</strong></td>
+            <td>282</td>
+            <td style="color:var(--yellow);">72.70%</td>
+            <td>需要整合多条记忆片段进行推理的复合问题</td>
+          </tr>
+          <tr>
+            <td><strong>开放域 (Open-Domain)</strong></td>
+            <td>96</td>
+            <td style="color:var(--orange);">63.54%</td>
+            <td>开放式回忆任务，需要综合性的记忆理解</td>
+          </tr>
+          <tr>
+            <td><strong>总体 (Overall)</strong></td>
+            <td>1,529</td>
+            <td style="color:var(--green); font-weight:700;">81.95%</td>
+            <td>加权平均</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>系统间对比</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>系统</th>
+            <th>准确率</th>
+            <th>Token/查询</th>
+            <th>成本/查询</th>
+            <th>相对成本</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:rgba(34,211,238,0.05);">
+            <td><strong style="color:var(--cyan);">Memori</strong></td>
+            <td style="color:var(--green);">81.95%</td>
+            <td>1,294</td>
+            <td>$0.001035</td>
+            <td style="color:var(--green);">1x（基准）</td>
+          </tr>
+          <tr>
+            <td><strong>Zep</strong></td>
+            <td>79.09%</td>
+            <td>3,911</td>
+            <td>$0.003129</td>
+            <td>3.0x</td>
+          </tr>
+          <tr>
+            <td><strong>Mem0</strong></td>
+            <td>62.47%</td>
+            <td>1,764</td>
+            <td>$0.001411</td>
+            <td>1.4x</td>
+          </tr>
+          <tr>
+            <td><strong>全上下文 (Full-Context)</strong></td>
+            <td style="color:var(--yellow);">87.52%</td>
+            <td>26,031</td>
+            <td>$0.020825</td>
+            <td style="color:var(--red);">20.1x</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">数据解读</div>
+      <ul>
+        <li><strong>Memori vs 全上下文</strong>：准确率仅低 5.57 个百分点，但成本降低了 20 倍。在生产环境中，这意味着同样的预算可以服务 20 倍的用户。</li>
+        <li><strong>Memori vs Zep</strong>：准确率高出近 3 个百分点，token 消耗却少了 67%。结构化记忆在效率和质量上同时占优。</li>
+        <li><strong>Memori vs Mem0</strong>：准确率领先近 20 个百分点，证明了语义三元组 + 摘要方案相比简单记忆提取的巨大优势。</li>
+      </ul>
+    </div>
+
+    <div class="sv-link">
+      斯坦福小镇的 Memory Stream 没有进行过 LoCoMo 式的定量评估 —— 2023 年该基准尚未存在。但从架构角度看，Smallville 的平坦日志 + 三维评分方案更接近 Full-Context 与 Memori 之间的某个中间点：它有选择性检索（不是全上下文），但缺少结构化表示（不如三元组精确）。Memori 的结果暗示，如果为 Smallville 加入三元组提取层，其记忆检索质量可能会有显著提升。
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与 Generative Agents / MemPalace 的体系关联</h2>
+    </div>
+
+    <p>Memori 并非孤立存在 —— 它是 Agent 记忆系统演进谱系中的重要一环。以下逐一对比它与其他关键系统的异同。</p>
+
+    <h3>vs 斯坦福小镇 Memory Stream</h3>
+    <div class="card">
+      <p><strong>Smallville（2023）</strong>使用平坦的时序日志存储所有经历，通过<span class="hl">新近度 + 重要性 + 相关性</span>三维评分检索记忆。这是一种非结构化方案 —— 记忆以原始自然语言形式存储。</p>
+      <p><strong>Memori（2026）</strong>则将对话转化为<span class="hl">语义三元组 + 摘要</span>的结构化表示。这不是对 Smallville 的替代，而是对其记忆表示层的升级：从「存储原文，按相关性检索」到「提炼结构，按语义检索」。</p>
+    </div>
+
+    <h3>vs MemoryOS</h3>
+    <div class="card">
+      <p><strong>MemoryOS</strong> 模仿操作系统的内存管理模型，将记忆组织为类似 OS 的层级结构（短期/长期/工作记忆等）。Memori 则借鉴知识图谱的思路，使用主语-谓语-宾语三元组作为基本记忆单元。</p>
+      <p>两者的共同点在于都认同<strong>层级化/结构化记忆</strong>优于平坦存储，但具体的组织范式不同：MemoryOS 是「内存管理」隐喻，Memori 是「知识图谱」隐喻。</p>
+    </div>
+
+    <h3>vs A-MEM</h3>
+    <div class="card">
+      <p><strong>A-MEM</strong> 采用 Zettelkasten（卡片盒笔记法）风格的链接结构，记忆之间通过关联链接形成网状结构。Memori 则使用更规范的三元组格式（主-谓-宾），结构更刚性但也更易于机器处理。</p>
+      <p>两种方案代表了不同的结构化范式：A-MEM 更灵活（像人类笔记），Memori 更规范（像数据库表）。</p>
+    </div>
+
+    <h3>vs MemPalace</h3>
+    <div class="card">
+      <p><strong>MemPalace</strong> 是工程导向的方案，使用 ChromaDB + SQLite + AAAK 压缩，重点在于实际系统的可部署性。Memori 更偏学术研究，使用 FAISS + 语义三元组，重点在于记忆表示方法的理论贡献。</p>
+      <p>两者的目标相同 —— 为 LLM Agent 提供高效的持久记忆 —— 但出发点不同：MemPalace 问「如何工程化实现」，Memori 问「什么记忆表示最有效」。</p>
+    </div>
+
+    <h3>vs Claude Code Memory</h3>
+    <div class="card">
+      <p><strong>Claude Code</strong> 采用 MEMORY.md + 主题文件 + 验证机制的方案，记忆以人类可读的 Markdown 形式存储，遵循「信任但验证」的原则。Memori 则使用向量数据库 + 三元组，记忆以机器优化的格式存储，遵循「结构化后检索」的原则。</p>
+      <p>这反映了两种截然不同的记忆哲学：Claude Code 优先保证人类可审计性，Memori 优先保证机器检索效率。</p>
+    </div>
+
+    <h3>多 Agent 场景下的成本意义</h3>
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">规模化记忆的可行性</div>
+      以 Memori 的 $0.001/查询 成本计算，即使在 OpenCity 级别的 10,000 Agent 大规模仿真中，每轮记忆查询的总成本也仅约 $10。相比全上下文方案的 $200/轮，结构化记忆使得大规模多 Agent 仿真在经济上变得可行。这不仅是性能优化，更是从「技术可行」到「经济可行」的跨越。
+    </div>
+  </div>
+
+  <!-- ===== Section 7 ===== -->
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">7</div>
+      <h2>关键启示：给 Agent 建设者的建议</h2>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心结论</div>
+      「有效的记忆取决于结构化表示，而非更大的上下文窗口。」—— 这是 Memori 论文最重要的一句话，也是对整个 Agent 记忆领域的方向性指引。
+    </div>
+
+    <h3>启示一：语义三元组是通用记忆格式</h3>
+    <p>主语-谓语-宾语三元组是一种极其简洁且通用的信息表示方式。它不依赖特定领域知识，可以表达几乎任何事实性信息。对于 Agent 开发者而言，三元组提取应该成为记忆管线的标准组件。</p>
+
+    <h3>启示二：混合检索优于纯向量搜索</h3>
+    <p>Memori 的实验证实了向量搜索 + BM25 关键词匹配的混合策略优于单一检索方案。纯向量搜索在处理精确实体（人名、地名、日期）时存在固有的模糊性问题，BM25 的精确匹配能力是必要的补充。</p>
+
+    <h3>启示三：投资记忆结构化，而非上下文扩展</h3>
+    <p>行业趋势是不断扩大上下文窗口（从 4K 到 128K 到 1M+），但 Memori 的数据表明，在记忆任务上，<span class="hl">结构化 1,294 token 的效果可以逼近 26,031 token 的全上下文</span>。对于 Agent 建设者，这意味着与其追逐更大的上下文窗口，不如投资更好的记忆结构化管线。</p>
+
+    <h3>启示四：解耦设计降低系统风险</h3>
+    <p>Memori 的 LLM 无关设计确保了记忆数据不会因 LLM 供应商切换而丢失。在 AI 领域快速变化的当下，这种解耦设计是一种重要的风险管理策略。Agent 系统的记忆层应该独立于任何特定模型。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">展望：记忆系统的未来方向</div>
+      <p>Memori 指出了几个值得继续探索的方向：</p>
+      <ul>
+        <li><strong>三元组质量</strong>：自动提取的三元组仍存在噪声，如何提升提取精度是关键挑战</li>
+        <li><strong>多模态记忆</strong>：当前仅处理文本对话，未来需要支持图像、音频等多模态记忆</li>
+        <li><strong>记忆遗忘</strong>：人类记忆有选择性遗忘机制，Agent 记忆系统也需要类似的机制来管理信息过载</li>
+        <li><strong>跨 Agent 记忆共享</strong>：多个 Agent 如何安全高效地共享记忆，是大规模仿真的关键问题</li>
+      </ul>
+    </div>
+
+    <div class="sv-link">
+      从斯坦福小镇到 Memori，Agent 记忆系统的演进路径清晰可见：平坦日志 &rarr; 分层结构 &rarr; 结构化表示。每一步都在回答同一个问题：如何让 Agent 在有限的计算资源下记住更多、理解更深。Memori 的贡献在于用实验数据证明了结构化表示这条路径的有效性，为未来的 Agent 记忆系统设计提供了重要的参考基准。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读06 &middot; Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents &middot; Borro et al. 2026<br>
+  arXiv:2603.19935 &middot; CC BY 4.0 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>
