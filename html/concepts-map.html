@@ -407,6 +407,7 @@
   <span class="lg-act">Action 行动</span>
   <span class="lg-multi">Multi-Agent 协调</span>
   <span class="lg-ext">外围方法论启发</span>
+  <span style="background:rgba(244,114,182,.15);color:#f472b6;border:1px dashed #f472b6;">个人补充（后加）</span>
 </div>
 
 <div class="mermaid-wrap">
@@ -516,9 +517,20 @@ graph TB
     X2["TimesFM\nGoogle Research\nICML 2024\n时间序列基础模型"]
   end
 
+  %% ── 个人补充（后加）──
+  subgraph PERSONAL ["个人补充 — 后加"]
+    direction TB
+    AB1["Abliteration\n拒绝向量消融\nICLR 2025\n单向量移除安全拒绝"]
+    AB2["Abliteration Defense\n扩展拒绝微调\narXiv 2025\n分散安全信号防御消融"]
+  end
+
   style EXT fill:#0f1117,stroke:#475569,stroke-dasharray:6,color:#94a3b8
   style X1 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
   style X2 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
+
+  style PERSONAL fill:#0f1117,stroke:#f472b6,stroke-dasharray:6,color:#f9a8d4
+  style AB1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style AB2 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
 
   %% ── Cross-links ──
   R3 -.->|辩论| MUL
@@ -528,10 +540,15 @@ graph TB
   P1 -.->|工具调用| ACT
   MA3 -.->|异构辩论| REF
 
-  %% ── 外围启发连线（双点虚线 = 概念类比，非引用） ──
+  %% ── 外围启发连线 ──
   X1 -.->|"降维压缩类比\n潜变量折叠 ≈ 记忆压缩"| MEM
   X1 -.->|"不确定性量化\n记忆置信度建模"| REF
   X2 -.->|"zero-shot预测\nAgent World Model"| PLN
+
+  %% ── 个人补充连线（后加）──
+  AB1 -.->|"安全对齐攻击\nRLHF 训练的拒绝\n可被单向量移除"| REF
+  AB1 -.->|"Agent 安全隐患\n底层模型被消融\n上层Agent失去安全边界"| ACT
+  AB2 -.->|"防御启示\n安全信号需分散\n不能集中在单一方向"| REF
 </pre>
 </div>
 
@@ -677,6 +694,21 @@ graph TB
     <span class="title"><a href="https://arxiv.org/abs/2310.10688" target="_blank">TimesFM — 时间序列基础模型 (Google, ICML 2024)</a></span>
     <div class="keywords"><span>Decoder-only</span><span>1000亿数据点</span><span>zero-shot预测</span><span>Patch机制</span><span>BigQuery集成</span></div>
     <div class="note">将 LLM 的 decoder-only 范式迁移到时间序列预测，200M 参数 + 1000 亿真实数据点预训练实现 zero-shot 泛化。与 Agent 的概念桥接：可作为 Agent 的环境预测模块（World Model），在规划阶段 zero-shot 预测不同行动的后果。</div>
+  </div>
+
+  <!-- 个人补充（后加）-->
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2410.03415" target="_blank">Abliteration — 单向量消融术 (ICLR 2025)</a></span>
+    <div class="keywords"><span>Refusal Direction</span><span>Vector Ablation</span><span>Orthogonalization</span><span>False Refusal</span><span>Safety Alignment</span></div>
+    <div class="note">发现 LLM 拒绝行为由残差流中单一方向介导，可通过正交化移除。区分真拒绝/误拒绝向量，只消融误拒绝。OR-Bench-Hard 合规率 14.8%→45.3%，有害合规仅 1.6%→3.1%，MMLU 不变。对 Agent 安全的启示：底层模型的安全对齐可被轻易绕过，Agent 系统需要额外的安全层。</div>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2505.19056" target="_blank">Abliteration Defense — 扩展拒绝微调 (arXiv 2025)</a></span>
+    <div class="keywords"><span>Extended-Refusal</span><span>Distributed Safety Signal</span><span>Fine-tuning Defense</span></div>
+    <div class="note">针对消融攻击的防御：训练数据中拒绝前先详细解释原因，将安全信号从单一方向分散到多个 token 位置。消融攻击下拒绝率仅降 10%（vs 基线 70-80%）。防御启示：安全信号需要冗余分布，不能集中在单一表示。</div>
   </div>
 
 </div>

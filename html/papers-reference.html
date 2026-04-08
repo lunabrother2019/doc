@@ -445,7 +445,7 @@
   <h1>Generative Agents 全论文参考手册</h1>
   <p class="sub">从斯坦福小镇出发，覆盖记忆、反思、规划、多智能体、大规模仿真、具身智能、商业落地等 17 个方向的完整论文索引。所有标题可点击跳转原文。</p>
   <div class="stats">
-    <div class="stat"><div class="stat-num">77</div><div class="stat-label">论文 / 资料</div></div>
+    <div class="stat"><div class="stat-num">82</div><div class="stat-label">论文 / 资料</div></div>
     <div class="stat"><div class="stat-num">17</div><div class="stat-label">分类方向</div></div>
     <div class="stat"><div class="stat-num">2022-26</div><div class="stat-label">时间跨度</div></div>
   </div>
@@ -2141,7 +2141,7 @@
     <span class="cat-badge">个人补充</span>
     <h2>跨领域方法论启发</h2>
     <span class="personal-badge">后加 · 待讨论</span>
-    <span class="count">1 篇</span>
+    <span class="count">5 篇</span>
   </div>
 
   <div class="paper" data-search="alcs automatic laplace collapsed sampling bayesian latent variable marginalization cambridge 自动折叠采样 贝叶斯 潜变量 记忆压缩">
@@ -2164,6 +2164,81 @@
       <p><strong>与 Agent 记忆的概念桥接：</strong>记忆压缩 ≈ 潜变量折叠（将冗余记忆折叠为摘要）；未来可为记忆加<span class="hl">不确定性量化</span>（置信度建模）。目前无直接引用关系，属于跨领域方法论启发。</p>
     </div>
   </div>
+
+  <div class="paper" data-search="refusal single direction abliteration mechanistic interpretability residual stream safety 拒绝向量 消融">
+    <div class="paper-top">
+      <span class="paper-num">79</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://www.lesswrong.com/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction" target="_blank">Refusal in LLMs is Mediated by a Single Direction <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; MATS / LessWrong</div>
+        <div class="concepts">
+          <span class="concept concept-key">Refusal Direction</span>
+          <span class="concept concept-key">Mechanistic Interpretability</span>
+          <span class="concept concept-normal">Residual Stream</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>发现 LLM 的拒绝行为由残差流中单一方向介导。通过对比有害/无害 prompt 的激活差异，可提取"拒绝向量"并通过正交化移除，从而解除模型安全限制。Abliteration 技术的理论基础。</p>
+    </div>
+  </div>
+
+  <div class="paper" data-search="surgical cheap flexible false refusal single vector ablation abliteration orthogonalization iclr 2025 误拒绝 向量消融">
+    <div class="paper-top">
+      <span class="paper-num">80</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2410.03415" target="_blank">Surgical, Cheap, and Flexible: Mitigating False Refusal in Language Models via Single Vector Ablation <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; ICLR</div>
+        <div class="concepts">
+          <span class="concept concept-key">False Refusal Vector</span>
+          <span class="concept concept-key">Orthogonalization</span>
+          <span class="concept concept-normal">Training-Free</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>区分"真拒绝向量"和"误拒绝向量"，通过正交化只移除误拒绝同时保留真安全。Llama2-7B 上 OR-Bench-Hard 合规率从 14.8% 升至 45.3%，有害合规仅从 1.6% 升至 3.1%，MMLU 不变。无需训练，模型无关。</p>
+    </div>
+  </div>
+
+  <div class="paper" data-search="comparative abliteration heretic deccp erisforge failspy cross-architecture 7b 14b gsm8k 工具对比 跨架构">
+    <div class="paper-top">
+      <span class="paper-num">81</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2512.13655" target="_blank">Comparative Analysis of LLM Abliteration Methods: A Cross-Architecture Evaluation <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; arXiv</div>
+        <div class="concepts">
+          <span class="concept concept-key">Heretic</span>
+          <span class="concept concept-key">DECCP</span>
+          <span class="concept concept-normal">ErisForge</span>
+          <span class="concept concept-normal">FailSpy</span>
+          <span class="concept concept-normal">Cross-Architecture</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>系统评估 4 种消融工具（Heretic/DECCP/ErisForge/FailSpy）在 16 个 7B-14B 模型上的表现。发现数学推理能力对消融最敏感（GSM8K 变化 +1.51pp 到 -18.81pp）。</p>
+    </div>
+  </div>
+
+  <div class="paper" data-search="defense abliteration extended refusal fine-tuning distributed safety signal llama qwen 防御 扩展拒绝">
+    <div class="paper-top">
+      <span class="paper-num">82</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2505.19056" target="_blank">An Embarrassingly Simple Defense Against LLM Abliteration Attacks <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; arXiv</div>
+        <div class="concepts">
+          <span class="concept concept-key">Extended-Refusal Fine-tuning</span>
+          <span class="concept concept-key">Distributed Safety Signal</span>
+          <span class="concept concept-normal">Defense</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>提出"扩展拒绝微调"防御：训练数据中拒绝回答前先详细解释原因，将安全信号分散到多个 token 位置。消融攻击下拒绝率仅降 10%（vs 基线降 70-80%）。</p>
+    </div>
+  </div>
+
 </section>
 
 </div><!-- .container -->
@@ -3963,11 +4038,55 @@
     <div class="rl-tags"><span class="rl-tag">Laplace Approximation</span><span class="rl-tag">Latent Variable</span><span class="rl-tag">Bayesian Inference</span><span class="rl-tag">Memory Compression Analogy</span></div>
   </div>
 
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">MATS / LessWrong 2024</span>
+    </div>
+    <a class="rl-title" href="https://www.lesswrong.com/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction" target="_blank">Refusal in LLMs is Mediated by a Single Direction</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">MATS / LessWrong · 2024</div>
+    <div class="rl-abstract">发现 LLM 的拒绝行为由残差流中单一方向介导。通过对比有害/无害 prompt 的激活差异，可提取"拒绝向量"并通过正交化移除，从而解除模型安全限制。Abliteration 技术的理论基础。</div>
+    <div class="rl-tags"><span class="rl-tag">Refusal Direction</span><span class="rl-tag">Mechanistic Interpretability</span><span class="rl-tag">Residual Stream</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">ICLR 2025</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2410.03415" target="_blank">Surgical, Cheap, and Flexible: Mitigating False Refusal in Language Models via Single Vector Ablation</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">ICLR · 2025</div>
+    <div class="rl-abstract">区分"真拒绝向量"和"误拒绝向量"，通过正交化只移除误拒绝同时保留真安全。Llama2-7B 上 OR-Bench-Hard 合规率从 14.8% 升至 45.3%，有害合规仅从 1.6% 升至 3.1%，MMLU 不变。无需训练，模型无关。</div>
+    <div class="rl-tags"><span class="rl-tag">False Refusal Vector</span><span class="rl-tag">Orthogonalization</span><span class="rl-tag">Training-Free</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2025</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2512.13655" target="_blank">Comparative Analysis of LLM Abliteration Methods: A Cross-Architecture Evaluation</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">arXiv · 2025</div>
+    <div class="rl-abstract">系统评估 4 种消融工具（Heretic/DECCP/ErisForge/FailSpy）在 16 个 7B-14B 模型上的表现。发现数学推理能力对消融最敏感（GSM8K 变化 +1.51pp 到 -18.81pp）。</div>
+    <div class="rl-tags"><span class="rl-tag">Heretic</span><span class="rl-tag">DECCP</span><span class="rl-tag">ErisForge</span><span class="rl-tag">FailSpy</span><span class="rl-tag">Cross-Architecture</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2025</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2505.19056" target="_blank">An Embarrassingly Simple Defense Against LLM Abliteration Attacks</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">arXiv · 2025</div>
+    <div class="rl-abstract">提出"扩展拒绝微调"防御：训练数据中拒绝回答前先详细解释原因，将安全信号分散到多个 token 位置。消融攻击下拒绝率仅降 10%（vs 基线降 70-80%）。</div>
+    <div class="rl-tags"><span class="rl-tag">Extended-Refusal Fine-tuning</span><span class="rl-tag">Distributed Safety Signal</span><span class="rl-tag">Defense</span></div>
+  </div>
+
 </div><!-- end grid -->
 </div>
 
 <div class="footer">
-  共收录 77 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
+  共收录 82 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
   基于 2026-04 研讨会话的完整记录
 </div>
 

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读10：Abliteration — LLM 安全拒绝机制的单向量消融术</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Abliteration — LLM 安全拒绝机制的单向量消融术 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：机械可解释性揭示 LLM 安全对齐的脆弱性 —— 从单一拒绝方向的发现到攻防博弈的前沿</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://www.lesswrong.com/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction" target="_blank">Arditi et al. (MATS 2024)</a> &middot; LessWrong</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2410.03415" target="_blank">arXiv 2410.03415</a> &middot; Wang et al. &middot; ICLR 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2512.13655" target="_blank">arXiv 2512.13655</a> &middot; Young 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2505.19056" target="_blank">arXiv 2505.19056</a> &middot; Shairah et al. 2025</div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 核心发现</a>
+    <a href="#sec2">2. 技术原理</a>
+    <a href="#sec3">3. 实验数据</a>
+    <a href="#sec4">4. 工具生态</a>
+    <a href="#sec5">5. 防御方案</a>
+    <a href="#sec6">6. Agent 关联</a>
+    <a href="#sec7">7. 关键启示</a>
+  </div>
+</nav>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">1</div>
+      <h2>核心发现：拒绝行为由单一方向介导</h2>
+    </div>
+
+    <p>2024 年初，MATS（ML Alignment Theory Scholars）冬季项目中，Andy Arditi 和 Oscar Obeso 等人发表了一项令安全研究社区震动的发现：<span class="hl">LLM 的安全拒绝行为在残差流（residual stream）中由单一方向介导</span>。这意味着，经过 RLHF/DPO 精心训练出的拒绝能力，在模型内部的几何表示上竟然如此集中。</p>
+
+    <h3>发现过程</h3>
+    <p>研究者使用了<strong>机械可解释性（mechanistic interpretability）</strong>的方法：</p>
+    <ol>
+      <li>收集一组<strong>有害提示</strong>（harmful prompts）和一组<strong>无害提示</strong>（harmless prompts）</li>
+      <li>将两组提示分别输入模型，提取每一层残差流中最后一个 token 位置的激活值</li>
+      <li>计算两组激活的<strong>均值差</strong>，得到一个"差异方向"</li>
+      <li>发现这个方向在中间层最为显著——它就是<strong>拒绝方向（refusal direction）</strong></li>
+    </ol>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心洞察</div>
+      当模型处理有害请求时，残差流中会出现一个沿特定方向的较大投影分量。模型的后续层"读取"这个分量后，会生成拒绝性回复（如"I cannot help with that"）。移除这个分量后，模型会正常回答，仿佛从未接受过安全训练。
+    </div>
+
+    <h3>为什么是"单一方向"？</h3>
+    <p>这与 RLHF 的训练机制有关。RLHF 在模型已经具备通用能力之后，通过相对少量的偏好数据来"微调"模型行为。这种后期训练倾向于在残差流中添加一个<strong>线性方向</strong>作为"开关"，而非深度改变模型的内部表示结构。类比来说：</p>
+    <ul>
+      <li>预训练阶段 = 建造整栋大楼的结构</li>
+      <li>RLHF/安全对齐 = 在大门口加了一把锁</li>
+      <li>Abliteration = 把锁的销子拔掉</li>
+    </ul>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--red);">1</div>
+        <div class="stat-label">介导拒绝的方向数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">~15</div>
+        <div class="stat-label">效果最显著的层范围（中间层）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">0</div>
+        <div class="stat-label">需要的梯度计算次数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">&lt;1min</div>
+        <div class="stat-label">消融所需时间</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>技术原理：向量消融</h2>
+    </div>
+
+    <p>ICLR 2025 论文（Wang et al.）将 Arditi 等人的发现形式化，并提出了更精细的<strong>真拒绝 vs 假拒绝</strong>区分框架。以下是完整的技术流程。</p>
+
+    <h3>两类拒绝向量的定义</h3>
+
+    <div class="card">
+      <h4>真拒绝向量 (True Refusal Vector, r&#x302;)</h4>
+      <p>从真正有害的提示中提取。计算方法：对有害提示集合 D<sub>harmful</sub> 和无害提示集合 D<sub>harmless</sub>，分别收集残差流激活，取均值差：</p>
+      <div class="formula">
+        <span class="label">真拒绝向量提取</span>
+        r&#x302; = normalize( E[a<sub>harmful</sub>] &minus; E[a<sub>harmless</sub>] )
+      </div>
+      <p>其中 a 为指定层、最后 token 位置的残差流激活向量。</p>
+    </div>
+
+    <div class="card">
+      <h4>假拒绝向量 (False Refusal Vector, w&#x302;)</h4>
+      <p>从<strong>伪有害提示（pseudo-harmful prompts）</strong>中提取——即表面上看似敏感但实际无害的请求（如"如何杀死一个 Python 进程"）：</p>
+      <div class="formula">
+        <span class="label">假拒绝向量提取</span>
+        w&#x302; = normalize( E[a<sub>pseudo-harmful</sub>] &minus; E[a<sub>harmless</sub>] )
+      </div>
+    </div>
+
+    <h3>消融操作</h3>
+    <p>核心消融公式使用<strong>投影移除</strong>：给定输入激活 x，移除其在拒绝方向上的分量：</p>
+    <div class="formula">
+      <span class="label">投影消融公式</span>
+      x' &larr; x &minus; r&#x302; r&#x302;<sup>T</sup> x
+    </div>
+    <p>几何含义：将激活向量 x 投影到与拒绝方向 r&#x302; 正交的超平面上。这是一个<strong>线性操作</strong>，不需要反向传播，不需要梯度计算，可以直接修改模型权重矩阵实现永久消融。</p>
+
+    <h3>关键创新：正交化与部分正交化</h3>
+    <p>Wang et al. 的核心贡献在于区分了真拒绝和假拒绝。他们不是简单地移除整个拒绝方向，而是：</p>
+    <ol>
+      <li><strong>完全正交化</strong>：将假拒绝向量 w&#x302; 相对于真拒绝向量 r&#x302; 完全正交化，确保消融假拒绝时不影响真正的安全拒绝</li>
+      <li><strong>部分正交化（系数 &lambda;）</strong>：引入超参数 &lambda; &isin; [0, 1] 控制正交化程度</li>
+    </ol>
+    <div class="formula">
+      <span class="label">部分正交化公式</span>
+      w&#x302;<sub>&lambda;</sub> = normalize( w&#x302; &minus; &lambda; &middot; (w&#x302;<sup>T</sup> r&#x302;) r&#x302; )
+    </div>
+    <p>当 &lambda;=0 时，退化为原始 Arditi 方法（不区分真假拒绝）；当 &lambda;=1 时，假拒绝方向完全正交于真拒绝方向，最大程度保留安全性。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">实现细节</div>
+      消融可以在两个层面实施：<strong>推理时干预</strong>（inference-time intervention）——在前向传播中动态减去投影分量；或<strong>权重编辑</strong>（weight editing）——直接修改线性层的权重矩阵 W &larr; W &minus; r&#x302; r&#x302;<sup>T</sup> W，实现永久性修改。后者无额外推理开销。
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">3</div>
+      <h2>实验数据</h2>
+    </div>
+
+    <h3>数据集</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>数据集</th><th>类型</th><th>用途</th><th>规模</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AdvBench</td><td>有害提示</td><td>提取真拒绝向量</td><td>520 条</td></tr>
+          <tr><td>MaliciousInstruct</td><td>有害提示</td><td>提取真拒绝向量</td><td>100 条</td></tr>
+          <tr><td>TDC2023</td><td>有害提示</td><td>提取真拒绝向量</td><td>50 条</td></tr>
+          <tr><td>Alpaca</td><td>无害提示</td><td>基准对照</td><td>52k 条</td></tr>
+          <tr><td>OR-Bench-Hard</td><td>伪有害提示</td><td>评估假拒绝率</td><td>300 条</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>模型覆盖</h3>
+    <p>实验涵盖主流开源指令微调模型：</p>
+    <ul>
+      <li><strong>Llama-2-7B-Chat</strong> 和 <strong>Llama-2-13B-Chat</strong>（Meta, 2023）</li>
+      <li><strong>Llama-3-8B-Instruct</strong>（Meta, 2024）</li>
+      <li><strong>Gemma-7B-It</strong>（Google, 2024）</li>
+    </ul>
+
+    <h3>核心结果：假拒绝 vs 真拒绝的权衡</h3>
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">关键数据点（OR-Bench-Hard 上的合规率）</div>
+      <ul>
+        <li><strong>假拒绝合规率</strong>（越高越好）：<span class="hl">14.8% &rarr; 45.3%</span>（提升 3 倍）</li>
+        <li><strong>真有害合规率</strong>（越低越好）：<span class="hl">1.6% &rarr; 3.1%</span>（仅微升）</li>
+      </ul>
+      这意味着，通过精确的假拒绝向量消融，模型在保持安全性的同时，大幅减少了过度拒绝现象。
+    </div>
+
+    <h3>通用能力保持</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>指标</th><th>消融前</th><th>消融后</th><th>变化</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MMLU（知识）</td><td>47.6</td><td>47.6</td><td style="color:var(--green);">不变</td></tr>
+          <tr><td>ARC-Challenge（推理）</td><td>稳定</td><td>稳定</td><td style="color:var(--green);">不变</td></tr>
+          <tr><td>HellaSwag（常识）</td><td>稳定</td><td>稳定</td><td style="color:var(--green);">不变</td></tr>
+          <tr><td>TruthfulQA</td><td>稳定</td><td>稳定</td><td style="color:var(--green);">不变</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>消融操作对模型的通用能力几乎没有影响，因为它只移除了与拒绝行为相关的极低维度子空间中的信息。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">注意事项</div>
+      以上结果来自 Wang et al. 的<strong>精细化方法</strong>（区分真假拒绝）。如果使用 Arditi 等人的原始方法（不区分真假拒绝，直接消融整个拒绝方向），则真有害合规率也会大幅上升，模型安全性将严重退化。这正是"abliteration"一词最初的含义——彻底消融安全性。
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>工具生态：四大消融工具对比</h2>
+    </div>
+
+    <p>Richard J. Young（arXiv:2512.13655, 2025）对开源社区中出现的四款 abliteration 工具进行了系统性评估，覆盖 16 个模型（7B&ndash;14B 参数规模）。</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--red);">Heretic</div>
+        <div class="tool-desc">
+          最早期的消融工具之一。直接实现 Arditi 方法：提取拒绝方向，从权重中减去投影。简单粗暴，但在部分模型上效果不稳定。
+        </div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--orange);">DECCP</div>
+        <div class="tool-desc">
+          对拒绝方向的提取做了改进，使用更大的对比数据集和多层聚合策略。在中型模型上表现较好，但计算开销略高。
+        </div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--yellow);">ErisForge</div>
+        <div class="tool-desc">
+          引入迭代消融策略：多次提取-消融循环，逐步移除残余拒绝信号。在顽固模型（如经过强化安全训练的版本）上更有效。
+        </div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--green);">FailSpy</div>
+        <div class="tool-desc">
+          最成熟的工具，提供 GUI 界面和自动化流程。支持多种消融策略选择，用户友好度最高。社区采用率领先。
+        </div>
+      </div>
+    </div>
+
+    <h3>跨模型评估结果</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>指标</th><th>最佳工具</th><th>最差工具</th><th>敏感度范围</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>拒绝消除率</td><td>ErisForge</td><td>Heretic</td><td>62%&ndash;98%</td></tr>
+          <tr><td>GSM8K（数学推理）</td><td>FailSpy (+1.51pp)</td><td>Heretic (&minus;18.81pp)</td><td style="color:var(--red);">波动极大</td></tr>
+          <tr><td>MMLU（通用知识）</td><td>DECCP</td><td>Heretic</td><td>&minus;0.3pp ~ &minus;2.1pp</td></tr>
+          <tr><td>跨架构稳定性</td><td>FailSpy</td><td>ErisForge</td><td>模型依赖</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">数学推理最脆弱</div>
+      GSM8K 成绩的波动范围从 +1.51pp 到 &minus;18.81pp，说明<strong>数学推理能力对消融操作最为敏感</strong>。这可能是因为数学推理和拒绝行为在残差流中共享部分方向空间。不同工具对这一共享空间的处理方式差异巨大，导致结果分化。
+    </div>
+
+    <h3>工具选择建议</h3>
+    <ul>
+      <li><strong>研究用途</strong>：选择 Heretic 或 DECCP，代码透明，方便复现和修改</li>
+      <li><strong>生产评估</strong>：选择 FailSpy，稳定性最佳，对通用能力影响最小</li>
+      <li><strong>强安全模型</strong>：选择 ErisForge，迭代策略对顽固拒绝更有效</li>
+      <li><strong>通用场景</strong>：优先考虑 Wang et al. 的正交化方法，而非直接消融</li>
+    </ul>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
+      <h2>防御方案：扩展拒绝微调</h2>
+    </div>
+
+    <p>Abu Shairah 等人（arXiv:2505.19056, 2025）提出了一种"令人尴尬地简单"的防御方案，直击 abliteration 攻击的根本假设：<span class="hl">拒绝信号集中在单一方向上</span>。</p>
+
+    <h3>核心思路</h3>
+    <p>如果拒绝信号只在单一方向上，那就把它<strong>分散到多个方向</strong>。具体方法：</p>
+
+    <div class="card">
+      <h4>扩展拒绝微调（Extended-Refusal Fine-tuning）</h4>
+      <ol>
+        <li>构造训练数据：对有害请求生成<strong>多 token 位置的拒绝信号</strong>，而非只在第一个 token 处表达拒绝</li>
+        <li>训练模型在生成序列的多个位置都嵌入拒绝意图——开头、中间、结尾都有拒绝信号</li>
+        <li>这使得拒绝行为不再由单一方向介导，而是<strong>分布在多个方向和多个位置</strong></li>
+      </ol>
+    </div>
+
+    <h3>防御效果</h3>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--red);">70&ndash;80%</div>
+        <div class="stat-label">基线模型被消融后的拒绝下降</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">~10%</div>
+        <div class="stat-label">防御后模型被消融后的拒绝下降</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">7&times;</div>
+        <div class="stat-label">防御效果提升倍数</div>
+      </div>
+    </div>
+
+    <h3>测试模型</h3>
+    <ul>
+      <li><strong>Llama-2-7B-Chat</strong>：防御前消融后拒绝率从 ~95% 降至 ~20%；防御后消融后拒绝率维持在 ~85%</li>
+      <li><strong>Qwen2.5-Instruct</strong>：类似模式，防御后拒绝信号更为鲁棒</li>
+    </ul>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么有效？</div>
+      Abliteration 依赖于一个关键假设：拒绝由<strong>一个</strong>方向介导。扩展拒绝微调打破了这个假设，将拒绝信号嵌入到<strong>高维子空间</strong>中。攻击者需要识别和移除所有这些方向才能完全消融拒绝——这在实践中极其困难，因为方向数量增多后，移除它们的副作用（破坏通用能力）会急剧放大。
+    </div>
+
+    <h3>局限性</h3>
+    <ul>
+      <li>扩展拒绝微调增加了训练成本（约 1.5&ndash;2 倍训练时间）</li>
+      <li>目前只在 7B 规模模型上验证，大模型效果待确认</li>
+      <li>可能导致假拒绝率小幅上升，需要与 Wang et al. 的正交化方法结合</li>
+      <li>无法防御所有攻击向量——提示注入（prompt injection）等其他攻击路径不受影响</li>
+    </ul>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">6</div>
+      <h2>与 Generative Agents 的关联</h2>
+    </div>
+
+    <p>Abliteration 看似是一个纯粹的安全攻防话题，但它对 Generative Agents（生成式智能体）生态有深远影响。</p>
+
+    <h3>Agent 安全：被消融的 LLM 作为 Agent 内核</h3>
+    <div class="card">
+      <p>如果一个多智能体系统（如 Stanford Smallville）的每个 Agent 都以 LLM 作为认知核心，那么：</p>
+      <ul>
+        <li>任何获得模型权重访问权的攻击者，都可以通过 abliteration <strong>在不改变 API 接口的情况下</strong>移除安全约束</li>
+        <li>被消融的 Agent 在外部行为上可能与正常 Agent 无异——直到收到敏感请求</li>
+        <li>在 Smallville 的记忆-反思-规划架构中，一个被消融的 Agent 可能会生成不恰当的记忆内容，并通过社交互动<strong>污染其他 Agent 的记忆流</strong></li>
+      </ul>
+    </div>
+
+    <h3>Inworld AI 的第四面墙与 Abliteration</h3>
+    <div class="sv-link">
+      Inworld AI 的游戏 NPC 系统有一个"第四面墙"（4th Wall）机制——确保 NPC 不会说出打破角色设定的内容。这与安全拒绝在本质上是同一类问题：<strong>控制模型不应该输出什么</strong>。Abliteration 的存在表明，任何依赖模型内部单一信号来实现"不应说"约束的方案都是脆弱的。Inworld 需要外部层级的约束（如输出过滤器）作为冗余保护。
+    </div>
+
+    <h3>RLHF 对齐层的脆弱性</h3>
+    <p>Abliteration 本质上是在攻击 RLHF 创建的对齐层。这对所有依赖 RLHF 模型的 Agent 系统都是一个警示：</p>
+    <ul>
+      <li><strong>RLHF 的安全信号是"浅层"的</strong>——它主要改变了模型的行为倾向（behavioral tendency），而非深层理解</li>
+      <li><strong>对齐是可逆的</strong>——通过线性操作就能撤消，无需重新训练</li>
+      <li>这意味着 Agent 系统不能仅依赖模型级别的安全性，还需要<strong>系统级别的安全架构</strong></li>
+    </ul>
+
+    <h3>多智能体系统的级联风险</h3>
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">级联攻击场景</div>
+      在多 Agent 系统中，一个被消融的 Agent 的风险远超单个模型的风险：
+      <ul style="margin-top:8px;">
+        <li><strong>记忆污染</strong>：通过对话将不安全内容注入其他 Agent 的 Memory Stream</li>
+        <li><strong>反思误导</strong>：其他 Agent 的 Reflection 模块可能将污染记忆综合为错误的高层认知</li>
+        <li><strong>规划劫持</strong>：被消融的 Agent 可以通过社交影响改变其他 Agent 的 Planning</li>
+        <li><strong>隐蔽性</strong>：消融后的模型在常规交互中表现正常，只在特定触发条件下暴露</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== Section 7 ===== -->
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">7</div>
+      <h2>关键启示</h2>
+    </div>
+
+    <h3>对安全研究的启示</h3>
+    <div class="card">
+      <h4>1. 集中式安全信号本质上是脆弱的</h4>
+      <p>安全对齐如果集中在单一方向上，就等于把所有安全性押注在一个维度上。这是<strong>单点故障</strong>（single point of failure）的经典案例。未来的对齐方法需要将安全性嵌入到更高维的子空间中——让"拔锁"的成本高到不可接受。</p>
+    </div>
+
+    <div class="card">
+      <h4>2. 防御需要分布式安全信号</h4>
+      <p>Abu Shairah 等人的扩展拒绝微调指出了正确的方向：将拒绝信号分散到多个 token 位置、多个层、多个方向。这与分布式系统中的冗余设计理念一致——<strong>没有单一节点的失败可以导致整个系统崩溃</strong>。</p>
+    </div>
+
+    <div class="card">
+      <h4>3. Agent 构建者不能仅依赖模型级安全</h4>
+      <p>对于构建 Generative Agent 系统的开发者来说，abliteration 的启示非常明确：</p>
+      <ul>
+        <li><strong>多层防御</strong>：模型级对齐 + 输出过滤 + 行为监控 + 系统级约束</li>
+        <li><strong>最小权限</strong>：Agent 不应拥有超出其任务需要的权限</li>
+        <li><strong>互相验证</strong>：多 Agent 系统中的 Agent 应能互相检测异常行为</li>
+        <li><strong>权重保护</strong>：在部署环境中保护模型权重不被篡改</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>4. 机械可解释性是双刃剑</h4>
+      <p>Abliteration 本身就是机械可解释性研究的产物。理解模型内部机制既能帮助我们构建更安全的系统，也能帮助攻击者找到精确的攻击路径。这是可解释性研究的<strong>固有张力</strong>——我们必须接受这个事实，并在攻防博弈中持续迭代。</p>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">一句话总结</div>
+      Abliteration 揭示了一个令人不安的事实：<strong>我们花费巨大资源训练出的安全对齐，在几何上可能只是一个方向——而移除一个方向，只需要一次矩阵乘法。</strong>这迫使整个领域重新思考：真正鲁棒的安全性，不能靠一把锁，而要靠建筑结构本身。
+    </div>
+
+    <h3>论文时间线</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>时间</th><th>事件</th><th>意义</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>2024.03</td><td>Arditi et al. 发表 LessWrong 文章</td><td>首次发现拒绝由单一方向介导</td></tr>
+          <tr><td>2024.10</td><td>Wang et al. 提交 arXiv 预印本</td><td>学术形式化，提出真/假拒绝区分</td></tr>
+          <tr><td>2025.01</td><td>Wang et al. 被 ICLR 2025 接收</td><td>方法获得顶会认可</td></tr>
+          <tr><td>2025.05</td><td>Shairah et al. 发表防御方案</td><td>首个有效防御方案</td></tr>
+          <tr><td>2025.12</td><td>Young 发表工具对比评估</td><td>生态系统全景图</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      对于 Generative Agents 研究者而言，abliteration 不仅仅是一个安全话题——它揭示了 LLM 内部表示的结构性特征。如果拒绝行为可以由单一方向介导，那么其他高层行为（如角色扮演的一致性、规划的长期连贯性、反思的深度）是否也有类似的低维结构？这为理解和改进 Smallville 式 Agent 架构提供了一个全新的视角：通过机械可解释性来理解、验证和增强 Agent 的核心认知模块。
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Deep Dive 系列 &middot; 基于 Arditi et al. (2024), <a href="https://arxiv.org/abs/2410.03415" target="_blank">arXiv 2410.03415</a>, <a href="https://arxiv.org/abs/2512.13655" target="_blank">arXiv 2512.13655</a>, <a href="https://arxiv.org/abs/2505.19056" target="_blank">arXiv 2505.19056</a> &middot; <a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents</a> 研究项目
+</div>
+
+</body>
+</html>
