@@ -217,9 +217,9 @@
   <h1>Generative Agents 研究导航</h1>
   <p>从斯坦福小镇 (arXiv:2304.03442) 到 Agentic AI (2026)<br>系统梳理记忆、反思、规划、多智能体协调的学术脉络与工程实践</p>
   <div class="stats">
-    <div class="stat"><div class="stat-num">76+</div><div class="stat-label">篇论文</div></div>
+    <div class="stat"><div class="stat-num">83</div><div class="stat-label">篇论文</div></div>
     <div class="stat"><div class="stat-num">17</div><div class="stat-label">个研究方向</div></div>
-    <div class="stat"><div class="stat-num">9</div><div class="stat-label">篇深度分析</div></div>
+    <div class="stat"><div class="stat-num">5+6</div><div class="stat-label">深度分析+架构学习</div></div>
   </div>
 </div>
 
@@ -260,9 +260,10 @@
     <div class="path-card">
       <span class="step-badge" style="background:#22c55e;">4</span>
       <h3>深度分析</h3>
-      <p>9 篇长文深挖特定主题：自组织实验、元认知反思、政策仿真、源码原理、竞品分析等</p>
+      <p>5 篇论文深度解读 + 6 章 Agent 架构学习（Claude Code 源码分析、竞品对比、实施计划）</p>
       <div class="links">
-        <a href="#deep-dives">查看全部 9 篇</a>
+        <a href="#deep-dives">论文深度解读</a>
+        <a href="architecture-study.html">架构学习</a>
       </div>
     </div>
 
@@ -271,7 +272,7 @@
 
 <!-- ── Deep Dives ── -->
 <div class="section" id="deep-dives">
-  <h2 class="section-title">深度分析</h2>
+  <h2 class="section-title">论文深度解读</h2>
   <p class="section-sub">每篇均为独立长文，可按兴趣选读</p>
 
   <div class="dd-grid">
@@ -300,50 +301,76 @@
       </div>
     </div>
 
-    <div class="dd-card">
-      <span class="dd-num">04</span>
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">10</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/04-claude-code-leak-vs-smallville.html">Claude Code vs Smallville</a></h4>
+        <h4><a href="deep-dive/10-abliteration.html">Abliteration 向量消融</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>LLM 安全拒绝由单一方向介导 — 攻击原理、4 工具对比、防御方案与 Agent 安全启示</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">11</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/11-timesfm.html">TimesFM 时间序列基础模型</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>Google 200M 参数 decoder-only 预测模型 — 与 Agent World Model 的概念桥接</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Architecture Study ── -->
+<div class="section">
+  <h2 class="section-title">Agent 架构学习</h2>
+  <p class="section-sub">6 章系统学习：从 Smallville 到 Claude Code 的工程实践</p>
+
+  <div class="dd-grid">
+
+    <div class="dd-card">
+      <span class="dd-num">Ch1</span>
+      <div class="dd-info">
+        <h4><a href="architecture-study.html">Claude Code vs Smallville</a></h4>
         <p>当产品级 Agent 重新发现学术架构 — 6 大模块对应关系分析</p>
       </div>
     </div>
 
     <div class="dd-card">
-      <span class="dd-num">05</span>
+      <span class="dd-num">Ch2</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/05-technical-correlation-and-source-reading-guide.html">架构关联与源码指南</a></h4>
+        <h4><a href="architecture-study.html">架构关联与源码指南</a></h4>
         <p>从 Smallville 到 Claude Code 的技术原理映射 + 7 条源码阅读路线</p>
       </div>
     </div>
 
     <div class="dd-card">
-      <span class="dd-num">06</span>
+      <span class="dd-num">Ch3</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/06-claude-code-source-principles.html">8 个 Agent 设计模式</a></h4>
+        <h4><a href="architecture-study.html">8 个 Agent 设计模式</a></h4>
         <p>从 Claude Code TypeScript 源码中提炼的 8 个可借鉴原理</p>
       </div>
     </div>
 
     <div class="dd-card">
-      <span class="dd-num">07</span>
+      <span class="dd-num">Ch4</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/07-competitive-analysis.html">2026 竞品分析</a></h4>
+        <h4><a href="architecture-study.html">2026 竞品分析</a></h4>
         <p>用 Smallville 架构原理透视 Claude Code vs Cursor/Windsurf/Copilot/Codex/Devin/Augment</p>
       </div>
     </div>
 
     <div class="dd-card">
-      <span class="dd-num">08</span>
+      <span class="dd-num">Ch5</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/08-six-month-plan.html">多 Agent 平台改造计划</a></h4>
+        <h4><a href="architecture-study.html">多 Agent 平台改造计划</a></h4>
         <p>基于研究成果的半年实施路线图 — 从原型到生产</p>
       </div>
     </div>
 
     <div class="dd-card">
-      <span class="dd-num">09</span>
+      <span class="dd-num">Ch6</span>
       <div class="dd-info">
-        <h4><a href="deep-dive/09-open-source-repos.html">开源代码验证清单</a></h4>
+        <h4><a href="architecture-study.html">开源代码验证清单</a></h4>
         <p>论文对应的开源仓库列表及可复现性验证状态</p>
       </div>
     </div>
