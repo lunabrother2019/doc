@@ -688,7 +688,7 @@ graph TB
     <span class="title"><a href="https://arxiv.org/abs/2310.10688" target="_blank">TimesFM — 时间序列基础模型 (Google, ICML 2024)</a></span>
     <div class="keywords"><span>Decoder-only</span><span>1000亿数据点</span><span>zero-shot预测</span><span>Patch机制</span><span>200M参数</span></div>
     <div class="note">将 LLM 的 decoder-only 范式迁移到时间序列预测，200M 参数 + 1000 亿真实数据点预训练实现 zero-shot 泛化。与 Agent 的概念桥接：可作为 Agent 的环境预测模块（World Model），在规划阶段 zero-shot 预测不同行动的后果。Patch 机制（时间点分组为 token）类比 Agent 记忆的分块压缩。</div>
-    <a class="dd-link" href="deep-dive/11-timesfm.html">深度解读 →</a>
+    <a class="dd-link" href="deep-dive/05-timesfm.html">深度解读 →</a>
   </div>
 
   <!-- 个人补充（后加）-->
@@ -697,7 +697,7 @@ graph TB
     <span class="title"><a href="https://arxiv.org/abs/2410.03415" target="_blank">Abliteration — 单向量消融术 (ICLR 2025)</a></span>
     <div class="keywords"><span>Refusal Direction</span><span>Vector Ablation</span><span>Orthogonalization</span><span>False Refusal</span><span>Safety Alignment</span></div>
     <div class="note">发现 LLM 拒绝行为由残差流中单一方向介导，可通过正交化移除。区分真拒绝/误拒绝向量，只消融误拒绝。OR-Bench-Hard 合规率 14.8%→45.3%，有害合规仅 1.6%→3.1%，MMLU 不变。对 Agent 安全的启示：底层模型的安全对齐可被轻易绕过，Agent 系统需要额外的安全层。</div>
-    <a class="dd-link" href="deep-dive/10-abliteration.html">深度解读 →</a>
+    <a class="dd-link" href="deep-dive/04-abliteration.html">深度解读 →</a>
   </div>
 
   <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
@@ -705,7 +705,7 @@ graph TB
     <span class="title"><a href="https://arxiv.org/abs/2505.19056" target="_blank">Abliteration Defense — 扩展拒绝微调 (arXiv 2025)</a></span>
     <div class="keywords"><span>Extended-Refusal</span><span>Distributed Safety Signal</span><span>Fine-tuning Defense</span></div>
     <div class="note">针对消融攻击的防御：训练数据中拒绝前先详细解释原因，将安全信号从单一方向分散到多个 token 位置。消融攻击下拒绝率仅降 10%（vs 基线 70-80%）。防御启示：安全信号需要冗余分布，不能集中在单一表示。</div>
-    <a class="dd-link" href="deep-dive/10-abliteration.html">深度解读 →</a>
+    <a class="dd-link" href="deep-dive/04-abliteration.html">深度解读 →</a>
   </div>
 
 </div>

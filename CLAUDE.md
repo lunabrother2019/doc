@@ -32,13 +32,14 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/concepts-map.html` — 3-tab interactive concept maps (5 pillars, Top 15 concepts, full evolution)
 - `html/study-guide.html` — 3-track unified learning center (core architecture, multi-agent frontier, MetaGPT vs ChatDev)
 - `html/papers-reference.html` — 83-paper reference with 3 views (分类手册 / 卡片浏览 / 表格视图), includes "个人补充" category for user-added papers
-- `html/deep-dive/01-11` — 11 long-form deep-dive analyses (01-09 original, 10-11 user-added with "后加" badge)
+- `html/architecture-study.html` — 6-tab Agent architecture study (Claude Code source analysis, competitive analysis, implementation plan)
+- `html/deep-dive/01-05` — 5 paper deep-dive analyses (01-03 original, 04-05 user-added with "后加" badge)
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 11). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 05). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker
