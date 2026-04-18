@@ -1,0 +1,101 @@
+╭─── Claude Code v2.1.90 ──────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│           Welcome back Veronicatp Langbf!          │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ Recent activity         │
+│                        ▘▘ ▝▝                       │ No recent activity      │
+│  Sonnet 4.6 · Claude Pro ·                         │                         │
+│  rkelvinbernieZZ62@brew-master.com's Organization  │                         │
+│                 /opt/workspace/doc                 │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ 斯坦福小镇相关的论文有哪些                                                    
+
+● claude-code-guide(Search Stanford town AI papers)
+  ⎿  Done (4 tool uses · 6.3k tokens · 5s)
+  (ctrl+o to expand)
+
+● Web Search("Stanford Smallville Generative Agents paper list related work LLM
+            simulation")
+  ⎿  Did 1 search in 7s
+
+● Web Search("斯坦福小镇 Generative Agents 相关论文")
+  ⎿  Did 1 search in 7s
+
+● Web Search("papers citing "Generative Agents" Smallville LLM agent simulation
+            social 2023 2024")
+  ⎿  Did 1 search in 9s
+
+● Web Search("AgentSims RecAgent ChatDev LLM multi-agent simulation town social
+            papers 2023 2024")
+  ⎿  Did 1 search in 8s
+
+● 以下是与**斯坦福小镇（Stanford Smallville）**相关的主要论文：
+
+  ---
+  原始论文
+
+  https://arxiv.org/abs/2304.03442
+  - 作者：Joon Sung Park, Joseph C. O'Brien, Carrie J. Cai, Meredith Ringel
+  Morris, Percy Liang, Michael S. Bernstein（斯坦福大学）
+  - 发表于：UIST 2023（ACM 用户界面软件与技术研讨会）
+  - 核心贡献：提出 Generative Agents 架构，将 LLM
+  与记忆流、反思、规划机制结合，25 个 AI 智能体在沙盒小镇"Smallville"中模拟人类
+  社会行为（如自发组织情人节派对、建立社交关系等）
+
+  ---
+  直接衍生 / 相似方向论文
+
+  ┌───────────────────────────────────┬─────────────────────────────────────┐
+  │               论文                │                简介                 │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://github.com/py499372727/Ag │ 面向研究者的 LLM 智能体评测基础设施 │
+  │ entSims (2023)                    │ ，基于任务驱动的沙盒环境            │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://github.com/RUC-GSAI/YuLan │ 用 LLM 智能体模拟推荐系统中的用户行 │
+  │ -Rec (2023)                       │ 为，含记忆机制                      │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/pdf/2306.02552  │ 用 LLM 智能体模拟用户行为的通用框架 │
+  │ (2023)                            │                                     │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/abs/2307.07924  │ 多智能体协作完成软件开发任务，每个  │
+  │ (2023)                            │ Agent 扮演不同角色                  │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/html/2502.08691 │ 大规模社会模拟器，研究 LLM          │
+  │ v1 (2025)                         │ 驱动智能体在社会系统中的涌现行为    │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/html/2412.09237 │ 多用户大规模多模态智能体社会模拟    │
+  │  (2024)                           │                                     │
+  └───────────────────────────────────┴─────────────────────────────────────┘
+
+  ---
+  综述 / 评论类论文
+
+  ┌─────────────────────────────────────────────────┬───────────────────────┐
+  │                      论文                       │         简介          │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://www.nature.com/articles/s41599-024-0361 │ LLM 赋能 ABM          │
+  │ 1-3                                             │ 的综述与展望（Nature  │
+  │                                                 │ 子刊）                │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://www.sciencedirect.com/science/article/p │ 复杂系统研究中 LLM 与 │
+  │ ii/S1571064524001386                            │  ABM 结合的综述       │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://link.springer.com/article/10.1007/s1046 │ 批判性评述：LLM       │
+  │ 2-025-11412-6                                   │ 生成式社会仿真的核心  │
+  │                                                 │ 挑战是验证            │
+  └─────────────────────────────────────────────────┴───────────────────────┘
+
+  ---
+  代码资源
+
+  - 原版代码：https://github.com/joonspk-research/generative_agents
+  - Llama2 复现：https://github.com/mikeyang01/stanford_town
+  - LLM Agent 论文汇总列表：https://github.com/luo-junyu/Awesome-Agent-Papers
+
+  ---
+  核心论文是 arXiv:2304.03442，后续研究大量引用该工作，形成了"LLM +
+  多智能体社会仿真"这一方向。
+
+✻ Cogitated for 53s

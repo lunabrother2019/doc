@@ -1,0 +1,589 @@
+╭─── Claude Code v2.1.91 ──────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│           Welcome back Veronicatp Langbf!          │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ Recent activity         │
+│                        ▘▘ ▝▝                       │ No recent activity      │
+│  Sonnet 4.6 · Claude Pro ·                         │                         │
+│  rkelvinbernieZZ62@brew-master.com's Organization  │                         │
+│                 /opt/workspace/doc                 │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ 斯坦福小镇相关的论文有哪些                                                    
+
+● claude-code-guide(Search Stanford town AI papers)
+  ⎿  Done (4 tool uses · 6.3k tokens · 5s)
+  (ctrl+o to expand)
+
+● Web Search("Stanford Smallville Generative Agents paper list related work LLM
+            simulation")
+  ⎿  Did 1 search in 7s
+
+● Web Search("斯坦福小镇 Generative Agents 相关论文")
+  ⎿  Did 1 search in 7s
+
+● Web Search("papers citing "Generative Agents" Smallville LLM agent simulation
+            social 2023 2024")
+  ⎿  Did 1 search in 9s
+
+● Web Search("AgentSims RecAgent ChatDev LLM multi-agent simulation town social
+            papers 2023 2024")
+  ⎿  Did 1 search in 8s
+
+● 以下是与**斯坦福小镇（Stanford Smallville）**相关的主要论文：
+
+  ---
+  原始论文
+
+  https://arxiv.org/abs/2304.03442
+  - 作者：Joon Sung Park, Joseph C. O'Brien, Carrie J. Cai, Meredith Ringel
+  Morris, Percy Liang, Michael S. Bernstein（斯坦福大学）
+  - 发表于：UIST 2023（ACM 用户界面软件与技术研讨会）
+  - 核心贡献：提出 Generative Agents 架构，将 LLM
+  与记忆流、反思、规划机制结合，25 个 AI 智能体在沙盒小镇"Smallville"中模拟人类
+  社会行为（如自发组织情人节派对、建立社交关系等）
+
+  ---
+  直接衍生 / 相似方向论文
+
+  ┌───────────────────────────────────┬─────────────────────────────────────┐
+  │               论文                │                简介                 │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://github.com/py499372727/Ag │ 面向研究者的 LLM 智能体评测基础设施 │
+  │ entSims (2023)                    │ ，基于任务驱动的沙盒环境            │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://github.com/RUC-GSAI/YuLan │ 用 LLM 智能体模拟推荐系统中的用户行 │
+  │ -Rec (2023)                       │ 为，含记忆机制                      │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/pdf/2306.02552  │ 用 LLM 智能体模拟用户行为的通用框架 │
+  │ (2023)                            │                                     │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/abs/2307.07924  │ 多智能体协作完成软件开发任务，每个  │
+  │ (2023)                            │ Agent 扮演不同角色                  │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/html/2502.08691 │ 大规模社会模拟器，研究 LLM          │
+  │ v1 (2025)                         │ 驱动智能体在社会系统中的涌现行为    │
+  ├───────────────────────────────────┼─────────────────────────────────────┤
+  │ https://arxiv.org/html/2412.09237 │ 多用户大规模多模态智能体社会模拟    │
+  │  (2024)                           │                                     │
+  └───────────────────────────────────┴─────────────────────────────────────┘
+
+  ---
+  综述 / 评论类论文
+
+  ┌─────────────────────────────────────────────────┬───────────────────────┐
+  │                      论文                       │         简介          │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://www.nature.com/articles/s41599-024-0361 │ LLM 赋能 ABM          │
+  │ 1-3                                             │ 的综述与展望（Nature  │
+  │                                                 │ 子刊）                │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://www.sciencedirect.com/science/article/p │ 复杂系统研究中 LLM 与 │
+  │ ii/S1571064524001386                            │  ABM 结合的综述       │
+  ├─────────────────────────────────────────────────┼───────────────────────┤
+  │ https://link.springer.com/article/10.1007/s1046 │ 批判性评述：LLM       │
+  │ 2-025-11412-6                                   │ 生成式社会仿真的核心  │
+  │                                                 │ 挑战是验证            │
+  └─────────────────────────────────────────────────┴───────────────────────┘
+
+  ---
+  代码资源
+
+  - 原版代码：https://github.com/joonspk-research/generative_agents
+  - Llama2 复现：https://github.com/mikeyang01/stanford_town
+  - LLM Agent 论文汇总列表：https://github.com/luo-junyu/Awesome-Agent-Papers
+
+  ---
+  核心论文是 arXiv:2304.03442，后续研究大量引用该工作，形成了"LLM +
+  多智能体社会仿真"这一方向。
+
+✻ Cogitated for 53s
+
+❯ /export                                                                       
+  ⎿  Conversation exported to:
+     /opt/workspace/doc/conversation-2026-04-03-031807.txt
+
+❯ 核心概念有哪些                                                                
+
+● 基于 Generative Agents 论文，核心概念如下：
+
+  ---
+  1. 记忆流（Memory Stream）
+
+  智能体将所有经历以自然语言形式按时间顺序存入记忆流。每条记忆带有：
+  - 时间戳：记录发生时间
+  - 重要性评分：LLM 对事件重要程度打分（1-10）
+  - 最近访问时间：越近越容易被检索
+
+  ---
+  2. 记忆检索（Retrieval）
+
+  每次行动前，智能体从记忆流中检索相关记忆，综合三个维度排序：
+
+  ┌──────────────────────┬────────────────────────┐
+  │         维度         │          说明          │
+  ├──────────────────────┼────────────────────────┤
+  │ Recency（近期性）    │ 越近期的记忆权重越高   │
+  ├──────────────────────┼────────────────────────┤
+  │ Importance（重要性） │ 重要事件更容易被召回   │
+  ├──────────────────────┼────────────────────────┤
+  │ Relevance（相关性）  │ 与当前情境的语义相似度 │
+  └──────────────────────┴────────────────────────┘
+
+  ---
+  3. 反思（Reflection）
+
+  智能体定期对记忆进行高层次归纳，生成更抽象的洞见。
+  - 触发条件：当积累的事件重要性总分超过阈值
+  - 作用：避免智能体只记得细节，能形成"观点"和"判断"
+
+  ---
+  4. 规划（Planning）
+
+  智能体将反思结果转化为行动计划：
+  - 长期计划：每天早晨生成全天日程（粗粒度）
+  - 短期计划：将日程分解为具体行动（细粒度）
+  - 计划会根据外部事件动态调整
+
+  ---
+  5. 行动与交互（Action & Interaction）
+
+  - 智能体在沙盒世界中执行动作（移动、使用物品、对话）
+  - 两个智能体相遇时，触发对话生成
+  - 对话内容基于双方的记忆和当前情境
+
+  ---
+  6. 涌现行为（Emergent Behavior）
+
+  这是整个系统最重要的观察结果：
+  - 智能体在没有明确指令的情况下，自发产生社会性行为
+  - 例：从"一个人想办派对"这一初始条件 → 自发传播邀请 → 协调时间 → 相互邀约 →
+  集体赴约
+
+  ---
+  架构总结
+
+  感知环境
+      ↓
+  检索相关记忆（Recency + Importance + Relevance）
+      ↓
+  反思生成高层认知
+      ↓
+  制定/更新计划
+      ↓
+  执行行动 / 与其他 Agent 交互
+      ↓
+  新经历写入记忆流
+
+❯ 最近几年哪些能力又扩展了，核心概念是什么                                      
+
+● Web Search("Generative Agents extensions 2024 2025 new capabilities LLM agent
+            simulation memory planning")
+  ⎿  Did 1 search in 11s
+
+● Web Search("LLM agent simulation social 2024 2025 new concepts beyond
+            Smallville AgentSociety world simulation")
+  ⎿  Did 1 search in 9s
+
+● Web Search("LLM agent 2024 2025 tool use multimodal embodied agent world model
+             self-evolution new capabilities")
+  ⎿  Did 1 search in 9s
+
+● 近几年在 Generative Agents 基础上，能力扩展主要集中在以下几个维度：
+
+  ---
+  一、记忆系统升级
+
+  原版只有单层线性记忆流，现在演进为：
+
+  ┌───────────┬──────────────────────┬──────────────────────────────────────┐
+  │   概念    │       代表工作       │               核心思路               │
+  ├───────────┼──────────────────────┼──────────────────────────────────────┤
+  │ 分层记忆  │ HiAgent              │ 用子目标切分记忆，完成后压缩摘要，保 │
+  │           │                      │ 留层级结构                           │
+  ├───────────┼──────────────────────┼──────────────────────────────────────┤
+  │ 关联记忆  │ https://arxiv.org/ht │ 受 Zettelkasten                      │
+  │ 网络      │ ml/2502.12110v11     │ 卡片笔记启发，每条记忆带关键词/标签  │
+  │           │ (2025)               │ ，并与相关记忆动态建立语义链接       │
+  ├───────────┼──────────────────────┼──────────────────────────────────────┤
+  │ 跨注意力  │ Frontiers 2025 论文  │ 用 LLM 训练的 Cross-Attention        │
+  │ 检索      │                      │ 网络替代原版的加权评分检索           │
+  ├───────────┼──────────────────────┼──────────────────────────────────────┤
+  │ 多智能体  │ TechRxiv 综述        │ 集体记忆、共识形成、记忆冲突解决     │
+  │ 共享记忆  │                      │                                      │
+  └───────────┴──────────────────────┴──────────────────────────────────────┘
+
+  核心新概念：记忆不再是独立条目，而是形成知识图谱式网络。
+
+  ---
+  二、大规模仿真
+
+  原版 25 个 Agent，现在扩展到万级：
+
+  ┌────────────────────────────────────┬──────┬────────────────────────────┐
+  │                工作                │ 规模 │          核心突破          │
+  ├────────────────────────────────────┼──────┼────────────────────────────┤
+  │ https://aclanthology.org/2025.acl- │ 10,0 │ 并行化框架，速度提升       │
+  │ industry.94.pdf                    │ 00 A │ 635×，Token 消耗降低 45%   │
+  │                                    │ gent │                            │
+  ├────────────────────────────────────┼──────┼────────────────────────────┤
+  │                                    │ 10,0 │ 模拟 500 万次交互，研究政  │
+  │ https://arxiv.org/abs/2502.08691   │ 00+  │ 治极化、谣言传播、UBI      │
+  │                                    │ Agen │ 政策效果                   │
+  │                                    │ t    │                            │
+  └────────────────────────────────────┴──────┴────────────────────────────┘
+
+  核心新概念：群体涌现行为的可控仿真——从观察个体行为转向研究社会系统规律。
+
+  ---
+  三、现实世界校准
+
+  原版 Agent 行为是虚构的，新方向是用真实数据初始化：
+
+  - https://arxiv.org/abs/2502.08691：从数百万真实用户画像初始化
+  Agent，复现真实社会的态度分布和偏好结构
+  - GATSim：用 Agent 模拟城市出行，规划真实日常出行路径
+
+  核心新概念：Population-Scale Calibration（群体规模校准）——Agent
+  不再是抽象人物，而是对现实人群的数字孪生。
+
+  ---
+  四、具身智能（Embodied Agent）
+
+  从文字沙盒走向物理/视觉世界：
+
+  ┌────────────────────────────────┬────────────────────────────────────────┐
+  │              工作              │                核心能力                │
+  ├────────────────────────────────┼────────────────────────────────────────┤
+  │ Embodied Multi-Modal Agent     │ 在视觉世界中行动，用文本世界的 LLM     │
+  │ (CVPR 2024)                    │ 蒸馏训练 VLM                           │
+  ├────────────────────────────────┼────────────────────────────────────────┤
+  │ From MLLMs to Generalist       │ 多模态 LLM 驱动通用具身 Agent          │
+  │ Embodied Agents (CVPR 2025)    │                                        │
+  ├────────────────────────────────┼────────────────────────────────────────┤
+  │ 世界模型（World Model）驱动    │ MLLM 负责高层语义规划，World Model     │
+  │                                │ 提供物理约束仿真                       │
+  └────────────────────────────────┴────────────────────────────────────────┘
+
+  核心新概念：MLLM + World Model 双驱动架构——语言推理 + 物理感知缺一不可。
+
+  ---
+  五、工具使用 & 自主行动
+
+  - Agent 可以调用外部工具（搜索、代码执行、API）
+  - ReAct / Toolformer 范式：推理（Reasoning）与行动（Acting）交替进行
+  - ChatDev / MetaGPT：多 Agent 分角色协作完成复杂任务（如写软件）
+
+  核心新概念：Agentic AI——Agent 不只在虚拟世界模拟，而是真正执行现实任务。
+
+  ---
+  能力扩展全景图
+
+  原版 Generative Agents (2023)
+      记忆流 + 反思 + 规划 + 25个Agent
+           ↓
+  ┌────────────────────────────────────────┐
+  │  记忆     → 关联网络、分层、多Agent共享  │
+  │  规模     → 万级Agent、并行加速          │
+  │  真实性   → 真实用户数据初始化           │
+  │  感知     → 多模态、具身、物理世界        │
+  │  行动     → 工具调用、真实任务执行        │
+  └────────────────────────────────────────┘
+           ↓
+    通用 Agentic AI (2025)
+
+  ---
+  核心趋势总结：从"模拟人类行为"走向"代替人类行动"，从"虚拟小镇"走向"数字社会 + 
+  物理世界"。
+
+✻ Sautéed for 55s
+
+❯ 关于反思，这几年的发展                                                        
+
+● Web Search("LLM agent reflection mechanism 2023 2024 2025 self-reflection
+            introspection reasoning papers")
+  ⎿  Did 1 search in 8s
+
+● Web Search("Reflexion self-reflection LLM agent introspective reasoning survey
+             2024 2025")
+  ⎿  Did 1 search in 8s
+
+● Web Search("critic self-critique LLM agent Constitutional AI debate
+            multi-agent reflection 2024 2025")
+  ⎿  Did 1 search in 8s
+
+● Web Search(""experiential reflection" "reflection bank" "trajectory
+            reflection" LLM agent learning 2024 2025")
+  ⎿  Did 1 search in 9s
+● 以下是**反思（Reflection）**这几年的演进脉络：
+
+  ---
+  第一阶段：内部积累触发反思（原版，2023）
+
+  Generative Agents 的反思机制：
+  - 触发条件：记忆重要性评分累计超过阈值
+  - 方式：LLM 对已有记忆归纳出更高层次的观点
+  - 局限：只反思过去，不纠错，不与外部反馈挂钩
+
+  ---
+  第二阶段：基于任务失败的反思（2023）
+
+  https://arxiv.org/abs/2303.11366（NeurIPS 2023）：
+  - 核心思想：语言版强化学习——Agent 执行任务失败后，用语言反思代替梯度更新
+  - 流程：执行 → 失败 → 语言反思 → 写入 episodic memory → 下次重试
+  - 效果：决策任务 +22%，HotPotQA +20%，Python 编程 +11%
+  - 核心概念：Verbal Reinforcement Learning（语言强化学习）
+
+  ---
+  第三阶段：反思能力被质疑（2024）
+
+  https://proceedings.iclr.cc/paper_files/paper/2024/file/8b4add8b0aa8749d80a34c
+  a5d941c355-Paper-Conference.pdf（ICLR 2024）：
+  - 发现：90%+ 的反思是确认性的（反思后仍维持原答案），真正纠错只占 ~2%
+  - 结论：没有外部反馈时，LLM 自我反思几乎无效
+  - 影响：推动研究者转向外部信号驱动的反思和多智能体反思
+
+  ---
+  第四阶段：多智能体辩论式反思（2024-2025）
+
+  对"自我反思失效"的回应——引入外部批评者：
+
+  ┌──────────────────────────────────────────┬──────────────────────────────┐
+  │                   工作                   │           核心思路           │
+  ├──────────────────────────────────────────┼──────────────────────────────┤
+  │ https://composable-models.github.io/llm_ │ 多个 Agent                   │
+  │ debate/                                  │ 互相批评对方答案，达成共识   │
+  ├──────────────────────────────────────────┼──────────────────────────────┤
+  │ https://arxiv.org/html/2512.20845v1（202 │ 多角色 Persona 的 Agent      │
+  │ 4）                                      │ 从不同视角批判失败推理       │
+  ├──────────────────────────────────────────┼──────────────────────────────┤
+  │                                          │ 异构 Agent（不同模型/专长）  │
+  │ A-HMAD（2025）                           │ 辩论，GSM-8K 精度 91% vs     │
+  │                                          │ 单模型 82%                   │
+  └──────────────────────────────────────────┴──────────────────────────────┘
+
+  核心概念：Intra/Inter-Agent Critique——反思从"自言自语"变成"多方辩论"
+
+  ---
+  第五阶段：跨轨迹经验反思（2024-2025）
+
+  从单次任务反思 → 跨任务积累经验：
+
+  ┌──────────────────────────────────────┬──────────────────────────────────┐
+  │                 工作                 │             核心思路             │
+  ├──────────────────────────────────────┼──────────────────────────────────┤
+  │ ExpeL（2024）                        │ 比较成功与失败的历史轨迹，提取可 │
+  │                                      │ 复用 heuristics                  │
+  ├──────────────────────────────────────┼──────────────────────────────────┤
+  │ https://arxiv.org/abs/2603.24639（20 │ Experiential Reflective Learning │
+  │ 25）                                 │ ，构建可检索的策略池，Gaia2 基准 │
+  │                                      │  +7.8%                           │
+  ├──────────────────────────────────────┼──────────────────────────────────┤
+  │ Self-Learning Agents with            │ 任务内反思 + 任务间反思双层机制  │
+  │ Multi-level Reflection（EMNLP 2025） │                                  │
+  └──────────────────────────────────────┴──────────────────────────────────┘
+
+  核心概念：Trajectory-level Reflection——不只反思当前任务，而是从历史中蒸馏规律
+
+  ---
+  第六阶段：元认知双环反思（2025）
+
+  Dual-Loop Reflection（双环反思）：
+  - 外环（Extrospection）：对比自身输出与参考答案，识别差距，构建 Reflection
+  Bank
+  - 内环（Introspection）：推理时从 Reflection Bank 检索历史经验指导当前决策
+  - 灵感来源：认知科学的**元认知（Metacognition）**理论
+
+  ---
+  演进总结
+
+  原版 Generative Agents
+    └─ 内部积累触发 → 归纳抽象
+           ↓
+  Reflexion（语言强化学习）
+    └─ 失败触发 → 语言反思 → 记忆存储
+           ↓
+  发现瓶颈：自我反思 90% 是确认性的，不能真正纠错
+           ↓
+      ┌─────────────────────────────────┐
+      │ 多智能体辩论   跨轨迹经验提炼   │
+      │ 外部批评者驱动  成功/失败对比    │
+      └─────────────────────────────────┘
+           ↓
+  双环元认知反思（Extrospection + Introspection）
+    └─ 反思银行 + 在线检索 → 持续自我改进
+
+  核心趋势：反思从"被动归纳"→"主动纠错"→"批评者驱动"→"跨任务经验积累"→"元认知闭
+  环"。
+
+✻ Churned for 50s
+
+❯ 能把这些相关概念都关联起来画个图么                                            
+
+● Write(generative-agents-concept-map.html)
+  ⎿  Wrote 141 lines to generative-agents-concept-map.html
+       1 <!DOCTYPE html>
+       2 <html lang="zh">
+       3 <head>
+       4   <meta charset="UTF-8">
+       5   <title>Generative Agents 概念关联图</title>
+       6   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/merm
+         aid.min.js"></script>
+       7   <style>
+       8     body {
+       9       font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      10       background: #0f1117;
+     … +131 lines (ctrl+o to expand)
+
+● 已生成文件：/opt/workspace/doc/generative-agents-concept-map.html
+
+  用浏览器打开即可看到完整的概念关联图，内容包括：
+
+  图的结构：
+  - 中心：Generative Agents 原始论文
+  - 五条主线：记忆流 / 检索 / 反思 / 规划 / 行动与交互，分别展开各自的演进
+  - 反思子图：重点展开 6 个阶段的演进链（原版 → Reflexion → 局限发现 →
+  多智能体辩论 & 跨轨迹反思 → 双环元认知）
+  - 涌现行为：连接大规模仿真方向（OpenCity / AgentSociety / SocioVerse）
+
+  颜色区分：
+  - 紫色：原始论文
+  - 蓝色：记忆系统
+  - 绿色：检索机制
+  - 红色：反思演进
+  - 橙色：局限/警示节点
+  - 黄色：规划扩展
+  - 青色：行动/具身
+  - 淡紫：涌现/大规模
+
+✻ Brewed for 1m 20s
+
+❯ 把相关论文的url也用<a > 连接加到每个节点吧                                    
+
+  Read 1 file (ctrl+o to expand)
+
+● 现在更新文件，在每个节点加上论文链接（使用 Mermaid 的 click href 指令）：
+
+● Update(generative-agents-concept-map.html)
+  ⎿  Added 26 lines
+      121      class PL,ReAct,MultiCollab planning
+      122      class AC,Embodied,MLLM,ToolUse action
+      123      class EB,Scale,OpenCity,AgentSociety,SocioVerse emergent
+      124 +                                                              
+      125 +    %% ── 论文链接 ──                                         
+      126 +    click GA href "https://arxiv.org/abs/2304.03442" _blank   
+      127 +    click MS href "https://arxiv.org/abs/2304.03442" _blank   
+      128 +    click RT href "https://arxiv.org/abs/2304.03442" _blank   
+      129 +    click RF href "https://arxiv.org/abs/2304.03442" _blank   
+      130 +    click PL href "https://arxiv.org/abs/2304.03442" _blank   
+      131 +    click AC href "https://arxiv.org/abs/2304.03442" _blank   
+      132 +    click EB href "https://arxiv.org/abs/2304.03442" _blank   
+      133 +    click RF0 href "https://arxiv.org/abs/2304.03442" _blank  
+      134 +    click AMEM href "https://arxiv.org/abs/2502.12110" _blank 
+      135 +    click HiAgent href "https://arxiv.org/abs/2408.09559" _bla
+          +nk                                                            
+      136 +    click SharedMem href "https://www.techrxiv.org/users/10072
+          +69/articles/1367390/master/file/data/LLM_MAS_Memory_Survey_pre
+          +print_/LLM_MAS_Memory_Survey_preprint_.pdf" _blank            
+      137 +    click CrossAttn href "https://www.frontiersin.org/articles
+          +/10.3389/fpsyg.2025.1591618/full" _blank                      
+      138 +    click Reflexion href "https://arxiv.org/abs/2303.11366" _b
+          +lank                                                          
+      139 +    click Limit href "https://arxiv.org/abs/2310.01848" _blank
+      140 +    click MAD href "https://arxiv.org/abs/2305.14325" _blank  
+      141 +    click MAR href "https://arxiv.org/abs/2512.20845" _blank  
+      142 +    click TrajRF href "https://arxiv.org/abs/2603.24639" _blan
+          +k                                                             
+      143 +    click DualLoop href "https://arxiv.org/abs/2405.06682" _bl
+          +ank                                                           
+      144 +    click ReAct href "https://arxiv.org/abs/2210.03629" _blank
+      145 +    click MultiCollab href "https://arxiv.org/abs/2307.07924" 
+          +_blank                                                        
+      146 +    click AgentSociety href "https://arxiv.org/abs/2502.08691"
+          + _blank                                                       
+      147 +    click OpenCity href "https://aclanthology.org/2025.acl-ind
+          +ustry.94.pdf" _blank                                          
+      148 +    click MLLM href "https://openaccess.thecvf.com/content/CVP
+          +R2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_
+          +Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" _blank        
+      149 +    click ToolUse href "https://arxiv.org/abs/2210.03629" _bla
+          +nk                                                            
+      150    </div>
+      151  
+      152    <div style="max-width:1400px;margin:20px auto;display:flex;g
+           ap:16px;flex-wrap:wrap;font-size:12px;color:#9ca3af;">
+
+● 再加一行提示文字，告知用户节点可点击：
+
+● Update(generative-agents-concept-map.html)
+  ⎿  Added 1 line, removed 1 line
+      35  </head>
+      36  <body>
+      37    <h1>Generative Agents 核心概念与演进关联图</h1>
+      38 -  <p class="subtitle">从斯坦福小镇（2023）到 Agentic AI（2025）
+         -</p>                                                           
+      38 +  <p class="subtitle">从斯坦福小镇（2023）到 Agentic AI（2025）
+         +&nbsp;·&nbsp;点击节点可跳转论文</p>                            
+      39  
+      40    <div class="mermaid">
+      41  %%{init: {"theme": "dark", "themeVariables": {"fontSize": "14px
+          "}, "flowchart": {"rankSpacing": 60, "nodeSpacing": 40}}}%%
+
+● 已更新 /opt/workspace/doc/generative-agents-concept-map.html。
+
+  各节点链接对应关系：
+
+  节点: GA / MS / RT / RF / PL / AC / EB / 原版RF
+  论文: https://arxiv.org/abs/2304.03442 Generative Agents
+  ────────────────────────────────────────
+  节点: A-MEM
+  论文: https://arxiv.org/abs/2502.12110
+  ────────────────────────────────────────
+  节点: HiAgent
+  论文: https://arxiv.org/abs/2408.09559
+  ────────────────────────────────────────
+  节点: 共享记忆综述
+  论文: TechRxiv LLM-MAS Memory Survey
+  ────────────────────────────────────────
+  节点: Cross-Attention 检索
+  论文: https://www.frontiersin.org/articles/10.3389/fpsyg.2025.1591618/full
+  ────────────────────────────────────────
+  节点: Reflexion
+  论文: https://arxiv.org/abs/2303.11366 NeurIPS 2023
+  ────────────────────────────────────────
+  节点: 自我反思局限
+  论文: https://arxiv.org/abs/2310.01848 ICLR 2024
+  ────────────────────────────────────────
+  节点: MAD 多智能体辩论
+  论文: https://arxiv.org/abs/2305.14325
+  ────────────────────────────────────────
+  节点: MAR
+  论文: https://arxiv.org/abs/2512.20845
+  ────────────────────────────────────────
+  节点: ERL 跨轨迹反思
+  论文: https://arxiv.org/abs/2603.24639
+  ────────────────────────────────────────
+  节点: 双环元认知
+  论文: https://arxiv.org/abs/2405.06682
+  ────────────────────────────────────────
+  节点: ReAct / 工具调用
+  论文: https://arxiv.org/abs/2210.03629
+  ────────────────────────────────────────
+  节点: ChatDev
+  论文: https://arxiv.org/abs/2307.07924
+  ────────────────────────────────────────
+  节点: AgentSociety
+  论文: https://arxiv.org/abs/2502.08691
+  ────────────────────────────────────────
+  节点: OpenCity
+  论文: https://aclanthology.org/2025.acl-industry.94.pdf
+  ────────────────────────────────────────
+  节点: MLLM + World Model
+  论文: https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimod
+  al_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf
+
+  ▎ 注：VecDB、SocioVerse、Embodied、Scale 
+  为概念性节点，无单一对应论文，未加链接。
+
+✻ Sautéed for 1m 39s
