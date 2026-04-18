@@ -43,12 +43,15 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/27-mad-mar.html` — paired (both "后加"): MAD Multi-Agent Debate (Du et al. 2023) + MAR Persona Diversity (2024), debate-style reflection evolution
 - `html/deep-dive/28-self-correct-limits.html` — "后加": LLMs Cannot Self-Correct Reasoning Yet (Huang et al., ICLR 2024) — the pivotal paper that turned the reflection field toward external critique
 - `html/deep-dive/29-gea-embodied.html` — "后加": GEA Generalist Embodied Agent (Szot et al., CVPR 2025, Apple + Georgia Tech) — unified multi-embodiment action tokenizer
+- `html/deep-dive/30-mem0.html` — "后加": Mem0 Production-Ready AI Agents with Scalable Long-Term Memory (2025, arXiv:2504.19413)
+- `html/deep-dive/31-rmm.html` — "后加": In Prospect and Retrospect: Reflective Memory Management (RMM, 2025, arXiv:2503.08026) — prospective + retrospective dual-axis reflection
+- `html/deep-dive/32-memory-pomdp.html` — "后加": Memory for Autonomous LLM Agents: A POMDP Formalization (2026, arXiv:2603.07670) — theoretical formalization complementing empirical memory papers
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 29). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 32). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

@@ -40,6 +40,13 @@ Agent 在写 27 号时发现了现有 papers-reference 的**作者归属错误**
 - 方案 A：把 papers-reference.html 的 MAD 条目作者改成 Du et al.（保持 arXiv ID 不变）
 - 方案 B：把 arXiv ID 改成 2305.19118（保持 Liang et al. 署名），增补一个 Du et al. 条目
 
+### Self-Correct 论文 arXiv ID 已修正
+
+- papers-reference.html 和 concepts-map.html 之前写的是 **2310.01848**（错误）
+- 通过 WebSearch 确认真实 arXiv ID 是 **2310.01798**（https://arxiv.org/abs/2310.01798）
+- ICLR 2024, Huang, Chen, Mishra, Zheng, Yu, Song, Zhou
+- 已批量替换，deep-dive/28 用的本就是 2310.01798（正确）
+
 ### MAR 论文的实际标题与摘要数据差异
 
 - papers-reference 原描述：A-HMAD 变体 GSM-8K 91%
