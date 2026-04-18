@@ -39,6 +39,7 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/18-21` — 4 memory-focused deep-dives (HiAgent, Generative Agents 原始论文, A-MEM, MemoryOS)
 - `html/deep-dive/22-24` — 3 multi-agent & memory-survey deep-dives (all "后加"): MetaGPT SOP 流水线, ChatDev Waterfall 瀑布, Memory in the Age of AI Agents 综述
 - `html/deep-dive/25-expel-erl.html` — trilogy deep-dive (all "后加"): ExpeL insights pool (AAAI 2024) + AutoGuide context-aware guidelines (NeurIPS 2024) + ERL heuristics pool (arXiv 2026.03), three-gen evolution of 跨轨迹经验反思: 聚合→条件→检索
+- `html/deep-dive/26-cross-attention-retrieval.html` — Cross-Attention 检索 (Hong & He, Frontiers in Psychology 2025): trainable ACAN network replaces Smallville's hand-tuned Recency×Importance×Relevance scoring formula
 
 ## Paper Addition Workflow
 
