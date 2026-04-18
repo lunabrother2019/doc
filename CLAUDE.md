@@ -46,12 +46,15 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/30-mem0.html` — "后加": Mem0 Production-Ready AI Agents with Scalable Long-Term Memory (2025, arXiv:2504.19413)
 - `html/deep-dive/31-rmm.html` — "后加": In Prospect and Retrospect: Reflective Memory Management (RMM, 2025, arXiv:2503.08026) — prospective + retrospective dual-axis reflection
 - `html/deep-dive/32-memory-pomdp.html` — "后加": Memory for Autonomous LLM Agents: A POMDP Formalization (2026, arXiv:2603.07670) — theoretical formalization complementing empirical memory papers
+- `html/deep-dive/33-socioverse.html` — "后加": SocioVerse (arXiv:2504.10157, Fudan DISC): 10M real-user pool world model for social simulation, 2024 election 92.2% accuracy
+- `html/deep-dive/34-1000-people.html` — "后加": Generative Agent Simulations of 1,000 People (arXiv:2411.10109, Park et al. 2024) — Stanford followup using deep interviews of 1052 people, 85% attitude prediction
+- `html/deep-dive/35-opencity.html` — "后加": OpenCity (ACL 2025, Tsinghua FIB Lab) — 10K-agent urban simulation framework with epoll LLM scheduler and group-and-distill
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 32). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 35). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

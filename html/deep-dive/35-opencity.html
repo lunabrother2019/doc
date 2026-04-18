@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读35：OpenCity — 开源大规模城市 Agent 仿真框架</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.tag-org { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: var(--yellow); }
+    .hero .paper-ref.tag-github { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.3); color: var(--green); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--cyan); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: "Courier New", monospace; background: rgba(34,211,238,0.08); color: var(--cyan); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.accent .stat-val { color: var(--accent); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(34,211,238,0.15); color: var(--cyan); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+    .arch-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .arch-box .arch-title { font-size: 13px; font-weight: 700; color: var(--cyan); margin-bottom: 6px; }
+    .arch-box .arch-body { font-size: 13px; color: var(--text); line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>OpenCity — 开源大规模城市 Agent 仿真框架 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：清华 FIB Lab 提出的 <strong>OpenCity</strong> 用 <span class="hl">IO 多路复用 LLM 调度器</span> + <span class="hl-pink">group-and-distill 提示蒸馏</span>，把"万级 Agent 城市仿真"的单 Agent 时间从 36 秒压到 0.06 秒，<span class="hl-green">600× 加速</span>，让 10000 个 LLM Agent 在 6 大全球城市跑完一天日常活动只要 1 小时——把 Generative Agents 从"小镇 25 人"推向"工业级城市"。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://aclanthology.org/2025.acl-industry.94.pdf" target="_blank">ACL 2025 Industry</a> · Yan et al. · 2025</div>
+    <div class="paper-ref tag">Urban Simulation / Multi-Agent</div>
+    <div class="paper-ref tag-org">Tsinghua FIB Lab + HKUST(GZ)</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref tag">10K Agent</div>
+    <div class="paper-ref tag-github"><a href="https://github.com/tsinghua-fib-lab/Anonymous-OpenCity" target="_blank" style="color:inherit;">⭐ GitHub: tsinghua-fib-lab/Anonymous-OpenCity</a></div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2410.21286" target="_blank">arXiv:2410.21286</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 工业界为何要城市仿真</a>
+    <a href="#sec3">3. 架构：调度+蒸馏</a>
+    <a href="#sec4">4. 与同类的对照</a>
+    <a href="#sec5">5. 实验：6 城 × 10K Agent</a>
+    <a href="#sec6">6. 与小镇的联系</a>
+    <a href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">Cross-ref</span>
+  <a href="./17-agent-society.html">17 · AgentSociety</a>
+  <a href="./19-generative-agents.html">19 · Generative Agents</a>
+  <a href="./27-park-1000.html">27 · Park 1000-Agent</a>
+  <a href="./34-socioverse.html">34 · SocioVerse</a>
+  <span class="cr-personal">后加专题</span>
+</div>
+
+<div class="container">
+
+<!-- ============================== SECTION 1 ============================== -->
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num">1</div><h2>一句话定位：把"小镇 25 人"扩到"城市万人"的工业级开源 stack</h2></div>
+
+  <p>
+    OpenCity 不是一篇"提出新 Agent 架构"的论文，而是一篇<strong>系统工程论文</strong>：它接受 Generative Agents (Park 2023) 已经定义的"Memory + Plan + Reflect" Agent 模型，专攻的是<span class="hl">"如何让这个模型同时跑一万个、跨真实地理空间、还便宜到能在普通服务器上完成"</span>这个问题。
+    它的两板斧——<span class="hl-cyan">系统级 LLM 请求调度</span>和<span class="hl-pink">提示级 group-and-distill 蒸馏</span>——分别从"网络 IO 等待"和"prompt 冗余"两个维度做了大幅优化。
+  </p>
+
+  <div class="stat-row">
+    <div class="stat-box pink">
+      <div class="stat-val">10,000</div>
+      <div class="stat-label">单次仿真 Agent 数</div>
+    </div>
+    <div class="stat-box green">
+      <div class="stat-val">600×</div>
+      <div class="stat-label">单 Agent 时间加速</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val">~70%</div>
+      <div class="stat-label">LLM 请求数下降</div>
+    </div>
+    <div class="stat-box yellow">
+      <div class="stat-val">~50%</div>
+      <div class="stat-label">Token 用量下降</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="stat-val">6</div>
+      <div class="stat-label">实测全球城市</div>
+    </div>
+    <div class="stat-box accent">
+      <div class="stat-val">1 hour</div>
+      <div class="stat-label">10K Agent 跑完一天</div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话版</div>
+    OpenCity = "<span class="hl-cyan">epoll 风格的 LLM 请求调度器</span>" + "<span class="hl-pink">把同质 Agent 聚类后蒸馏成共享 prefix prompt</span>" 的开源城市仿真平台，用工程把 Generative Agents 推到了万级规模。
+  </div>
+
+  <h3>核心数据点（论文摘要 / 表格）</h3>
+  <ul>
+    <li><strong>Per-agent runtime（10K 规模）</strong>：六城平均 <span class="hl-green">0.058 秒/Agent/步</span>；从 N=1 时 36.25 秒缩到 N=10K 时 0.06 秒，<span class="hl">600× 加速</span>。</li>
+    <li><strong>请求 / Token 节省</strong>：跨 6 城平均 73.7% 请求减少、45.5% token 减少。</li>
+    <li><strong>验证基准</strong>：首次用真实人口数据（OD 矩阵、回转半径、收入隔离指数）对照 LLM Agent 群体行为。</li>
+  </ul>
+</section>
+
+<!-- ============================== SECTION 2 ============================== -->
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num">2</div><h2>为什么工业界需要"大规模"城市 Agent 仿真</h2></div>
+
+  <h3>动机一：交通——单点决策不能预测涌现拥堵</h3>
+  <p>
+    城市交通的拥堵本质上是<span class="hl">百万级出行决策的非线性叠加</span>。传统交通仿真（SUMO、MATSim）使用规则化"出行链"模型——上班、回家、送娃，路径由 OD 矩阵 + 路径选择算法生成。这套模型在常规通勤建模有效，但<strong>无法描述"突发事件下的人群行为变化"</strong>：地铁停运时大家会改打车还是走路？大型活动后散场时人群心理如何影响疏散？
+    这些场景需要 Agent 拥有<span class="hl-cyan">语义理解 + 主观决策能力</span>，正是 LLM Agent 擅长的，但前提是规模能撑得起一个真正的城市。
+  </p>
+
+  <h3>动机二：应急疏散——"如果"问题需要可重放仿真</h3>
+  <p>
+    地震、火灾、化学泄漏、极端天气——城市应急规划本质是大量"if-then"假设：如果路 A 封闭呢？如果只开放某些避难所呢？如果广播 5 分钟前发出呢？传统 ABM 给不出可信的"人会怎么反应"，而真人演练成本极高。
+    LLM Agent 的优势在于能基于<span class="hl-pink">个体画像（年龄、家庭、工作）做差异化反应</span>——老人慢、家长会绕去接孩子、上班族倾向于先看消息再决定。但这要求<strong>万级以上 Agent 同时跑、并且能在小时级完成多次重放</strong>——这正是 OpenCity 600× 加速带来的工程红利。
+  </p>
+
+  <h3>动机三：城市规划——隔离指数 / 公平性这类社会指标</h3>
+  <p>
+    OpenCity 直接做了一个反事实实验：在纽约和旧金山把居民收入"打平"后，<span class="hl">隔离指数从 0.845 降到 0.172</span>。这种规划级政策模拟在传统手段里需要做问卷+建模数月，而 LLM Agent 仿真平台可以"按下按钮，第二天看新指数"。
+  </p>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">"开源 + 大规模"的工业意义</div>
+    城市仿真的工业用户（市政、规划院、应急局）<strong>必须能本地化部署</strong>。OpenCity 走开源 + commodity hardware 路线，是从学术 demo 跨到工业 stack 的关键决策。同时它把规模门槛推到 10K——这让"阶层固化、信息茧房、流行扩散"等只在大规模上才能观察到的社会涌现，第一次有了可重放的研究底座。
+    <span class="unconfirmed">licensing 细节待实证</span>
+  </div>
+</section>
+
+<!-- ============================== SECTION 3 ============================== -->
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num">3</div><h2>架构：多进程 + 异步调度 + 状态同步 + 提示蒸馏</h2></div>
+
+  <p>
+    OpenCity 的整体栈可以拆成 <strong>"输入层 → Agent 池 → LLM 调度层 → 提示优化层 → 状态环境"</strong> 五段。其中"<span class="hl-cyan">LLM 请求调度器</span>"和"<span class="hl-pink">group-and-distill 提示器</span>"是论文真正的两个新贡献。
+  </p>
+
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="arch-title">① 输入：城市 + 人口画像</div>
+      <div class="arch-body">
+        从 OpenStreetMap 拉真实路网/POI；从 census 类数据生成 N 万 Agent 的 demographic profile（年龄、职业、收入、家庭结构）。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">② Agent 池：多进程并发</div>
+      <div class="arch-body">
+        Agent 内部沿用 Generative Agents 的 Memory Stream + Plan + Reflect。多个 Agent 进程/协程并发推进自己的"一天"，每步在需要决策时向 LLM 调度器投递 request。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">③ LLM 请求调度器（关键）</div>
+      <div class="arch-body">
+        <strong>IO 多路复用 (epoll)</strong>：把"等待 LLM 回包"的死时间用 epoll 监听一批 socket，批量处理 ready 的连接。<br>
+        <strong>连接池复用</strong>：避免每次请求都建 TCP/TLS。<br>
+        <strong>本地 CPU 任务卸载</strong>：解析 / 后处理交给空闲 worker，不阻塞下一个请求。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">④ Group-and-Distill 提示器（关键）</div>
+      <div class="arch-body">
+        <strong>聚类</strong>：基于静态属性（年龄、性别、收入等）把相似 Agent 聚成一簇。<br>
+        <strong>蒸馏</strong>：抽出 cluster 共享的 prompt prefix，仅对每个 Agent 拼上其动态属性。<br>
+        <strong>批量提交</strong>：以 batch 形式提交给 LLM，节省重复 prefix 的 token 解析。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">⑤ 状态同步</div>
+      <div class="arch-body">
+        每个 step 结束后，Agent 的位置 / 行为写回中心化"城市世界状态"，下一步 perception 重新读。这一层用共享内存或轻量 KV store 实现，减少广播开销。<span class="unconfirmed">具体存储后端待实证</span>
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">⑥ Web 控制台</div>
+      <div class="arch-body">
+        论文额外提供 no-code Web 门户：选城市 → 选规模 → 跑仿真 → 看可视化。这是"工业可用"的重要一步。
+      </div>
+    </div>
+  </div>
+
+  <h3>调度器为什么有用：把"网络等待"变成"并发流水线"</h3>
+  <p>
+    LLM 仿真里最被忽视的瓶颈是<strong>网络 IO 等待</strong>——发出 request 后，CPU 大部分时间在 sleep 等 token 流回来。论文的关键观察：
+  </p>
+  <div class="callout callout-warn">
+    <div class="callout-title">论文核心 observation</div>
+    "Sending LLM requests and receiving generated output account for only a small portion of total communication time, while the rest are wasted on waiting for LLM responses and repeatedly establishing TCP connections."
+    <br><br>
+    翻译：真正"在动"的时间只占一小部分，剩下都浪费在等 LLM 响应和重建 TCP 连接上。
+  </div>
+  <p>
+    解决方案就是<span class="hl-cyan">把 LLM 当作"高延迟、高吞吐的远端服务"来对待</span>，借鉴 Web 服务器（nginx、Node.js）的事件驱动 IO 模型——epoll/kqueue + 连接池——一个进程同时管理上千个 in-flight request。
+  </p>
+
+  <h3>蒸馏为什么有用：万人城市的 prompt 大量同质</h3>
+  <p>
+    一个城市仿真里，10000 个 Agent 的 prompt 大量重复——"你是一名 35 岁、男性、年收入 12 万的软件工程师，住在朝阳区..." 这种 prefix 对每个相似 Agent 几乎一样。如果分别发送，token 消耗是<span class="hl">线性叠加</span>的。
+  </p>
+  <div class="formula"><span class="label">Group-and-Distill 直观表达：</span>
+原始（10K agents，每个独立 prompt）：
+  cost ≈ 10000 × (prefix_tokens + dynamic_tokens)
+
+聚类后（K=100 簇）：
+  cost ≈ 100 × prefix_tokens + 10000 × dynamic_tokens
+  → 节省 ~ (10000 - 100) × prefix_tokens ≈ 50% token
+
+加上 in-context prototype learning：
+  prompt 自适应总结每簇典型行为，进一步减少 LLM 的「想清楚」开销
+</div>
+
+  <p>
+    论文报告的 <span class="hl-green">~50% token reduction + ~70% request reduction</span> 主要来自这一步。注意："请求数减少"比"token 减少"更省钱——因为每个请求本身有 round-trip 成本和最低 billing 单位。
+  </p>
+
+  <h3>整体执行 pipeline</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>初始化</strong>：从城市数据生成 N 万 Agent + 静态属性聚类（K 簇）。</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>tick</strong>：Agent 并发推进，需要决策的 Agent 把 (cluster_id, dynamic_state) 投到调度器。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>调度器</strong>：按 cluster 分组、套 distilled prefix、批量发 LLM 请求，epoll 监听响应。</div></div>
+    <div class="pipe-step"><div class="pipe-num">4</div><div class="pipe-body"><strong>回流 + 同步</strong>：解析 → 写入 Memory → 触发 action → 更新世界状态 → tick++。</div></div>
+  </div>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">技术哲学</div>
+    OpenCity 没"创造新 Agent 智能"，而是<span class="hl">把 Web 工程的事件驱动并发 + 数据库的批查询优化搬进 LLM Agent 仿真</span>——证明 LLM Agent 已经开始有真正的工程瓶颈和工程解，非常适合 ACL Industry Track。
+  </div>
+</section>
+
+<!-- ============================== SECTION 4 ============================== -->
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num">4</div><h2>对照：AgentSociety / SocioVerse / Park 1000 / OpenCity</h2></div>
+
+  <p>
+    2024-2025 年城市/社会仿真领域出现了几条几乎并行的工作。它们的侧重点不同，OpenCity 在其中的位置是"<span class="hl-cyan">工业化系统层</span>"。
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>项目</th>
+          <th>规模</th>
+          <th>主要贡献</th>
+          <th>侧重</th>
+          <th>开源情况</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Generative Agents (Park 2023)</strong></td>
+          <td>25</td>
+          <td>Memory Stream + Reflection + Plan 三件套</td>
+          <td>架构原型</td>
+          <td>研究 demo（Phaser.js）</td>
+        </tr>
+        <tr>
+          <td><strong>Park 1000 (2024)</strong></td>
+          <td>1,052</td>
+          <td>用真实问卷 prompt 真人 → 复现宏观社会回应</td>
+          <td>"高保真个体"验证</td>
+          <td>受限</td>
+        </tr>
+        <tr>
+          <td><a href="./17-agent-society.html"><strong>AgentSociety (2024)</strong></a></td>
+          <td>10K+</td>
+          <td>城市级社会仿真平台 + 多领域实验（经济/舆论/政策）</td>
+          <td>研究框架 + 应用</td>
+          <td>开源（pycityagent → AgentSociety）</td>
+        </tr>
+        <tr>
+          <td><a href="./34-socioverse.html"><strong>SocioVerse (2025)</strong></a></td>
+          <td>10M user pool</td>
+          <td>对齐真实社会的 LLM 驱动世界模型，覆盖 4 大模拟场景</td>
+          <td>"社会真实性"对齐</td>
+          <td>部分开源</td>
+        </tr>
+        <tr>
+          <td><span class="hl-pink"><strong>OpenCity (本文)</strong></span></td>
+          <td>10K（验证规模）</td>
+          <td>LLM 请求调度 + 提示蒸馏，<span class="hl">600× 加速</span></td>
+          <td><span class="hl-cyan">工业级系统层</span></td>
+          <td><span class="hl-green">完全开源 + Web Portal</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>四者的关系：互补而非竞争</h3>
+  <ul>
+    <li><strong>Park 1000</strong> 解决"<em>个体 Agent 真不真</em>"，<strong>AgentSociety</strong> 解决"<em>怎么搭实验</em>"，<strong>SocioVerse</strong> 解决"<em>整体世界对不对</em>"。</li>
+    <li><span class="hl-pink"><strong>OpenCity</strong></span> 解决"<em>跑得快不快、便宜不便宜</em>"——把工程瓶颈砍掉，让前三者在工业场景落地成为可能。</li>
+    <li>vs Park 1000：Park 偏"<em>个体真实度</em>"（1052 个真人画像 + 抽象 econ game），OpenCity 偏"<em>群体规模 + 空间真实度</em>"（census 采样 + 真实 6 城地图）。</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">为什么 OpenCity 与 AgentSociety 同源、却独立成文</div>
+    都来自<strong>清华 FIB Lab</strong>。<code>pycityagent</code> 已归档迁移到 AgentSociety，而 OpenCity 像这一系工作的"性能子项目"——专攻底层 LLM 调度 + prompt 优化。两篇文章可视为同一工程栈的两个切面。
+    <span class="unconfirmed">两者代码合并/独立维护策略待实证</span>
+  </div>
+</section>
+
+<!-- ============================== SECTION 5 ============================== -->
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num">5</div><h2>实验：6 大全球城市 × 10K Agent + 一个反事实 case study</h2></div>
+
+  <h3>实验 1 · 性能 benchmark：6 城 × 10K Agent</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>城市</th>
+          <th>Per-agent runtime</th>
+          <th>请求减少</th>
+          <th>Token 减少</th>
+          <th>意义</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Beijing</td><td>≈ 0.06s</td><td>~74%</td><td>~46%</td><td>东亚高密城市</td></tr>
+        <tr><td>New York</td><td>≈ 0.06s</td><td>~74%</td><td>~46%</td><td>典型 grid 都市</td></tr>
+        <tr><td>San Francisco</td><td>≈ 0.06s</td><td>~73%</td><td>~45%</td><td>地形复杂 + 收入差异大</td></tr>
+        <tr><td>London</td><td>≈ 0.06s</td><td>~74%</td><td>~46%</td><td>欧洲老城路网</td></tr>
+        <tr><td>Paris</td><td>≈ 0.06s</td><td>~73%</td><td>~45%</td><td>放射型 + 公共交通密集</td></tr>
+        <tr><td>Sydney</td><td>≈ 0.06s</td><td>~74%</td><td>~45%</td><td>南半球验证</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    跨六城几乎一致的加速比说明 OpenCity 的优化与<span class="hl">城市具体结构无关</span>——它优化的是 LLM 通信 + prompt 同质性，而这两者在任何城市仿真里都成立。
+  </p>
+
+  <h3>实验 2 · Scaling 曲线：1 → 10K 的"摊薄效应"</h3>
+  <div class="formula"><span class="label">Per-agent time 随规模变化（论文报告）：</span>
+N=1: 36.25 s/agent/step → N=10K: ~0.06 s/agent/step → 600× speedup
+</div>
+
+  <p>
+    这条曲线说明 OpenCity 的设计<span class="hl-cyan">规模越大越省</span>——批处理 + 聚类需要"足够多 Agent"才能摊薄 fixed cost，这与传统 ABM"规模越大越慢"直觉相反。
+    工程意义：10K Agent 一天日常活动 ≈1 小时（commodity hardware），百万级 Agent 按趋势线外推也在十几小时可行域。<span class="unconfirmed">百万级外推未在原文实测</span>
+  </p>
+
+  <h3>Case Study：纽约 / 旧金山的"收入隔离反事实实验"</h3>
+
+  <p>
+    论文最有意思的是这个反事实实验——既能 demo 平台能力，也能输出可解释的政策洞察：
+  </p>
+
+  <div class="card">
+    <p><strong>场景</strong>：模拟纽约和旧金山 10K Agent 的日常活动，测量"<em>收入隔离指数</em>"（Income Segregation Index，衡量不同收入群体在空间上接触的概率有多低）。</p>
+    <p><strong>实验组对比</strong>：</p>
+    <ul>
+      <li><strong>Baseline</strong>：使用真实 census 收入分布。<br>→ 纽约隔离指数 = <span class="hl">0.845</span></li>
+      <li><strong>反事实</strong>：将所有 Agent 的收入改为均匀分布（即"如果每个人都收入相同"）。<br>→ 纽约隔离指数降到 <span class="hl-green">0.172</span></li>
+    </ul>
+    <p><strong>解读</strong>：<span class="hl-cyan">隔离的~80% 来自"哪种人住在哪"，只有少部分来自"日常活动选择"</span>。这意味着，纯靠"鼓励大家去不同地方消费"的政策很难显著降低空间隔离——必须改变住房分布本身。</p>
+  </div>
+
+  <p>
+    这个 case study 之所以值得放进 deep-dive，是因为它示范了"<strong>万级 Agent + 可重放 + 可调参数</strong>"组合带来的全新能力——以前只能做问卷 / 历史回归的政策实验，现在可以变成<span class="hl-pink">"按下按钮跑一天"的可重复仿真</span>。
+  </p>
+
+  <h3>真实数据对照（验证仿真的可信度）</h3>
+  <ul>
+    <li><strong>个体级</strong>：回转半径 (radius of gyration) 与真实手机轨迹分布对照。</li>
+    <li><strong>群体级</strong>：起讫点 (OD) 流量矩阵与真实出行调查对照。</li>
+    <li><strong>社会域</strong>：收入隔离指数与 American Community Survey 等官方数据对照。</li>
+  </ul>
+  <p>OpenCity 的 LLM Agent 在三个维度都与传统 EPR (Explore and Preferential-Return) 规则模型<span class="hl-green">持平或更接近真值</span>，证明 LLM 真能补上规则模型缺乏的"语义/动机"层。</p>
+</section>
+
+<!-- ============================== SECTION 6 ============================== -->
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num">6</div><h2>与斯坦福小镇的联系：把"研究 demo"工程化为"工业 stack"</h2></div>
+
+  <h3>定位差异</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>斯坦福小镇 (Park 2023)</th><th>OpenCity (Yan 2025)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>规模</td><td>25 Agent</td><td><span class="hl-pink">10,000 Agent</span></td></tr>
+        <tr><td>地图</td><td>手工绘制 Phaser.js 像素小镇</td><td>真实 OSM 路网，6 大全球城市</td></tr>
+        <tr><td>人物</td><td>研究人员手写人格</td><td>从 census 自动生成 demographic 画像</td></tr>
+        <tr><td>Agent 内核</td><td>Memory + Plan + Reflect</td><td>沿用 + 加 group-and-distill 蒸馏</td></tr>
+        <tr><td>系统瓶颈</td><td>未优化（学术 demo）</td><td>epoll 调度器 + 连接池 + batch prompt</td></tr>
+        <tr><td>研究目的</td><td>"LLM Agent 能否表现可信社会行为"</td><td>"LLM Agent 仿真能否扩到工业可用"</td></tr>
+        <tr><td>代码可用性</td><td>开源研究代码</td><td>开源 + Web 控制台 + commodity hardware 友好</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">关键关系</div>
+    OpenCity <strong>没有改 Agent 内核</strong>。它接受小镇的"Memory + Plan + Reflect"是好的 Agent 形式，专攻让这套形式<span class="hl-cyan">扩规模、扩地理、扩可重放</span>。
+    所以读 OpenCity 不必担心"是不是要重学一套 Agent 范式"——它就是把<span class="hl-pink">小镇的 25 人版扩到 10000 人版的工程论文</span>。
+  </div>
+
+  <div class="sv-link">
+    小镇的核心贡献是"Agent 智能形式"；OpenCity 的核心贡献是"Agent 智能<strong>批量化系统</strong>"。两者像 PyTorch 之于 CUDA：一个是上层模型语言，一个是下层系统优化。学术研究关注前者，落地工程关注后者，缺一不可。
+  </div>
+
+  <h3>对 Generative Agents 研究路线的意义</h3>
+  <ul>
+    <li><strong>规模门槛被打破</strong>：commodity hardware + 几十美元 token 预算就能复现万人仿真。</li>
+    <li><strong>真实地理接入</strong>：把"虚构小镇"换成"真城市"，结果可以直接对照真实数据——研究 falsifiability 大幅提升。</li>
+    <li><strong>"系统级 LLM Agent 工程"成为独立子领域</strong>：vLLM × Agent、Agent-aware caching、KV reuse 等方向会越来越多，OpenCity 是早期标志。</li>
+  </ul>
+</section>
+
+<!-- ============================== FAQ ============================== -->
+<section class="section" id="faq">
+  <div class="sec-head"><div class="sec-num">?</div><h2>FAQ：两个最常被问到的问题</h2></div>
+
+  <div class="faq-item">
+    <div class="q">Q1. OpenCity 跟 AgentSociety 都是清华 FIB Lab 的，到底有什么区别？要选哪一个？</div>
+    <div class="a">
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>AgentSociety</strong>（见 <a href="./17-agent-society.html">deep-dive 17</a>）：上层<em>研究框架</em>，Agent / 社会 / 城市 / 应用四层抽象，重点是"<span class="hl-cyan">怎么搭一个城市仿真实验</span>"。</li>
+        <li><span class="hl-pink"><strong>OpenCity</strong></span>：下层<em>系统加速 + 开源 stack</em>，重点是"<span class="hl-cyan">让仿真跑得快、便宜、多</span>"。</li>
+      </ul>
+      实践建议：研究者做舆论 / 经济 / 政策实验，优先 AgentSociety；工程师要把 LLM Agent 上量产，优先借走 OpenCity 的调度器和 group-and-distill 设计。
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q2. Group-and-Distill 把"相似 Agent"聚类共享 prefix，会不会让 Agent 失去"个体差异"？</div>
+    <div class="a">
+      合理担忧。论文的设计回应：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>共享的只是 prefix</strong>：每个 Agent 的<span class="hl-pink">动态属性（当前位置、心情、最近 Memory）</span>仍然 per-agent 拼接，最终 prompt 仍然个性化。</li>
+        <li><strong>聚类基于"语义相似的静态属性"</strong>：年龄、收入、职业对"是否吃午饭"这类行为的影响本就<span class="hl">同质</span>，共享 prefix 不会显著伤害决策多样性。</li>
+        <li><strong>反事实实验是验证</strong>：纽约隔离指数 case 表明，聚类后仍能正确反映"收入分布 → 空间隔离"——细粒度社会信号被保住。</li>
+        <li><strong>指标对照</strong>：回转半径、OD 矩阵都与真实数据对齐，间接证明聚类+蒸馏没牺牲行为真实度。</li>
+      </ul>
+      核心思想是<span class="hl-cyan">"对同质特征共享，对异质特征独立"</span>——类似 vLLM 里 KV-cache prefix sharing 的角色，既省 token 又不糊掉个体。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color: var(--cyan); font-weight: 600;">← 返回索引</a>
+  <p style="margin-top: 10px;">深度解读 35 · OpenCity: A Scalable Platform to Simulate Urban Activities with Massive LLM Agents · ACL 2025 Industry · Tsinghua FIB Lab + HKUST(GZ)</p>
+</div>
+
+</body>
+</html>

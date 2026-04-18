@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读33：SocioVerse — 一千万真实用户池的社会仿真世界模型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2a1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(244,114,182,0.08); border-color: rgba(244,114,182,0.3); color: var(--pink); }
+    .hero .paper-ref.tag-org { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: var(--yellow); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--pink); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.accent .stat-val { color: var(--accent); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(244,114,182,0.06); border: 1px solid rgba(244,114,182,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--pink); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(244,114,182,0.15); color: var(--pink); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+    .arch-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .arch-box .arch-title { font-size: 13px; font-weight: 700; color: var(--pink); margin-bottom: 6px; }
+    .arch-box .arch-body { font-size: 13px; color: var(--text); line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>SocioVerse — 一千万真实用户池的社会仿真世界模型 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：复旦大学 DISC 实验室 2025 年 4 月推出的 <strong>SocioVerse</strong> 把"社会仿真"从小镇的 <span class="hl-pink">25 个手写 persona</span> 拉到 <span class="hl">1000 万条真实用户画像</span>，用四层 alignment（环境 / 用户 / 场景 / 行为）+ IPF 人口校准，在<strong>美国大选、ChatGPT 新闻反响、中国居民消费</strong>三大真实场景中，把大选州级预测拉到 92.2% 准确率、10 个摇摆州命中 8 个。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2504.10157" target="_blank">arXiv:2504.10157</a> · Zhang et al. · 2025.04</div>
+    <div class="paper-ref tag">10M Users</div>
+    <div class="paper-ref tag-org">Fudan University (DISC)</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.25);color:var(--green);">💾 代码：<a href="https://github.com/FudanDISC/SocioVerse" target="_blank" style="color:var(--green);">github.com/FudanDISC/SocioVerse</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 关键创新</a>
+    <a href="#sec3">3. 架构四件套</a>
+    <a href="#sec4">4. 校准 Pipeline</a>
+    <a href="#sec5">5. 三大实验</a>
+    <a href="#sec6">6. 对照小镇 / AgentSociety</a>
+    <a href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">Cross-ref</span>
+  <a href="./17-agent-society.html">17 · AgentSociety</a>
+  <a href="./19-generative-agents.html">19 · Generative Agents</a>
+  <a href="./21-memory-os.html">21 · Memory-OS</a>
+  <a href="../papers-reference.html">Papers</a>
+  <span class="cr-personal">后加专题</span>
+</div>
+
+<div class="container">
+
+<!-- ============================== SECTION 1 ============================== -->
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num">1</div><h2>一句话定位：用 1000 万条"真人画像"初始化社会仿真</h2></div>
+
+  <p>
+    SocioVerse 是复旦大学 DISC 实验室（Zhongyu Wei 课题组）提出的<strong>社会仿真世界模型</strong>。它的核心论断只有一句：<span class="hl-pink">想让大模型预测真实社会行为，就必须用真实人口数据对齐它——而不是让研究者手搓几十个 persona</span>。
+    为此作者从 X（推特）和小红书抓了 1028 万条真实用户的历史发帖，用 LLM 标注 + 人工核验 + 分类器训练的方式把<strong>年龄、性别、职业、种族、收入、教育等 15 个维度</strong>都打上标签，形成一个"可随机抽样初始化 Agent"的真人池。
+  </p>
+
+  <div class="stat-row">
+    <div class="stat-box pink">
+      <div class="stat-val">10M</div>
+      <div class="stat-label">真实用户画像</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val">15</div>
+      <div class="stat-label">人口学维度</div>
+    </div>
+    <div class="stat-box green">
+      <div class="stat-val">3</div>
+      <div class="stat-label">实证场景（政治/新闻/经济）</div>
+    </div>
+    <div class="stat-box yellow">
+      <div class="stat-val">92.2%</div>
+      <div class="stat-label">2024 大选州级准确率</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="stat-val">4</div>
+      <div class="stat-label">对齐引擎</div>
+    </div>
+    <div class="stat-box accent">
+      <div class="stat-val">Fudan</div>
+      <div class="stat-label">主作机构</div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话版</div>
+    把小镇<span class="hl">"手写 25 个 persona"</span>换成<span class="hl-pink">"从真人池里按人口分布随机抽样"</span>——这就是 SocioVerse 的灵魂。其余的 IPF 校准、多场景模板、ABC 态度建模，都是为了让这条抽样链在"政治 / 新闻 / 经济"等公共议题上真的有效。
+  </div>
+
+  <p>
+    作者机构层面：主力来自 <strong>复旦大学数据智能与社会计算实验室 (DISC)</strong>，合作方包括 University of Rochester（Jiebo Luo 团队）、Indiana University，以及小红书（Xiaohongshu Inc.）——后者直接解释了为什么 SocioVerse 能拿到 920 万条 Rednote 用户数据。<span class="unconfirmed">数据协议细节</span>
+  </p>
+</section>
+
+<!-- ============================== SECTION 2 ============================== -->
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num">2</div><h2>关键创新：真实用户画像 vs 小镇的手写 persona</h2></div>
+
+  <h3>小镇的"persona 瓶颈"</h3>
+  <p>
+    回看 2023 年的 Generative Agents (arXiv:2304.03442)：Smallville 里的 25 个居民，每个人的性格、职业、家庭关系都是研究者用<strong>一段自然语言 seed memory</strong> 手写进 prompt 的。比如：
+  </p>
+  <div class="formula"><span class="label">小镇 persona 范例（简化）：</span>
+Name: John Lin
+Age: 45
+Occupation: Pharmacy shopkeeper
+Personality: Friendly, hardworking, loves family
+Seed memory: John lives with his wife Mei and son Eddy...
+</div>
+  <p>
+    这种"作者神 (author-god)"方式的优点是可控、可读，缺点是：<span class="hl-pink">完全依赖研究者的想象力</span>，25 个人不足以构成有统计意义的总体，样本既不多样也不真实，没法做"美国大选会怎样"这类需要<strong>对齐真实人口分布</strong>的问题。
+  </p>
+
+  <h3>SocioVerse 的换法：从真人身上反推 persona</h3>
+  <div class="callout callout-insight">
+    <div class="callout-title">关键转向</div>
+    不再写"一个典型中年药店老板"，而是<strong>直接拿一千万条真实用户的历史帖子</strong>，让每个 Agent 都是对一个具体真人的画像复刻：<span class="hl-cyan">帖子文本 + 15 维人口标签</span>共同构成 persona，抽样时按真实人口分布按需调用。
+  </div>
+
+  <h3>两者差异一览</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>小镇 (Park 2023)</th><th>SocioVerse (2025)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Persona 来源</td><td>研究者手写自然语言种子</td><td>1000 万真实社媒用户</td></tr>
+        <tr><td>规模</td><td>25 人（单镇）</td><td>10M 用户池，实验单次抽样 16K–331K</td></tr>
+        <tr><td>人口分布对齐</td><td>无，靠作者经验</td><td>IPF + 人口普查/ANES 先验</td></tr>
+        <tr><td>目标任务</td><td>涌现社会行为、叙事连贯</td><td>预测真实公共议题反应</td></tr>
+        <tr><td>可验证性</td><td>定性（参议员选举、情人节派对）</td><td>定量（大选 RMSE / 消费 KL 散度）</td></tr>
+        <tr><td>领域迁移</td><td>需要重写世界</td><td>复用模板，换用户+换场景</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">为什么这很重要</div>
+    把社会仿真从"讲故事"带入"做预测"。小镇证明了 LLM Agent 能涌现出<strong>像样的社会行为</strong>；SocioVerse 则在问——<span class="hl">能不能像天气预报一样预测社会行为？</span>答案是"至少在 2024 大选上能做到 92.2%"。
+  </div>
+</section>
+
+<!-- ============================== SECTION 3 ============================== -->
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num">3</div><h2>架构四件套：世界模型的四层对齐</h2></div>
+
+  <p>
+    SocioVerse 把社会仿真拆解为<strong>四个 alignment 维度</strong>，每个维度配一个引擎。这是论文的核心贡献之一——把"世界模型"这个虚词变成了可复用的四件套组件。
+  </p>
+
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="arch-title">① Social Environment（社会环境）</div>
+      <div class="arch-body">
+        注入<strong>三类现实上下文</strong>：<br>
+        • <strong>社会结构</strong>：人口分布、文化规范。<br>
+        • <strong>社会动态</strong>：时效性新闻、政策事件。<br>
+        • <strong>个性化上下文</strong>：推荐 feed、关注列表。<br>
+        解决"LLM 静态知识与动态世界错位"的问题。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">② User Engine（用户引擎）</div>
+      <div class="arch-body">
+        <strong>10M 真人池</strong>：X（1M 用户 / 3000 万帖）+ Rednote（920 万用户 / 4100 万帖）。<br>
+        经"LLM 标注 → 人工核验 → 分类器蒸馏"打上 15 维人口标签（年龄/性别/职业/收入/教育等），LongFormer 给英文、BERT-base-chinese 给中文。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">③ Scenario Engine（场景引擎）</div>
+      <div class="arch-body">
+        把"交互结构"抽象成<strong>四种模板</strong>：<br>
+        • <strong>Questionnaire</strong>：1-to-N（一题多人答）<br>
+        • <strong>Interview</strong>：1-to-1 深访<br>
+        • <strong>Behavior Experiment</strong>：1-to-N / N-to-N<br>
+        • <strong>Social Media Interaction</strong>：N-to-N<br>
+        让同一框架能插拔不同实验。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">④ Behavior Engine（行为引擎）</div>
+      <div class="arch-body">
+        混合两类 agent：<br>
+        • <strong>规则型 Agent</strong>：高并发、低成本，用在消费记账这类可结构化行为。<br>
+        • <strong>LLM Agent</strong>：复杂推理，用在态度生成 / 新闻评论等。<br>
+        通用/专家/领域三类模型按需切换。
+      </div>
+    </div>
+  </div>
+
+  <h3>形式化：仿真的总体目标</h3>
+  <div class="formula"><span class="label">SocioVerse 世界模型的抽象公式（作者意图的重构）：</span>
+Response_sim = f_behavior( f_env(E, t),                 # 环境对齐
+                           sample(UserPool | π_demo),   # 用户对齐
+                           template(scenario_type) )    # 场景对齐
+
+其中 π_demo 由 IPF / IDS 从真实人口边际分布重建
+</div>
+
+  <p>
+    这四件套的野心是"<span class="hl-pink">像软件 SDK 一样可复用</span>"——换个国家、换个议题，只需要替换 <code>UserPool</code>、<code>scenario template</code>、<code>environment feed</code>，behavior engine 主体不动。
+  </p>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">现实状态</div>
+    论文自己承认："当前版本只实现了框架的一部分"——意味着 Scenario Engine 的四类模板并非都已在实验中完整验证，Social Media Interaction（N-to-N）部分实现细节较少。<span class="unconfirmed">未来版本补全</span>
+  </div>
+</section>
+
+<!-- ============================== SECTION 4 ============================== -->
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num">4</div><h2>校准 Pipeline：IPF + 先验分布 + 分类器蒸馏</h2></div>
+
+  <p>
+    SocioVerse 的工程灵魂在校准——如何从"有偏采样的社媒用户"推到"人口统计意义上的真实样本"。作者的 pipeline 分三步。
+  </p>
+
+  <h3>Step 1：用户池构建 &amp; 清洗</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>抓取</strong>：X 和 Rednote 用户的公开发帖，时间跨度未完全披露。<span class="unconfirmed">具体窗口</span></div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>反机器人/反广告</strong>：用文本相似度（重复率 0.3 阈值）过滤 bots 和推广号。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>活跃度过滤</strong>：保证每个用户有足够历史内容可以反推画像。</div></div>
+  </div>
+
+  <h3>Step 2：15 维人口学标注（弱监督 + 蒸馏）</h3>
+  <ol>
+    <li><strong>LLM 标注</strong>：用 GPT-4 / Qwen 级模型读取用户帖子，输出 15 维标签。</li>
+    <li><strong>人工核验</strong>：小样本人工抽检作为 gold set，评估 LLM 标注准确率。</li>
+    <li><strong>分类器蒸馏</strong>：用 LLM+人工结果作为训练集训 <span class="hl-cyan">LongFormer（英文）/ BERT-base-chinese（中文）</span>，批量推到 10M 规模。这是 SocioVerse 能扩展到千万级的工程关键。</li>
+  </ol>
+
+  <div class="callout callout-green">
+    <div class="callout-title">为什么要分类器蒸馏</div>
+    直接用 LLM 标 1000 万条要烧掉天量 token。把 LLM 标注作为"<span class="hl">教师</span>"训练一个专用分类器作为"<span class="hl">学生</span>"，推理成本下降 2–3 个数量级，让千万级人口池从 PoC 变成可维护资产。
+  </div>
+
+  <h3>Step 3：IPF 迭代人口比例拟合</h3>
+  <p>
+    构建好用户池后，抽样阶段需要让样本分布匹配目标人口（如"美国合格选民分布"或"上海常住人口分布"）。SocioVerse 用的是经典统计方法：
+  </p>
+  <ul>
+    <li><strong>IPF (Iterative Proportional Fitting)</strong>：给定年龄、性别、地区等若干<strong>边际分布</strong>，迭代拟合出满足所有边际约束的联合分布。人口普查不会告诉你"30 岁女性纽约居民"的具体比例，但会告诉你"30 岁"、"女性"、"纽约"的独立边际；IPF 把这三个边际"缝合"成联合。</li>
+    <li><strong>IDS (Identical Distribution Sampling)</strong>：一旦联合分布计算好，直接按它从用户池里抽人。</li>
+    <li><strong>先验源</strong>：美国用 Census + ANES（美国全国选举研究）；中国用国家/地区统计年鉴；消费实验用地区收入分布。</li>
+  </ul>
+
+  <div class="formula"><span class="label">IPF 迭代骨架（伪代码）：</span>
+P(age, gender, region) ← 均匀初始化
+repeat:
+    对 age 维度   归一化到 P_census(age)
+    对 gender 维度 归一化到 P_census(gender)
+    对 region 维度 归一化到 P_census(region)
+until 收敛
+</div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">消融发现</div>
+    论文的 ablation 明确显示：<strong>去掉先验分布或去掉真实用户历史帖，预测准确率显著下降</strong>。这给"世界模型 = 真实数据先验"这个论点提供了直接证据——仅凭 LLM 的参数知识是不够的。
+  </div>
+</section>
+
+<!-- ============================== SECTION 5 ============================== -->
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num">5</div><h2>三大实验：政治 / 新闻 / 经济</h2></div>
+
+  <p>
+    SocioVerse 选了三个<strong>议题类型截然不同</strong>的场景做验证，覆盖"有标准答案"（大选、消费）和"无标准答案但有分布"（新闻情感）两类。
+  </p>
+
+  <h3>实验一：2024 美国大选预测（政治）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>项</th><th>设计</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>样本</td><td>~331K Agent，按美国合格选民人口分布抽样</td></tr>
+        <tr><td>环境</td><td>注入候选人信息、选情新闻</td></tr>
+        <tr><td>任务</td><td>每个 Agent 投票 → 州级汇总 → 选举人团计算</td></tr>
+        <tr><td>指标</td><td>州级预测准确率 / 得票率 RMSE</td></tr>
+        <tr><td>结果</td><td><span class="hl-green">Qwen2.5-72B 达 92.2% 准确率，10 个摇摆州命中 8 个</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    这是整篇论文最亮眼的单点成绩。和传统民调相比，SocioVerse 不需要打电话和付费招募，<strong>复现成本极低、可以反复跑"假设性扰动"</strong>（比如"如果某政策出台会如何影响"）。
+  </p>
+
+  <h3>实验二：ChatGPT 发布的新闻情感（突发事件）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>项</th><th>设计</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>样本</td><td>~20K Rednote 用户（tech 兴趣人群）</td></tr>
+        <tr><td>任务</td><td>ChatGPT 发布时公众态度预测</td></tr>
+        <tr><td>心理学模型</td><td><strong>ABC</strong>：Affect（情绪）/ Behavior（行为倾向）/ Cognition（认知）</td></tr>
+        <tr><td>指标</td><td>6 维 Likert 量表上的 NRMSE + KL 散度</td></tr>
+        <tr><td>结果</td><td>GPT-4o 与 Qwen2.5 与真实用户反应高度一致</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    这个实验把社会心理学的 <span class="hl-cyan">ABC 模型</span>嵌进了 prompt——让 Agent 不只回答"好/坏"，而是分别给出情绪、行为倾向、认知判断。这种结构化输出比自由文本更容易做定量评估。
+  </p>
+
+  <h3>实验三：中国居民消费结构（经济）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>项</th><th>设计</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>样本</td><td>~16K Agent，按区域人口和收入分布抽样</td></tr>
+        <tr><td>任务</td><td>预测 8 类支出（食品 / 居住 / 医疗 / 教育 / 交通 / 通信 / 娱乐 / 其他）</td></tr>
+        <tr><td>指标</td><td>每类支出的 NRMSE + 整体 KL 散度</td></tr>
+        <tr><td>结果</td><td>Llama3-70B 整体表现最佳；日常品类准确度高，<span class="hl">住房相关预测偏差较大</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">有意思的失败模式</div>
+    住房经济表现不好——作者分析原因：LLM 的训练语料里"买房/房租占收入比"这类<strong>需要地域性专业知识</strong>的内容权重不足，导致 Agent 对高房价城市的估计偏低。这提示了纯 LLM+persona 路线的天花板。
+  </div>
+
+  <h3>跨实验的发现</h3>
+  <ul>
+    <li><strong>模型不是越大越好</strong>：不同领域最优模型不同（Qwen2.5 强在政治、Llama3-70B 强在消费、GPT-4o 强在情感）。</li>
+    <li><strong>系统性"不同意偏差"</strong>：LLM Agent 倾向于比真人更频繁给出"不同意 / 不选择"，需要专门 debias。</li>
+    <li><strong>人口先验的边际价值递减</strong>：从"无先验"到"边际分布先验"提升显著；从"边际"到"联合"提升有限。</li>
+  </ul>
+</section>
+
+<!-- ============================== SECTION 6 ============================== -->
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num">6</div><h2>对照：SocioVerse vs 小镇 vs AgentSociety vs Park 2024</h2></div>
+
+  <p>
+    社会仿真的三个里程碑工作加上 SocioVerse，正好可以画一张四象限对比：
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>Smallville (Park 2023)</th>
+          <th>1,000 Agents (Park 2024)</th>
+          <th>AgentSociety (2024)</th>
+          <th><span class="hl-pink">SocioVerse (2025)</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>规模</td>
+          <td>25 人单镇</td>
+          <td>1,052 访谈 + 复刻</td>
+          <td>10K+ Agent 社会</td>
+          <td><strong>10M 用户池 / 单次 16K-331K</strong></td>
+        </tr>
+        <tr>
+          <td>Persona 数据来源</td>
+          <td>研究者手写</td>
+          <td>2 小时真人深度访谈</td>
+          <td>合成 profile + 人口分布</td>
+          <td><strong>社媒真人历史帖 + 15 维标签</strong></td>
+        </tr>
+        <tr>
+          <td>校准方法</td>
+          <td>无</td>
+          <td>访谈生成 memory bank</td>
+          <td>人口分布采样</td>
+          <td><strong>IPF + Census/ANES 先验 + 分类器蒸馏</strong></td>
+        </tr>
+        <tr>
+          <td>验证任务</td>
+          <td>涌现事件（派对/选举）</td>
+          <td>GSS / BFI / 经济实验复刻</td>
+          <td>群体极化 / 信息传播</td>
+          <td><strong>大选 / 突发新闻 / 消费结构</strong></td>
+        </tr>
+        <tr>
+          <td>指标形态</td>
+          <td>定性 + credibility</td>
+          <td>个体级 r² / 归一化准确率</td>
+          <td>群体级分布</td>
+          <td><strong>州级准确率 / NRMSE / KL 散度</strong></td>
+        </tr>
+        <tr>
+          <td>核心信念</td>
+          <td>LLM 就能涌现社会</td>
+          <td>访谈 &gt; 人口标签</td>
+          <td>人口分布采样 &gt; 手写</td>
+          <td><strong>真人池 + 统计校准 &gt; 合成</strong></td>
+        </tr>
+        <tr>
+          <td>代码</td>
+          <td>开源 (GitHub)</td>
+          <td>未全开源</td>
+          <td>开源 (agentsociety)</td>
+          <td><strong>开源 FudanDISC/SocioVerse</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>哲学定位：三条对 persona 的不同假设</h3>
+  <ul>
+    <li><strong>Park 2023（小镇）</strong>：Persona 由作者写就，LLM 负责让它"活起来"。</li>
+    <li><strong>Park 2024（1000 Agents）</strong>：Persona 必须来自<span class="hl-cyan">高保真个人访谈</span>，2 小时深访比任何 demographic 标签都重要。</li>
+    <li><strong>AgentSociety</strong>：Persona 是<strong>合成的但人口分布正确</strong>的，不追求个体高保真，追求群体代表性。</li>
+    <li><strong>SocioVerse</strong>：Persona 来自<span class="hl-pink">真人数字痕迹</span>——不是访谈（贵）也不是合成（假），而是"社媒历史帖 + 人口标签"的折中路线，然后用 IPF 保证抽样分布对齐。</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">关键洞察</div>
+    四者不是替代关系而是<strong>谱系关系</strong>：小镇重叙事、Park 2024 重个体保真、AgentSociety 重群体动力学、SocioVerse 重<span class="hl-pink">公共议题的预测校准</span>。选哪条路取决于你问的是"社会会演化成什么样"还是"今天的美国会投给谁"。
+  </div>
+
+  <div class="sv-link">
+    SocioVerse 相当于给<strong>小镇的 Memory Stream</strong> 换了一个"来源"：不再是剧作家构造的虚构经验，而是真实个体在社交媒体上留下的数字影子。小镇的架构本身可以不变——变的是 seed memory 的<span class="hl-pink">统计真实性</span>。
+  </div>
+</section>
+
+<!-- ============================== FAQ ============================== -->
+<section class="section" id="faq">
+  <div class="sec-head"><div class="sec-num">?</div><h2>FAQ</h2></div>
+
+  <div class="faq-item">
+    <div class="q">Q1. 为什么不像 Park 2024 那样做真人访谈？1000 人就够了，真的需要 1000 万吗？</div>
+    <div class="a">
+      两条路线解决不同问题：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li>Park 2024 做的是"<strong>个体保真</strong>"——能不能让 Agent 在认知/态度问卷上复刻具体某个真人 Alice 的回答？2 小时访谈 ≈ 读懂一个人的信念结构。</li>
+        <li>SocioVerse 做的是"<strong>总体代表性</strong>"——能不能让 10 万个 Agent 的群体回应复刻"美国所有选民"？这要求样本<span class="hl">覆盖人口分布的每个角落</span>，只有 10M 量级的用户池才能在按 IPF 抽样时保证每个人口格子里都有足够可选样本。</li>
+      </ul>
+      一句话：访谈追求<strong>深度</strong>，SocioVerse 追求<strong>广度</strong>。做大选预测必须广；做个体心理研究必须深。
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q2. "LLM 标注人口属性"本身会不会有严重偏差？比如把大学生都猜成城市人？</div>
+    <div class="a">
+      这是数据流水线里最危险的一环。SocioVerse 的三重防御：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>人工核验</strong>：小样本金标集评估 LLM 标注准确率，论文公布了不同维度的 accuracy（但具体数字分布未完全披露）。<span class="unconfirmed">各维度 accuracy 明细</span></li>
+        <li><strong>分类器蒸馏的正则效应</strong>：LongFormer / BERT 学不到 LLM 里的长尾噪声，相当于给标签"退火"。</li>
+        <li><strong>IPF 在后处理</strong>：即使单个用户的标签有误，只要群体上与人口普查对齐，抽样后的统计意义依然成立。</li>
+      </ul>
+      但坦率地说，这条流水线的<strong>系统性偏差</strong>（比如少数族裔在社媒声量不足）仍是未解难题。论文也承认住房类经济预测偏差较大，部分原因就在于社媒群体不代表全社会。
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q3. 和斯坦福小镇相比，SocioVerse 能跑"涌现社会行为"（比如自发举办派对）吗？</div>
+    <div class="a">
+      不能，或者说<strong>没被设计来做这件事</strong>。
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li>小镇的任务形态是<span class="hl">开放式多轮互动</span>：Agent 自己规划、相遇、聊天、回忆、反思，产生"派对"这种非脚本事件。核心是<strong>长时序 + 多 Agent 耦合</strong>。</li>
+        <li>SocioVerse 的任务形态是<span class="hl-pink">结构化一次性作答</span>：给定问题（投票/态度/支出），Agent 按模板给答案，再做群体聚合。没有 Memory Stream、没有 Reflection、没有计划。</li>
+      </ul>
+      可以把 SocioVerse 视作"小镇的<strong>问卷版人口</strong>"：只用到了 persona + reasoning，没用到记忆/规划/反思。如果未来要在 SocioVerse 上跑涌现故事，需要把小镇的 Memory Stream 架构嫁接进 Behavior Engine，形成"10M 真人池 + Memory 栈"的融合体——这可能是这条研究线下一个里程碑。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color: var(--pink); font-weight: 600;">← 返回索引</a>
+  <p style="margin-top: 10px;">深度解读 33 · SocioVerse: A World Model for Social Simulation · arXiv:2504.10157 · Fudan DISC (2025.04)</p>
+  <p style="margin-top: 6px;">代码：<a href="https://github.com/FudanDISC/SocioVerse" target="_blank" style="color:var(--green);">github.com/FudanDISC/SocioVerse</a></p>
+</div>
+
+</body>
+</html>
