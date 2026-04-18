@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5 条演进链速读 — Generative Agents 关键论文一览</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 48px 24px 36px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 30px); color: var(--cyan); margin-bottom: 10px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .tip { display: inline-block; margin-top: 14px; font-size: 12px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 5px 14px; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 4px; padding: 8px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 12px; border-radius: 6px; transition: all .2s; flex-shrink: 0; font-weight: 500; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+    .nav a.c1:hover { color: var(--cyan); }
+    .nav a.c2:hover { color: var(--green); }
+    .nav a.c3:hover { color: var(--orange); }
+    .nav a.c4:hover { color: var(--accent); }
+    .nav a.c5:hover { color: var(--pink); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px 64px; }
+
+    .chain { margin-bottom: 56px; }
+    .chain-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+    .chain-num { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #0f1117; flex-shrink: 0; }
+    .chain-head h2 { font-size: 22px; font-weight: 600; }
+    .chain-head .chain-tag { font-size: 12px; color: var(--muted); background: var(--bg3); padding: 3px 10px; border-radius: 20px; margin-left: auto; }
+
+    /* Timeline visual */
+    .timeline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; padding: 14px 18px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+    .timeline .tl-item { font-weight: 600; padding: 5px 12px; border-radius: 6px; }
+    .timeline .tl-arrow { color: var(--muted); font-size: 14px; }
+    .timeline .tl-year { font-size: 11px; color: var(--muted); margin-left: 4px; font-weight: normal; }
+
+    .c-reasoning .chain-num { background: var(--cyan); }
+    .c-reasoning .tl-item { background: rgba(34,211,238,.12); color: var(--cyan); border: 1px solid rgba(34,211,238,.3); }
+    .c-action .chain-num { background: var(--green); }
+    .c-action .tl-item { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+    .c-memory .chain-num { background: var(--orange); }
+    .c-memory .tl-item { background: rgba(251,146,60,.12); color: var(--orange); border: 1px solid rgba(251,146,60,.3); }
+    .c-reflection .chain-num { background: var(--accent); }
+    .c-reflection .tl-item { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.3); }
+    .c-multi .chain-num { background: var(--pink); }
+    .c-multi .tl-item { background: rgba(244,114,182,.12); color: var(--pink); border: 1px solid rgba(244,114,182,.3); }
+
+    /* Paper cards */
+    .paper-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .p-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; position: relative; transition: all .2s; }
+    .p-card:hover { border-color: var(--accent); transform: translateX(2px); }
+    .p-card .p-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .p-card .p-idx { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--bg3); padding: 3px 8px; border-radius: 4px; }
+    .p-card .p-name { font-size: 17px; font-weight: 600; color: var(--text); }
+    .p-card .p-year { font-size: 12px; color: var(--muted); }
+    .p-card .p-links { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+    .p-card .p-link { font-size: 11px; padding: 3px 10px; border-radius: 5px; text-decoration: none; font-weight: 600; transition: all .15s; }
+    .p-card .p-link.arxiv { background: rgba(96,165,250,.1); color: var(--blue); border: 1px solid rgba(96,165,250,.3); }
+    .p-card .p-link.arxiv:hover { background: rgba(96,165,250,.2); }
+    .p-card .p-link.dd { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.3); }
+    .p-card .p-link.dd:hover { background: rgba(167,139,250,.22); }
+    .p-card .p-link.code { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+    .p-card .p-line { font-size: 13.5px; margin-top: 6px; line-height: 1.75; }
+    .p-card .p-line .label { display: inline-block; width: 76px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; vertical-align: top; }
+    .p-card .p-line .val { display: inline-block; width: calc(100% - 86px); color: #c9d1d9; }
+    .p-card .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .p-card.shared { border-left: 3px solid var(--yellow); }
+    .shared-badge { font-size: 10px; background: rgba(251,191,36,.15); color: var(--yellow); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(251,191,36,.35); font-weight: 700; }
+
+    /* Cross-chain callout */
+    .cross-section { margin-top: 40px; }
+    .cross-callout { background: linear-gradient(135deg, rgba(251,191,36,.06), rgba(167,139,250,.06)); border: 1px solid rgba(251,191,36,.25); border-radius: 12px; padding: 22px 26px; }
+    .cross-callout h3 { color: var(--yellow); font-size: 17px; margin-bottom: 12px; }
+    .cross-callout ul { padding-left: 22px; }
+    .cross-callout li { margin-bottom: 8px; font-size: 13.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1200px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 32px 16px 24px; }
+      .container { padding: 20px 12px 48px; }
+      .p-card { padding: 14px 16px; }
+      .p-card .p-line .label { width: auto; display: block; margin-bottom: 2px; }
+      .p-card .p-line .val { width: 100%; display: block; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>5 条演进链速读 🧭</h1>
+  <p class="sub">
+    把 Generative Agents 领域的关键论文沿着<strong>推理 / 行动 / 记忆 / 反思 / 多 Agent</strong>五个维度串起来,<br>
+    每条链内按演进时间由早到晚排列,每篇论文一张卡 —— 一眼看到"它解决什么"和"相对前者进了哪一步"。
+  </p>
+  <div class="tip">💡 每张卡片均含 arXiv 原文链接 + 本库深度解读链接,可即点即读</div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#reasoning" class="c1">① 推理链</a>
+    <a href="#action" class="c2">② 行动链</a>
+    <a href="#memory" class="c3">③ 记忆链</a>
+    <a href="#reflection" class="c4">④ 反思链</a>
+    <a href="#multi" class="c5">⑤ 多 Agent 链</a>
+    <a href="#cross">🔗 跨链观察</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联:</span>
+  <a href="index1.html">导航主页</a>
+  <a href="concepts-map.html">概念图</a>
+  <a href="papers-reference.html">论文库</a>
+  <a href="cot-reflexion-map.html">CoT × Reflexion 关系图</a>
+</div>
+
+<div class="container">
+
+  <!-- ============ 推理链 ============ -->
+  <div class="chain c-reasoning" id="reasoning">
+    <div class="chain-head">
+      <div class="chain-num">①</div>
+      <h2>推理链 — 从单链到集体搜索</h2>
+      <span class="chain-tag">Reasoning Evolution · 4 篇</span>
+    </div>
+
+    <div class="timeline">
+      <span class="tl-item">CoT<span class="tl-year">2022</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">ToT<span class="tl-year">2023.05</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">LATS<span class="tl-year">2023.10</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">Multi-Agent ToT<span class="tl-year">2024.09</span></span>
+    </div>
+
+    <div class="paper-grid">
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">1 / 4</span>
+          <span class="p-name">Chain-of-Thought (CoT)</span>
+          <span class="p-year">NeurIPS 2022 · Wei et al. (Google)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2201.11903" target="_blank">arXiv 2201.11903</a>
+            <a class="p-link dd" href="deep-dive/07-chain-of-thought.html">深度解读 →</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">让 LLM 输出答案前先写"中间推理步骤",GSM8K 从 <span class="hl">18% → 74%</span>,无需任何微调。</span></div>
+        <div class="p-line"><span class="label">地位</span><span class="val">整条链的<strong>起点</strong>。没有这篇,下面三个工作都无从谈起。是 LLM "涌现推理能力"的决定性证据。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">2 / 4</span>
+          <span class="p-name">Tree of Thoughts (ToT)</span>
+          <span class="p-year">NeurIPS 2023 · Yao et al. (Princeton/Google)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2305.10601" target="_blank">arXiv 2305.10601</a>
+            <a class="p-link dd" href="deep-dive/11-tree-of-thoughts.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/princeton-nlp/tree-of-thought-llm" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">把 CoT 的"思维链"扩展成"思维树",每步生成多个候选,允许 <span class="hl">回溯和并行探索</span>。</span></div>
+        <div class="p-line"><span class="label">相对 CoT</span><span class="val">从<strong>单路径贪心</strong>升级到<strong>多路径搜索</strong>。遇到 24 点数学题、创意写作这类需要尝试的任务,准确率大幅提升。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">3 / 4</span>
+          <span class="p-name">LATS — Language Agent Tree Search</span>
+          <span class="p-year">ICML 2024 · Zhou et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2310.04406" target="_blank">arXiv 2310.04406</a>
+            <a class="p-link dd" href="deep-dive/13-lats.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/lapisrocks/LanguageAgentTreeSearch" target="_blank">Code</a>
+            <span class="shared-badge">⚡ 同时属于反思链</span>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">用 MCTS 统一 ReAct + ToT + Reflexion,一个 LLM 同时扮演<strong>行动生成器 / 价值函数 / 反思器</strong>三重角色。</span></div>
+        <div class="p-line"><span class="label">相对 ToT</span><span class="val">ToT 只在<strong>推理空间</strong>搜索,LATS 把搜索扩到<strong>行动空间</strong>(能与环境交互),并在搜索过程中实时反思 —— 这是三篇前置工作的集大成者。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">4 / 4</span>
+          <span class="p-name">Multi-Agent ToT Validator</span>
+          <span class="p-year">arXiv 2024.09</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2409.11527" target="_blank">arXiv 2409.11527</a>
+            <a class="p-link dd" href="deep-dive/16-multi-agent-tot-validator.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/SecureAIAutonomyLab/MA-ToT" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">多个 Reasoner Agent 并行跑 ToT,再由专门的 <strong>Validator Agent</strong> 做外部逻辑批评,两者博弈产出最终答案。</span></div>
+        <div class="p-line"><span class="label">相对 LATS</span><span class="val">LATS 让同一个 LLM 自己评价自己,难免"自证偏见"。本工作引入<strong>独立批评者</strong>,把"集体推理"形式化,是从"搜索"走向"辩论"的关键一步。</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 行动链 ============ -->
+  <div class="chain c-action" id="action">
+    <div class="chain-head">
+      <div class="chain-num">②</div>
+      <h2>行动链 — 从闭环反馈到终身学习</h2>
+      <span class="chain-tag">Action Evolution · 4 篇</span>
+    </div>
+
+    <div class="timeline">
+      <span class="tl-item">Inner Monologue<span class="tl-year">2022.07</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">ReAct<span class="tl-year">2022.10</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">Plan-and-Solve<span class="tl-year">2023.05</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">Voyager<span class="tl-year">2023.05</span></span>
+    </div>
+
+    <div class="paper-grid">
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">1 / 4</span>
+          <span class="p-name">Inner Monologue</span>
+          <span class="p-year">CoRL 2022 · Huang et al. (Google / Everyday Robots)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2207.05608" target="_blank">arXiv 2207.05608</a>
+            <a class="p-link dd" href="deep-dive/09-inner-monologue.html">深度解读 →</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">把 LLM 的自我对话嵌入机器人<strong>闭环控制</strong>,通过感知/成功检测/人类反馈重新规划 —— <span class="hl">最早的具身 LLM Agent</span>。</span></div>
+        <div class="p-line"><span class="label">地位</span><span class="val">早于 ReAct 3 个月,是"LLM + 环境交互"的史前形态,核心主张:<strong>LLM 需要持续的语言反馈才能纠偏</strong>。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">2 / 4</span>
+          <span class="p-name">ReAct</span>
+          <span class="p-year">ICLR 2023 · Yao et al. (Princeton/Google)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2210.03629" target="_blank">arXiv 2210.03629</a>
+            <a class="p-link dd" href="deep-dive/08-react.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/ysymyth/ReAct" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val"><code>Thought → Action → Observation</code> 交替的 loop 范式。<span class="hl">所有后续 Agent 框架都是它的变体</span>。</span></div>
+        <div class="p-line"><span class="label">相对前者</span><span class="val">Inner Monologue 只在具身场景,ReAct 把"推理-行动交错"<strong>通用化</strong>到任意工具调用 / 问答 / 搜索任务,成为 LangChain / AutoGPT 等工程化框架的蓝本。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">3 / 4</span>
+          <span class="p-name">Plan-and-Solve</span>
+          <span class="p-year">ACL 2023 · Wang et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2305.04091" target="_blank">arXiv 2305.04091</a>
+            <a class="p-link dd" href="deep-dive/12-plan-and-solve.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">在 CoT 基础上显式拆成<strong>两阶段</strong>:先让 LLM 输出完整计划,再按计划逐步求解。</span></div>
+        <div class="p-line"><span class="label">相对 ReAct</span><span class="val">ReAct 是"边想边做",容易被局部错误带偏。Plan-and-Solve 强制"<span class="hl">先想完再做</span>",在数学/推理类任务上更稳定,是"规划优先"思想的代表。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">4 / 4</span>
+          <span class="p-name">Voyager</span>
+          <span class="p-year">arXiv 2023.05 · Wang et al. (NVIDIA/Caltech)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2305.16291" target="_blank">arXiv 2305.16291</a>
+            <a class="p-link dd" href="deep-dive/14-voyager.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/MineDojo/Voyager" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">Minecraft 里的 GPT-4 Agent:<strong>自动课程</strong>(自己给自己出任务) + <strong>技能库</strong>(把学会的代码存起来) + <strong>迭代 prompt</strong>。</span></div>
+        <div class="p-line"><span class="label">相对前者</span><span class="val">ReAct / Plan-and-Solve 做<strong>单次任务</strong>,Voyager 第一次证明 LLM Agent 能<span class="hl">自主成长</span> —— 今天的技能成为明天的工具。行动链在此从"一次性决策"走向"终身学习"。</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 记忆链 ============ -->
+  <div class="chain c-memory" id="memory">
+    <div class="chain-head">
+      <div class="chain-num">③</div>
+      <h2>记忆链 — 从扁平日志到系统级调度</h2>
+      <span class="chain-tag">Memory Evolution · 5 篇 · 数据结构演进</span>
+    </div>
+
+    <div class="timeline">
+      <span class="tl-item">Smallville<br>扁平<span class="tl-year">2023.04</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">HiAgent<br>分层<span class="tl-year">2024.08</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">A-MEM<br>图网络<span class="tl-year">2025.02</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">Memori<br>三元组<span class="tl-year">2026</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">MemoryOS<br>三级 OS<span class="tl-year">2025.05</span></span>
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:10px 14px;background:rgba(251,146,60,.06);border-left:3px solid var(--orange);border-radius:6px;">
+      💡 注意:这条链按<strong>数据结构的概念演进</strong>排列,不是严格按时间。MemoryOS (2025.05) 实际早于 Memori (2026),但从"结构复杂度"看 MemoryOS 是更系统化的工程答卷。
+    </div>
+
+    <div class="paper-grid">
+
+      <div class="p-card shared">
+        <div class="p-head">
+          <span class="p-idx">1 / 5</span>
+          <span class="p-name">Generative Agents (Smallville)</span>
+          <span class="p-year">UIST 2023 Best Paper · Park et al. (Stanford/Google)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2304.03442" target="_blank">arXiv 2304.03442</a>
+            <a class="p-link dd" href="deep-dive/19-generative-agents.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/joonspk-research/generative_agents" target="_blank">Code ⭐18k</a>
+            <span class="shared-badge">⚡ 同时属于反思链</span>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">扁平时间序列 Memory Stream,每条记忆独立存在,按 <code>recency × importance × relevance</code> <strong>三分打分</strong>取 top-k 检索。</span></div>
+        <div class="p-line"><span class="label">地位</span><span class="val">所有现代 Agent 记忆系统的起点。朴素但完整 —— 25 个 Agent / 2 天仿真下运行良好,但在长时尺度下必然崩溃,后续 4 篇都是对它的攻击。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">2 / 5</span>
+          <span class="p-name">HiAgent</span>
+          <span class="p-year">arXiv 2024.08 · Hu et al. (HKU/Shanghai AI Lab)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2408.09559" target="_blank">arXiv 2408.09559</a>
+            <a class="p-link dd" href="deep-dive/18-hiagent.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/HiAgent2024/HiAgent" target="_blank">GitHub</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">双层工作记忆:<strong>子目标栈</strong>(高层只存阶段摘要) + <strong>行动-观察窗口</strong>(底层只存当前子目标相关),LLM 主动决定何时"结案"。</span></div>
+        <div class="p-line"><span class="label">相对 Smallville</span><span class="val">从<strong>扁平</strong>到<strong>分层</strong>。长程任务上下文从 O(N) 压到近似 O(1),5 个基准上成功率 <span class="hl">~2x</span>,步数 -3.8。任务驱动的结构化压缩。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">3 / 5</span>
+          <span class="p-name">A-MEM</span>
+          <span class="p-year">NeurIPS 2025 · Xu et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2502.12110" target="_blank">arXiv 2502.12110</a>
+            <a class="p-link dd" href="deep-dive/20-a-mem.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/WujiangXu/A-mem" target="_blank">GitHub</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">Zettelkasten(卡片笔记法)式关联网络:每条新记忆写入时,LLM <strong>自动判断与哪些已有记忆建边</strong>,形成知识图谱。</span></div>
+        <div class="p-line"><span class="label">相对 HiAgent</span><span class="val">从<strong>层级</strong>到<strong>图网络</strong>。HiAgent 的分层是任务驱动的,A-MEM 的图是<span class="hl">语义驱动</span>的 —— 检索从"打分排序"变成"节点定位 + 沿边扩展"。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">4 / 5</span>
+          <span class="p-name">Memori</span>
+          <span class="p-year">arXiv 2026</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2603.19935" target="_blank">arXiv 2603.19935</a>
+            <a class="p-link dd" href="deep-dive/06-memori.html">深度解读 →</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">把对话并行拆成<strong>语义三元组</strong>(主-谓-宾) + 会话摘要,用 FAISS + BM25 混合检索。</span></div>
+        <div class="p-line"><span class="label">相对 A-MEM</span><span class="val">A-MEM 的边由 LLM 临机判断(语义模糊),Memori 用<strong>显式的 (s, p, o) 结构</strong>约束记忆表示。仅用 <span class="hl">5% token</span> 达到 81.95% 准确率,成本降 20x。数据驱动的记忆压缩。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">5 / 5</span>
+          <span class="p-name">MemoryOS</span>
+          <span class="p-year">EMNLP 2025 Oral · Kang et al. (BAI-LAB)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2506.06326" target="_blank">arXiv 2506.06326</a>
+            <a class="p-link dd" href="deep-dive/21-memory-os.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/BAI-LAB/MemoryOS" target="_blank">GitHub</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">三级存储(<strong>短 / 中 / 长</strong>)+ FIFO 对话链 + 分段分页 —— 把计算机 OS 内存管理思想搬到 LLM 记忆。</span></div>
+        <div class="p-line"><span class="label">相对前四者</span><span class="val">前四者都是<strong>结构层面</strong>的创新(扁平 → 层级 → 图 → 三元组),MemoryOS 回到<strong>系统层面</strong> —— 引入调度与淘汰策略。LoCoMo 上 F1 <span class="hl">+49.11%</span>、BLEU-1 +46.18%。它不替代前者,而是提供了一个正交的视角。</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 反思链 ============ -->
+  <div class="chain c-reflection" id="reflection">
+    <div class="chain-head">
+      <div class="chain-num">④</div>
+      <h2>反思链 — 从周期抽象到搜索内反思</h2>
+      <span class="chain-tag">Reflection Evolution · 3 篇</span>
+    </div>
+
+    <div class="timeline">
+      <span class="tl-item">Smallville<br>阈值触发<span class="tl-year">2023.04</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">Reflexion<br>失败即学习<span class="tl-year">2023.03</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">LATS<br>搜索内反思<span class="tl-year">2023.10</span></span>
+    </div>
+
+    <div class="paper-grid">
+
+      <div class="p-card shared">
+        <div class="p-head">
+          <span class="p-idx">1 / 3</span>
+          <span class="p-name">Generative Agents (Smallville)</span>
+          <span class="p-year">UIST 2023 · Park et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2304.03442" target="_blank">arXiv 2304.03442</a>
+            <a class="p-link dd" href="deep-dive/19-generative-agents.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/joonspk-research/generative_agents" target="_blank">Code ⭐18k</a>
+            <span class="shared-badge">⚡ 同时属于记忆链</span>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">反思机制</span><span class="val">当最近记忆的 <strong>importance 累积值超过阈值</strong>(原文 150)时触发。LLM 从 100 条最近记忆里先生成 3 个问题,再分别检索回答,生成<strong>高阶洞察</strong>作为新记忆写回。</span></div>
+        <div class="p-line"><span class="label">特点</span><span class="val">周期性的<strong>离线批处理</strong>,像"季度总结"。递归结构:洞察本身也能被下一次反思进一步抽象,形成反思树。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">2 / 3</span>
+          <span class="p-name">Reflexion</span>
+          <span class="p-year">NeurIPS 2023 · Shinn et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2303.11366" target="_blank">arXiv 2303.11366</a>
+            <a class="p-link dd" href="deep-dive/10-reflexion.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/noahshinn/reflexion" target="_blank">Code</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">反思机制</span><span class="val">任务失败后,LLM 对失败轨迹生成<strong>语言形式的"教训"</strong>(Verbal Reinforcement Learning),附加到下次试验的 prompt,实现无梯度的自我改进。</span></div>
+        <div class="p-line"><span class="label">相对 Smallville</span><span class="val">Smallville 的反思是<strong>无监督</strong>的(没有对错信号),Reflexion 由<strong>失败信号驱动</strong>。这是从"周期性抽象"到"<span class="hl">失败即学习</span>"的关键转变 —— 反思不再是装饰,而是学习的载体。</span></div>
+      </div>
+
+      <div class="p-card shared">
+        <div class="p-head">
+          <span class="p-idx">3 / 3</span>
+          <span class="p-name">LATS — Language Agent Tree Search</span>
+          <span class="p-year">ICML 2024 · Zhou et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2310.04406" target="_blank">arXiv 2310.04406</a>
+            <a class="p-link dd" href="deep-dive/13-lats.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/lapisrocks/LanguageAgentTreeSearch" target="_blank">Code</a>
+            <span class="shared-badge">⚡ 同时属于推理链</span>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">反思机制</span><span class="val">MCTS 搜索过程中,每遇到失败叶子节点就 <strong>实时调用 LLM 生成经验总结</strong>,注入后续搜索迭代的 prompt。</span></div>
+        <div class="p-line"><span class="label">相对 Reflexion</span><span class="val">Reflexion 是<strong>episode 结束后</strong>反思,LATS 把反思<strong>嵌入搜索过程本身</strong>。这是从"回合级反思"到"<span class="hl">节点级反思</span>"的进一步细化 —— 反思的粒度与搜索的粒度对齐。</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 多 Agent 链 ============ -->
+  <div class="chain c-multi" id="multi">
+    <div class="chain-head">
+      <div class="chain-num">⑤</div>
+      <h2>多 Agent 链 — 从双人协作到万人社会</h2>
+      <span class="chain-tag">Multi-Agent Evolution · 2 篇</span>
+    </div>
+
+    <div class="timeline">
+      <span class="tl-item">CAMEL<br>双角色<span class="tl-year">2023.03</span></span>
+      <span class="tl-arrow">→</span>
+      <span class="tl-item">AgentSociety<br>万人级<span class="tl-year">2025.02</span></span>
+    </div>
+
+    <div class="paper-grid">
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">1 / 2</span>
+          <span class="p-name">CAMEL</span>
+          <span class="p-year">NeurIPS 2023 · Li et al.</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2303.17760" target="_blank">arXiv 2303.17760</a>
+            <a class="p-link dd" href="deep-dive/15-camel.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/camel-ai/camel" target="_blank">Code ⭐ 框架</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val"><strong>双角色扮演框架</strong>:AI User(出题)+ AI Assistant(解题),通过对话协作完成复杂任务。Role-playing 作为一级抽象。</span></div>
+        <div class="p-line"><span class="label">地位</span><span class="val">第一个结构化的多 Agent 协作框架,是 <strong>MetaGPT / ChatDev / AutoGen</strong> 等后续"角色分工"系统的直接祖先。</span></div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-head">
+          <span class="p-idx">2 / 2</span>
+          <span class="p-name">AgentSociety</span>
+          <span class="p-year">arXiv 2025.02 · Chen et al. (Tsinghua)</span>
+          <div class="p-links">
+            <a class="p-link arxiv" href="https://arxiv.org/abs/2502.08691" target="_blank">arXiv 2502.08691</a>
+            <a class="p-link dd" href="deep-dive/17-agent-society.html">深度解读 →</a>
+            <a class="p-link code" href="https://github.com/tsinghua-fib-lab/AgentSociety" target="_blank">GitHub</a>
+          </div>
+        </div>
+        <div class="p-line"><span class="label">一句话核心</span><span class="val">把 Smallville 从 25 Agent 扩展到 <strong>10,000+</strong>,产生 500 万次交互。用分层记忆 + 异步调度 + 分级推理解决规模化挑战。</span></div>
+        <div class="p-line"><span class="label">相对 CAMEL</span><span class="val">CAMEL 关心<strong>两个 Agent 如何协作</strong>,AgentSociety 关心<strong>10,000 个 Agent 能否产生社会动态</strong>。从"协作微观"跃迁到"<span class="hl">社会宏观</span>" —— 回答了"小镇架构能否规模化"这个根本问题。</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 跨链观察 ============ -->
+  <div class="chain cross-section" id="cross">
+    <div class="chain-head">
+      <div class="chain-num" style="background:var(--yellow);">🔗</div>
+      <h2>跨链观察 — 同一篇论文为何出现在多条链上</h2>
+    </div>
+
+    <div class="cross-callout">
+      <h3>两篇"双料"论文</h3>
+      <ul>
+        <li>
+          <strong>Smallville (Generative Agents)</strong> 同时是<span style="color:var(--orange);">记忆链的起点</span>和<span style="color:var(--accent);">反思链的起点</span>。这不是巧合 ——
+          Memory Stream 和 Reflection 是<strong>同一架构的两面</strong>:Reflection 读 Memory Stream 作为输入,生成的洞察又写回 Memory Stream。
+          后续的分离研究(A-MEM 专攻结构、Reflexion 专攻学习)都是对这个统一体的拆解。
+        </li>
+        <li>
+          <strong>LATS</strong> 同时是<span style="color:var(--cyan);">推理链的终点之一</span>和<span style="color:var(--accent);">反思链的终点</span>。这揭示了一个深层事实:
+          <strong>推理和反思在数学上是对偶的</strong> —— 推理是前向搜索(生成候选),反思是后向评估(从失败中提取信号)。
+          LATS 的贡献是<span style="font-weight:500;background:rgba(251,191,36,.12);color:var(--yellow);padding:1px 5px;border-radius:3px;">把这两个方向合并到同一个 MCTS 循环里</span>,这也是它被视为"集大成之作"的原因。
+        </li>
+      </ul>
+
+      <h3 style="margin-top:18px;">五条链之间的隐含耦合</h3>
+      <ul>
+        <li><strong>推理链 ↔ 行动链</strong>:ReAct 的名字就是 Reasoning + Acting,LATS 把两者合并到同一搜索空间。推理不可能脱离行动,行动也需要推理指导。</li>
+        <li><strong>记忆链 ↔ 反思链</strong>:记忆是反思的原料,反思的产物又是记忆。它们共享同一个存储底层 —— A-MEM 的 Memory Evolution 实际上就是"在线反思"。</li>
+        <li><strong>多 Agent 链</strong>是其他四条链的<strong>放大器</strong>:AgentSociety 里每个 Agent 都要跑记忆 + 反思 + 规划 + 行动,10,000 个 Agent 把每条链的成本瓶颈都放大 400 倍,这是后续研究的压力测试。</li>
+      </ul>
+
+      <h3 style="margin-top:18px;">如果只读 5 篇 —— "黄金五篇"</h3>
+      <p style="font-size:13.5px;">按学习顺序而非时间顺序:</p>
+      <ol style="padding-left:22px;">
+        <li style="margin-bottom:6px;"><a href="deep-dive/07-chain-of-thought.html">CoT</a>(2022)—— 理解 LLM 推理能力</li>
+        <li style="margin-bottom:6px;"><a href="deep-dive/08-react.html">ReAct</a>(2022)—— 理解 Agent loop 范式</li>
+        <li style="margin-bottom:6px;"><a href="deep-dive/19-generative-agents.html">Smallville</a>(2023)—— 理解完整 Agent 架构 <span class="shared-badge">核心</span></li>
+        <li style="margin-bottom:6px;"><a href="deep-dive/10-reflexion.html">Reflexion</a>(2023)—— 理解自我改进机制</li>
+        <li style="margin-bottom:6px;"><a href="deep-dive/13-lats.html">LATS</a>(2023)—— 理解 Agent 决策的统一框架</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  5 条演进链速读 &middot; Generative Agents 研究库 &middot; 最后更新 2026-04<br>
+  所有论文可点击 arXiv 链接跳转原文,或点击"深度解读 →"进入本库的详细分析页
+</div>
+</body>
+</html>

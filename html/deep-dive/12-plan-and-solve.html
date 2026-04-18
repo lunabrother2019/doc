@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读12：Plan-and-Solve — 先规划再求解的零样本推理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Plan-and-Solve — 先规划再求解的零样本推理 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：用"先制定计划，再按计划解决"替代简单的"let's think step by step"，修复CoT的漏步问题</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2305.04091" target="_blank">arXiv 2305.04091</a> &middot; Wang, Xu, Lan, Hu, Lan, Lee, Lim &middot; 2023</div>
+    <div class="paper-ref">ACL 2023</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" target="_blank" style="color:inherit;">💻 GitHub: AGI-Edgerunners/Plan-and-Solve-Prompting</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 核心方法</a>
+    <a href="#sec3">3. 为什么比Zero-shot CoT好</a>
+    <a href="#sec4">4. 关键实验</a>
+    <a href="#sec5">5. 概念贡献</a>
+    <a href="#sec6">6. 与斯坦福小镇的关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文概述</h2>
+    </div>
+
+    <p>Zero-shot Chain-of-Thought (CoT) 的经典prompt "Let's think step by step" 虽然简单有效，但存在一个常见问题：<span class="hl">LLM经常跳过关键的中间推理步骤</span>（missing-step error）。例如在多步数学题中，模型可能直接从条件跳到结论，遗漏关键的中间计算。Plan-and-Solve (PS) Prompting提出了一个直觉优雅的解决方案——不要让模型"边想边做"，而是要求它<strong>先制定一个完整的计划，再按计划逐步执行</strong>。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心洞见</div>
+      "Let's think step by step" 的问题在于它只要求模型"逐步思考"，但没有要求先规划步骤。模型可能在思考过程中遗漏步骤或走入岔路。Plan-and-Solve通过明确的两阶段指令——先理解问题并制定计划(Plan)，再按计划求解(Solve)——显著减少了漏步错误，在零样本设置下接近了few-shot CoT的效果。
+    </div>
+
+    <p>这看似只是一个简单的prompt改进，但它背后蕴含着一个深刻的Agent设计原则：<strong>规划与执行的显式分离</strong>。这个原则从Plan-and-Solve的prompt设计，一直延伸到斯坦福小镇Agent的架构设计。</p>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>核心方法</h2>
+    </div>
+
+    <p>Plan-and-Solve包含两个版本，PS是基础版，PS+是增强版：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">PS（Plan-and-Solve 基础版）</div>
+        <div class="tool-desc">Prompt: "Let's first understand the problem and devise a plan to solve it. Then, let's carry out the plan and solve the problem step by step."<br>核心：要求模型先理解问题、制定计划，再按计划执行。</div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">PS+（Plan-and-Solve 增强版）</div>
+        <div class="tool-desc">在PS基础上添加更具体的指令：<br>"extract relevant variables and their corresponding numerals"（提取变量）<br>"calculate intermediate results"（计算中间结果）<br>进一步减少漏步和计算错误。</div>
+      </div>
+    </div>
+
+    <h3>Prompt对比</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>触发Prompt</th>
+            <th>特点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zero-shot CoT</strong></td>
+            <td>"Let's think step by step."</td>
+            <td>简单但容易漏步</td>
+          </tr>
+          <tr>
+            <td><strong>PS</strong></td>
+            <td>"Let's first understand the problem and devise a plan to solve it. Then, let's carry out the plan..."</td>
+            <td>显式分离规划和执行</td>
+          </tr>
+          <tr style="background:rgba(34,211,238,0.05);">
+            <td><strong style="color:var(--cyan);">PS+</strong></td>
+            <td>PS + "extract relevant variables and their corresponding numerals" + "calculate intermediate results"</td>
+            <td>进一步约束执行质量</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">设计哲学</div>
+      PS+的额外指令看似琐碎（"提取变量"、"计算中间结果"），但它们解决了LLM推理中两个最常见的错误源：（1）忘记从题目中提取关键数值（missing variable）；（2）在心算中犯错（calculation error）。通过在prompt中显式要求这些步骤，PS+将"隐式常识"转化为"显式指令"，大幅降低了错误率。
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">3</div>
+      <h2>为什么比Zero-shot CoT好</h2>
+    </div>
+
+    <p>论文通过细致的错误分析，揭示了Zero-shot CoT的三类主要错误及PS/PS+如何修复它们：</p>
+
+    <h3>错误类型分析</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>错误类型</th>
+            <th>说明</th>
+            <th>Zero-shot CoT</th>
+            <th>PS+修复策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>漏步错误 (Missing Step)</strong></td>
+            <td>跳过关键推理步骤，直接从条件跳到结论</td>
+            <td style="color:var(--red);">频繁发生</td>
+            <td style="color:var(--green);">"devise a plan" 强制列出所有步骤</td>
+          </tr>
+          <tr>
+            <td><strong>变量遗漏 (Missing Variable)</strong></td>
+            <td>忘记从题目中提取关键数值或条件</td>
+            <td style="color:var(--red);">常见</td>
+            <td style="color:var(--green);">"extract relevant variables" 显式要求提取</td>
+          </tr>
+          <tr>
+            <td><strong>计算错误 (Calculation Error)</strong></td>
+            <td>中间步骤的算术计算出错</td>
+            <td style="color:var(--orange);">偶尔</td>
+            <td style="color:var(--green);">"calculate intermediate results" 要求逐步计算</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">直觉解释</div>
+      想象一个学生做数学应用题。"Let's think step by step"就像告诉学生"认真做"——学生可能还是会马虎跳步。PS就像告诉学生"先列出解题步骤，再一步步算"——这迫使学生在动笔前先想清楚完整的解题路径。PS+进一步要求"先把题目里的数字都标出来，每步都写出中间结果"——这连粗心计算错误都尽量避免了。
+    </div>
+
+    <p>从错误率的角度看，PS+相比Zero-shot CoT：<span class="hl">漏步错误减少约27%，计算错误减少约12%</span>。"先规划"这一简单策略，就能解决CoT中最常见的错误类型。</p>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>关键实验</h2>
+    </div>
+
+    <p>PS和PS+在GPT-3.5 (text-davinci-003) 上进行了全面评估，覆盖算术推理、常识推理和符号推理三大类任务：</p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">+4.3pp</div>
+        <div class="stat-label">算术推理平均提升</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">+2.1pp</div>
+        <div class="stat-label">常识推理平均提升</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">+5.7pp</div>
+        <div class="stat-label">符号推理平均提升</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">0-shot</div>
+        <div class="stat-label">无需任何示例</div>
+      </div>
+    </div>
+
+    <h3>算术推理基准</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>基准</th>
+            <th>Zero-shot CoT</th>
+            <th>PS</th>
+            <th>PS+</th>
+            <th>Few-shot CoT (参考)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GSM8K</strong></td>
+            <td>56.4%</td>
+            <td>58.4%</td>
+            <td style="color:var(--green); font-weight:700;">58.7%</td>
+            <td>57.4%</td>
+          </tr>
+          <tr>
+            <td><strong>SVAMP</strong></td>
+            <td>70.8%</td>
+            <td>73.5%</td>
+            <td style="color:var(--green); font-weight:700;">75.3%</td>
+            <td>74.8%</td>
+          </tr>
+          <tr>
+            <td><strong>AQuA</strong></td>
+            <td>46.1%</td>
+            <td>49.6%</td>
+            <td style="color:var(--green); font-weight:700;">52.0%</td>
+            <td>53.5%</td>
+          </tr>
+          <tr>
+            <td><strong>MultiArith</strong></td>
+            <td>83.8%</td>
+            <td>89.2%</td>
+            <td style="color:var(--green); font-weight:700;">92.0%</td>
+            <td>91.7%</td>
+          </tr>
+          <tr>
+            <td><strong>AddSub</strong></td>
+            <td>82.3%</td>
+            <td>84.3%</td>
+            <td style="color:var(--green); font-weight:700;">85.3%</td>
+            <td>85.3%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键发现</div>
+      PS+在多个基准上<strong>达到甚至超过了few-shot CoT</strong>——这意味着通过更好的prompt设计（规划+约束），可以免去精心设计示例的工作。这对实际应用意义重大：few-shot示例的质量对结果影响很大，而且不同任务需要不同的示例，维护成本高。PS+提供了一种"一招通吃"的零样本方案。
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">5</div>
+      <h2>概念贡献</h2>
+    </div>
+
+    <p>Plan-and-Solve的影响远超prompt工程本身，它验证并强化了一个在Agent架构中至关重要的设计原则：</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心贡献："先规划再执行"范式</div>
+      PS论文用实证数据证明：<strong>显式的规划阶段能显著提升执行质量</strong>。这不仅是一个prompt技巧，更是一个普适的认知架构原则。无论是在单次LLM调用中（PS prompt），还是在多步Agent系统中（planning module），"先想清楚要做什么，再动手做"都比"边想边做"更可靠。
+    </div>
+
+    <h3>从Prompt到Agent架构</h3>
+
+    <p>PS的"Plan→Solve"两阶段可以直接映射到Agent系统的核心模块：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PS阶段</th>
+            <th>Agent架构对应</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Understand the problem</strong></td>
+            <td>Perception / 环境感知</td>
+            <td>收集和理解当前任务的上下文信息</td>
+          </tr>
+          <tr>
+            <td><strong>Devise a plan</strong></td>
+            <td>Planning / 规划模块</td>
+            <td>将任务分解为有序的子步骤</td>
+          </tr>
+          <tr>
+            <td><strong>Carry out the plan</strong></td>
+            <td>Action / 执行模块</td>
+            <td>按计划逐步执行各子步骤</td>
+          </tr>
+          <tr>
+            <td><strong>Extract variables (PS+)</strong></td>
+            <td>Memory / 记忆检索</td>
+            <td>从环境或记忆中提取执行所需的关键信息</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>PS+的"提取变量"和"计算中间结果"指令，本质上是在prompt层面实现了Agent的<span class="hl">信息检索</span>和<span class="hl">工作记忆管理</span>功能。这暗示了一个更大的趋势：<strong>好的prompt设计和好的Agent架构设计遵循相同的认知原则</strong>。</p>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>Plan-and-Solve与斯坦福小镇Agent之间存在着一个深刻的同构关系：<strong>小镇Agent的daily planning就是Plan-and-Solve的具象化</strong>。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>Plan-and-Solve (PS+)</th>
+            <th>斯坦福小镇 Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>规划</strong></td>
+            <td>"devise a plan to solve it"</td>
+            <td>生成一天的粗粒度日程（如"上午写论文"）</td>
+          </tr>
+          <tr>
+            <td><strong>分解</strong></td>
+            <td>隐式（计划中自然包含步骤）</td>
+            <td>将每个日程项分解为5-15分钟的细粒度动作</td>
+          </tr>
+          <tr>
+            <td><strong>执行</strong></td>
+            <td>"carry out the plan step by step"</td>
+            <td>按时间线逐个执行细粒度动作</td>
+          </tr>
+          <tr>
+            <td><strong>信息提取</strong></td>
+            <td>"extract relevant variables"</td>
+            <td>从Memory Stream中检索相关记忆</td>
+          </tr>
+          <tr>
+            <td><strong>中间结果</strong></td>
+            <td>"calculate intermediate results"</td>
+            <td>执行结果写回Memory Stream</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      PS论文用数学推理任务证明了"先规划再执行"比"边想边做"更可靠。斯坦福小镇将这一原则应用到了Agent的生活模拟中：Agent不会"走到哪算哪"，而是先生成一天的完整计划，再按计划行动。这种同构不是巧合——它反映了一个认知科学中的基本发现：人类在执行复杂任务时，也会先在心理上形成一个计划（mental plan），再逐步实施。PS验证了这一原则在LLM中同样成立，而小镇则展示了这一原则如何在多Agent社会模拟中发挥作用。两者共同指向Agent设计的一个黄金法则：<strong>显式规划是可靠执行的前提</strong>。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读12 &middot; Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models &middot; Wang et al. 2023<br>
+  arXiv:2305.04091 &middot; ACL 2023 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

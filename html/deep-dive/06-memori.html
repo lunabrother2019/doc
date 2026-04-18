@@ -137,6 +137,7 @@
     <a href="#sec5">5. 实验结果</a>
     <a href="#sec6">6. 体系关联</a>
     <a href="#sec7">7. 关键启示</a>
+    <a href="#sec8">8. SDK 代码架构</a>
   </div>
 </nav>
 
@@ -221,14 +222,80 @@
       Memori 的集成方式非常优雅 —— 它提供的 SDK 直接包装开发者已有的 LLM 客户端。这意味着迁移成本几乎为零：开发者不需要重构代码，只需将 LLM 客户端实例传入 Memori SDK 即可获得持久化记忆能力。这种设计降低了采纳门槛，也确保了在不同 LLM 之间切换时记忆数据不会丢失。
     </div>
 
-    <h3>工作流程</h3>
+    <h3>三维归属模型（Attribution）</h3>
+
+    <p>所有记忆通过三个维度进行<strong>隔离和索引</strong>，这是 Memori 数据组织的基石：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>标识</th>
+            <th>含义</th>
+            <th>作用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Entity（实体）</strong></td>
+            <td><code>entity_id</code></td>
+            <td>产生记忆的主体（用户、地点、事物）</td>
+            <td>记忆归属的「谁」</td>
+          </tr>
+          <tr>
+            <td><strong>Process（流程）</strong></td>
+            <td><code>process_id</code></td>
+            <td>创建记录的 Agent 或工作流</td>
+            <td>记忆归属的「哪个 Agent」</td>
+          </tr>
+          <tr>
+            <td><strong>Session（会话）</strong></td>
+            <td><code>session_id</code></td>
+            <td>自动生成的 UUID，分组关联交互</td>
+            <td>记忆归属的「哪次对话」</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">跨 Agent 记忆共享机制</div>
+      三维归属模型的核心设计决策：<strong>事实（Facts）按 Entity 存储，但跨 Process 共享</strong>。这意味着如果 Agent A 学到了用户张三喜欢 PostgreSQL，Agent B 在与张三交互时也能自动获取这条事实。不同 Agent 之间的记忆不需要显式同步，只要共享同一个 Entity 即可。但 Attributes（Agent 自身属性）则是 Process 级别隔离的，不会跨 Agent 泄露。
+    </div>
+
+    <h3>完整四层架构</h3>
+
+    <p>从源码结构来看，Memori 实际上是一个更精细的<strong>四层架构</strong>：</p>
+
+    <div class="formula">
+      <span class="label">四层架构全景</span>
+      应用层（Your App） &rarr; SDK 集成层（LLM 包装 + 归属 + Recall API） &rarr; Memori Cloud/BYODB（存储/增强/召回） &rarr; 托管存储（对话 + 会话 + 事实，按归属范围组织）
+    </div>
+
+    <p>其中 <strong>Memori Cloud</strong> 为托管方案（零配置、API Key 认证），<strong>Memori BYODB</strong>（Bring Your Own Database）为自托管方案，支持自定义数据库后端（如 CockroachDB）。两种部署模式共享同一套 SDK 和增强管线。</p>
+
+    <h3>工作流程（六阶段生命周期）</h3>
+    <p>记忆的完整生命周期由六个阶段组成，形成一个闭环：</p>
+
+    <div class="formula">
+      <span class="label">六阶段记忆生命周期</span>
+      Capture（捕获） &rarr; Attribution（归属） &rarr; Augmentation（增强） &rarr; Storage（存储+嵌入） &rarr; Recall（召回） &rarr; Injection（注入）
+    </div>
+
     <ol>
-      <li><strong>请求拦截</strong>：用户消息到达时，Memori SDK 在转发给 LLM 之前拦截请求</li>
-      <li><strong>记忆检索</strong>：基于当前查询从持久化存储中检索相关记忆片段</li>
-      <li><strong>上下文增强</strong>：将检索到的记忆注入到 LLM 提示中，丰富上下文</li>
-      <li><strong>响应处理</strong>：LLM 生成响应后，Memori 从对话中提取新的记忆并持久化</li>
-      <li><strong>异步更新</strong>：三元组提取和摘要生成以异步方式进行，不阻塞主对话流</li>
+      <li><strong>Capture（捕获）</strong>：SDK 拦截每次 LLM 调用，将对话<strong>异步发送</strong>到 Memori Cloud，不阻塞主请求 —— 响应立即返回给应用</li>
+      <li><strong>Attribution（归属）</strong>：对话被分配到对应的 Entity + Process 范围下进行索引，确定记忆归属</li>
+      <li><strong>Augmentation（异步增强）</strong>：对话进入后台队列，增强引擎并行执行三元组提取、摘要生成、NER 实体识别，产出结构化记忆</li>
+      <li><strong>Storage（存储）</strong>：结构化记忆（三元组 + 摘要 + 知识图谱）写入持久化存储，同时生成向量嵌入索引</li>
+      <li><strong>Recall（召回）</strong>：后续查询到达时，Recall 引擎执行混合语义搜索，定位最相关的记忆片段</li>
+      <li><strong>Injection（注入）</strong>：将检索到的记忆注入 system prompt，再转发给 LLM 提供商生成响应</li>
     </ol>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">关键设计决策：异步写入 + 同步读取</div>
+      增强处理（写入路径）完全异步，不增加任何请求延迟；记忆召回（读取路径）在请求转发前同步执行，确保上下文可用。这种「写异步、读同步」的设计是 Memori 能保持低延迟的关键 —— 将计算密集型的三元组提取和向量化推到了后台，只在请求关键路径上执行轻量级的向量检索。
+    </div>
 
     <p>这种「拦截-增强-提取」的模式使得 Memori 对上层应用和下层 LLM 都是透明的，实现了真正的关注点分离。</p>
   </div>
@@ -273,9 +340,75 @@
       三元组提供精确的事实索引（「谁做了什么」），摘要提供语境理解（「为什么这样做」）。两者结合实现了从精确查找到语义理解的完整覆盖。这种设计避免了纯三元组系统缺乏上下文、纯摘要系统缺乏精确性的问题。
     </div>
 
+    <h3>四类结构化记忆</h3>
+
+    <p>增强引擎从对话中自动提取四类结构化数据，每类有不同的作用域和用途：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>记忆类型</th>
+            <th>说明</th>
+            <th>作用域</th>
+            <th>示例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--green);">Facts（事实）</strong></td>
+            <td>客观信息，附带语义向量嵌入</td>
+            <td>按 Entity 存储，<span class="hl">跨 Process 共享</span></td>
+            <td>「用户是后端工程师」「用户住在上海」</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--cyan);">Preferences（偏好）</strong></td>
+            <td>用户的选择和观点</td>
+            <td>Entity 专属</td>
+            <td>「偏好 TypeScript 而非 JavaScript」</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--yellow);">Skills &amp; Knowledge（技能）</strong></td>
+            <td>专业能力和经验水平</td>
+            <td>Entity 专属</td>
+            <td>「8年 Python 经验」「熟悉分布式系统」</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--accent);">Attributes（属性）</strong></td>
+            <td>Agent/Process 自身的特征信息</td>
+            <td>Process 专属（<span class="hl">不跨 Agent 共享</span>）</td>
+            <td>「此 Agent 负责代码审查」</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>除核心四类之外，系统还支持 <strong>events</strong>（事件）、<strong>people</strong>（人物）、<strong>relationships</strong>（关系）、<strong>rules</strong>（规则）等扩展增强类型，共计<strong>八种结构化记忆</strong>。</p>
+
+    <h3>知识图谱自动构建</h3>
+
+    <p>增强管线的另一个关键产出是<strong>知识图谱</strong>的自动构建。系统通过命名实体识别（NER）将对话转化为语义三元组，并组织为图结构：</p>
+
+    <div class="card">
+      <h4>从对话到知识图谱的转化流程</h4>
+      <ol>
+        <li><strong>对话捕获</strong> &rarr; 原始文本进入 Memori Cloud</li>
+        <li><strong>NER 分析</strong> &rarr; 命名实体识别，提取关键实体</li>
+        <li><strong>三元组生成</strong> &rarr; 转化为 Subject-Predicate-Object 格式</li>
+        <li><strong>去重合并</strong> &rarr; 自动去重，追踪出现频次（mention count）</li>
+        <li><strong>图存储</strong> &rarr; 写入知识图谱，节点=实体，边=关系类型</li>
+        <li><strong>语义索引</strong> &rarr; 三元组同时生成向量嵌入，支持语义搜索</li>
+      </ol>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">知识图谱的跨 Agent 共享</div>
+      三元组按 Entity 存储，但<strong>跨所有 Process 共享</strong>。这意味着如果 Agent A 从对话中学到「用户的最喜欢的数据库是 PostgreSQL」，Agent B 与同一用户交互时自动获得这条知识。Memori Playground 提供了 <strong>Memory Graph Viewer</strong> 可视化工具，展示节点（实体）、边（关系类型）、出现频次和时间戳。
+    </div>
+
     <div class="formula">
-      <span class="label">增强管线数据流</span>
-      对话 &rarr; [三元组提取 || 摘要生成] &rarr; 三元组&harr;摘要链接 &rarr; FAISS 向量化索引
+      <span class="label">增强管线完整数据流</span>
+      对话 &rarr; [三元组提取 || 摘要生成] &rarr; 三元组&harr;摘要链接 &rarr; 知识图谱构建 + FAISS 向量化索引
     </div>
   </div>
 
@@ -326,6 +459,59 @@
       <div class="callout-title" style="color:var(--orange);">为什么需要混合检索？</div>
       纯向量检索在处理专有名词、数字、日期等精确信息时容易出错 —— 向量空间中「2024年3月」和「2024年9月」的距离可能很近，但语义完全不同。BM25 的精确匹配能力恰好弥补了这一缺陷。Memori 的实验数据表明，混合检索在时序类问题上的提升尤为显著。
     </div>
+
+    <h3>两种 Recall 模式</h3>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">自动模式（Automatic Recall）</div>
+        <div class="tool-desc">每次 LLM 请求时，SDK 自动拦截请求、执行语义搜索、将最相关的记忆<strong>注入 system prompt</strong>，然后才转发给 LLM 提供商。开发者无需编写任何召回逻辑，一切透明进行。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">手动模式（Manual Recall）</div>
+        <div class="tool-desc">开发者主动调用 <code>mem.recall()</code> API，用于自定义提示构建、UI 展示、调试等场景。返回结果包含<strong>相似度分数（0-1）</strong>和排名数据，可精细控制召回行为。</div>
+      </div>
+    </div>
+
+    <h3>可调参数</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>参数</th>
+            <th>默认值</th>
+            <th>作用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>recall_relevance_threshold</code></td>
+            <td>0.1</td>
+            <td>最低相似度阈值，低于此分数的记忆不会被召回</td>
+          </tr>
+          <tr>
+            <td><code>recall_embeddings_limit</code></td>
+            <td>1000</td>
+            <td>每次搜索的最大向量数，控制搜索范围和延迟</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>默认阈值 0.1 较为宽松，确保不会遗漏边缘相关的记忆；而 1000 的向量搜索上限在保证召回质量的同时控制了检索延迟。开发者可根据应用场景（高精度 vs 高召回）调整这两个旋钮。</p>
+
+    <h3>嵌入向量层</h3>
+
+    <p>检索的质量根本上取决于嵌入向量的质量。从源码结构来看，Memori 支持<strong>多种嵌入后端</strong>：</p>
+
+    <ul>
+      <li><strong>Sentence Transformers</strong>：本地部署的句向量模型，适合对延迟和隐私要求高的场景</li>
+      <li><strong>TEI（Text Embeddings Inference）</strong>：HuggingFace 的文本嵌入推理服务，支持高吞吐量部署</li>
+      <li><strong>API 嵌入</strong>：调用远程嵌入服务（如 OpenAI Embeddings），适合快速原型开发</li>
+    </ul>
+
+    <p>文本在嵌入前会经过 <strong>chunking（分块）</strong>处理，将长文本切分为合适大小的片段，确保向量能精确捕获局部语义。</p>
   </div>
 
   <!-- ===== Section 5 ===== -->
@@ -530,11 +716,159 @@
     </div>
   </div>
 
+  <!-- ===== Section 8 ===== -->
+  <div class="section" id="sec8">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">8</div>
+      <h2>SDK 代码架构：从源码看设计</h2>
+    </div>
+
+    <p>Memori 提供 Python（<code>memori</code>）和 TypeScript（<code>@memorilabs/memori</code>）两套 SDK。以 Python SDK 为例，其模块化架构清晰地映射了上文描述的各个系统组件。</p>
+
+    <h3>核心模块拓扑</h3>
+
+    <div class="formula">
+      <span class="label">Python SDK 模块结构</span>
+      memori/ &rarr; api/ | embeddings/ | llm/ | memory/ | search/ | storage/
+    </div>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">memory/（记忆核心）</div>
+        <div class="tool-desc">
+          <code>_collector.py</code> 对话收集器<br>
+          <code>_manager.py</code> 记忆管理器<br>
+          <code>_writer.py</code> 持久化写入<br>
+          <code>recall.py</code> 召回接口（唯一公开模块）<br>
+          <code>augmentation/</code> 增强子系统（含注册表、运行时、处理器）
+        </div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">llm/（LLM 集成层）</div>
+        <div class="tool-desc">
+          <code>adapters/</code> 各 LLM 提供商适配器<br>
+          <code>clients/</code> 客户端实现<br>
+          <code>pipelines/</code> 处理管道<br>
+          <code>invoke/</code> 调用机制<br>
+          <code>_registry.py</code> 提供商注册表
+        </div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">search/（检索引擎）</div>
+        <div class="tool-desc">
+          <code>_faiss.py</code> FAISS 向量搜索<br>
+          <code>_lexical.py</code> BM25 词法搜索<br>
+          <code>_core.py</code> 混合检索融合<br>
+          <code>_parsing.py</code> 查询解析
+        </div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">storage/（存储层）</div>
+        <div class="tool-desc">
+          <code>adapters/</code> 存储适配器抽象<br>
+          <code>cockroachdb/</code> CockroachDB 实现<br>
+          <code>drivers/</code> 数据库驱动<br>
+          <code>migrations/</code> Schema 迁移<br>
+          <code>_registry.py</code> 存储注册表
+        </div>
+      </div>
+    </div>
+
+    <h3>增强子系统（augmentation/）</h3>
+
+    <p>这是整个 SDK 中最复杂的模块，负责将原始对话转化为结构化记忆：</p>
+
+    <div class="card">
+      <h4>增强子系统的内部架构</h4>
+      <ul>
+        <li><code>_base.py</code> — 增强器基类和接口定义，所有增强器继承自此</li>
+        <li><code>_registry.py</code> — 增强组件注册表，支持动态注册自定义增强器</li>
+        <li><code>_manager.py</code> — 增强管理器，协调多个增强器的执行顺序</li>
+        <li><code>_handler.py</code> — 事件处理逻辑，将对话事件分发给对应增强器</li>
+        <li><code>_runtime.py</code> — 运行时执行环境，管理异步任务调度</li>
+        <li><code>_db_writer.py</code> — 增强结果的数据库写入</li>
+        <li><code>augmentations/memori/</code> — Memori 内置的增强器实现（三元组提取、摘要生成等）</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">注册表模式（Registry Pattern）</div>
+      SDK 中大量使用注册表模式（<code>_registry.py</code> 出现在 llm/、storage/、augmentation/ 三个模块中）。这种设计使得 LLM 提供商、存储后端、增强器都可以通过注册表动态插拔，实现了真正的可扩展架构。开发者只需 <code>Memori().llm.register(client)</code> 一行代码即可包装现有 LLM 客户端。
+    </div>
+
+    <h3>嵌入模块（embeddings/）</h3>
+
+    <div class="card">
+      <ul>
+        <li><code>_chunking.py</code> — 文本分块策略，将长文本切分为适合嵌入的片段</li>
+        <li><code>_sentence_transformers.py</code> — 本地 Sentence Transformers 集成</li>
+        <li><code>_tei.py</code> / <code>_tei_embed.py</code> — HuggingFace TEI 推理服务支持</li>
+        <li><code>_api.py</code> — 远程嵌入 API 调用</li>
+        <li><code>_format.py</code> — 嵌入前的数据格式化</li>
+      </ul>
+    </div>
+
+    <h3>集成方式</h3>
+
+    <p>Memori 提供三种集成接入点，适配不同使用场景：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方式</th>
+            <th>适用场景</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SDK 直接注册</strong></td>
+            <td>应用代码集成</td>
+            <td>Python/TypeScript SDK 包装现有 LLM 客户端，一行代码集成</td>
+          </tr>
+          <tr>
+            <td><strong>MCP 协议</strong></td>
+            <td>IDE 工具集成</td>
+            <td>通过 HTTP MCP Server 连接 Claude Code、Cursor 等 IDE Agent</td>
+          </tr>
+          <tr>
+            <td><strong>OpenClaw 插件</strong></td>
+            <td>Agent 网关集成</td>
+            <td>作为 OpenClaw 网关的 Drop-in 插件，无需修改 Agent 代码</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>支持的 LLM 与框架</h3>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green); font-size:20px;">OpenAI · Anthropic<br>Gemini · DeepSeek<br>Grok · Bedrock</div>
+        <div class="stat-label">支持的 LLM 提供商</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan); font-size:20px;">LangChain<br>Pydantic AI<br>Agno</div>
+        <div class="stat-label">兼容的 Agent 框架</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent); font-size:20px;">Python<br>TypeScript</div>
+        <div class="stat-label">SDK 语言</div>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">架构启示：从源码看设计哲学</div>
+      Memori 的代码架构体现了几个核心设计原则：（1）<strong>关注点分离</strong>——每个模块只负责单一职责；（2）<strong>可插拔性</strong>——通过注册表和适配器模式实现组件动态替换；（3）<strong>公开接口最小化</strong>——以下划线前缀标记内部实现，只暴露必要的公开 API（如 <code>recall.py</code>）；（4）<strong>异步优先</strong>——原生支持 async/await，适配 Web 服务器和多用户并发场景。这些设计决策使得 Memori 在保持功能丰富的同时，维持了清晰的模块边界和较低的集成门槛。
+    </div>
+  </div>
+
 </div><!-- /container -->
 
 <div class="footer">
   深度解读06 &middot; Memori: A Persistent Memory Layer for Efficient, Context-Aware LLM Agents &middot; Borro et al. 2026<br>
-  arXiv:2603.19935 &middot; CC BY 4.0 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+  arXiv:2603.19935 &middot; CC BY 4.0 &middot; 含 GitHub 源码架构分析 &middot; 本页由 AI 辅助生成，仅供学术研究参考
 </div>
 
 </body>

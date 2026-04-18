@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读11：Tree of Thoughts — 从线性推理到树状搜索</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Tree of Thoughts — 从线性推理到树状搜索 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：将Chain-of-Thought从单一线性链扩展为思维树，支持搜索、评估和回溯，释放LLM的审慎问题解决能力</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2305.10601" target="_blank">arXiv 2305.10601</a> &middot; Yao, Yu, Zhao, Shafran, Griffiths, Cao, Narasimhan &middot; 2023</div>
+    <div class="paper-ref">NeurIPS 2023</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/princeton-nlp/tree-of-thought-llm" target="_blank" style="color:inherit;">💻 GitHub: princeton-nlp/tree-of-thought-llm</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 核心机制</a>
+    <a href="#sec3">3. 与CoT/SC的关系</a>
+    <a href="#sec4">4. 关键实验</a>
+    <a href="#sec5">5. 搜索策略</a>
+    <a href="#sec6">6. 与斯坦福小镇的关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文概述</h2>
+    </div>
+
+    <p>Chain-of-Thought (CoT) prompting让LLM能够逐步推理，但它有一个根本局限：<span class="hl">推理路径是线性的、不可回溯的</span>。一旦某一步推理出错，整条链条都会被带偏，模型没有机会"后悔"并尝试另一条路。Tree of Thoughts (ToT) 通过引入经典AI搜索算法的思想，将CoT从一条链扩展为一棵树，赋予LLM探索、评估和回溯的能力。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心洞见</div>
+      ToT将问题求解过程建模为一棵搜索树：每个节点是一个"思维状态"（部分解决方案），每条边是一个"思维步骤"（从当前状态到下一个状态的推理）。LLM既是思维生成器（提出候选方案），也是状态评估器（判断各方案的前景）。搜索算法（BFS或DFS）负责决定探索顺序和回溯时机。
+    </div>
+
+    <p>这一框架将LLM从一个"自回归生成器"提升为一个"审慎的问题求解器"(deliberate problem solver)，能够像人类一样在心理上"尝试多条路径"，评估各路径的希望程度，并在死胡同前及时回溯。</p>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>核心机制</h2>
+    </div>
+
+    <p>ToT框架由三个关键机制组成，它们协同工作形成一个完整的搜索系统：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">思维生成 (Thought Generation)</div>
+        <div class="tool-desc">在每个状态节点，LLM生成多个候选"思维"（即下一步推理的不同可能方案）。可以通过独立采样（sample多次）或提议式生成（一次生成多个候选）来实现。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">状态评估 (State Evaluation)</div>
+        <div class="tool-desc">LLM对每个候选思维产生的新状态进行评估，判断该状态是"有希望的"(promising)、"不确定的"还是"无望的"(impossible)。这是搜索的启发式函数。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">搜索算法 (Search Algorithm)</div>
+        <div class="tool-desc">使用BFS（广度优先搜索）或DFS（深度优先搜索）遍历思维树。BFS每层保留最有希望的k个状态，DFS则深入探索并在评估为"无望"时回溯。</div>
+      </div>
+    </div>
+
+    <h3>工作流程</h3>
+    <ol>
+      <li><strong>初始化</strong>：将问题描述作为根节点</li>
+      <li><strong>扩展</strong>：在当前节点调用LLM生成k个候选思维</li>
+      <li><strong>评估</strong>：调用LLM对每个候选产生的新状态评分</li>
+      <li><strong>选择</strong>：根据搜索策略选择最有希望的节点继续扩展</li>
+      <li><strong>回溯</strong>：当某分支被评估为无望时，回退到上一个有希望的节点</li>
+      <li><strong>终止</strong>：找到解决方案或搜索预算耗尽</li>
+    </ol>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键设计决策</div>
+      ToT的一个精妙之处在于<strong>用LLM本身作为启发式评估函数</strong>。传统搜索算法（如A*）需要人工设计启发式函数，而ToT直接让LLM判断"这个中间状态看起来有多大希望能得到最终答案"。这使得ToT无需任何任务特定的工程，即可应用于各种问题。
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">3</div>
+      <h2>与CoT/Self-Consistency的关系</h2>
+    </div>
+
+    <p>ToT是推理策略的一次重大升级。理解它与前代方法的关系，有助于把握其核心价值：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>推理结构</th>
+            <th>搜索能力</th>
+            <th>评估能力</th>
+            <th>回溯能力</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Standard Prompting</strong></td>
+            <td>单步（直接输出答案）</td>
+            <td>无</td>
+            <td>无</td>
+            <td>无</td>
+          </tr>
+          <tr>
+            <td><strong>Chain-of-Thought (CoT)</strong></td>
+            <td>一条链（线性多步）</td>
+            <td>无</td>
+            <td>无</td>
+            <td>无</td>
+          </tr>
+          <tr>
+            <td><strong>Self-Consistency (SC)</strong></td>
+            <td>多条独立链 + 投票</td>
+            <td>有限（多次采样）</td>
+            <td>仅最终投票</td>
+            <td>无</td>
+          </tr>
+          <tr style="background:rgba(34,211,238,0.05);">
+            <td><strong style="color:var(--cyan);">Tree of Thoughts (ToT)</strong></td>
+            <td>一棵树（可分支可回溯）</td>
+            <td>完整（BFS/DFS）</td>
+            <td>中间状态评估</td>
+            <td style="color:var(--green); font-weight:700;">有</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">进化路径</div>
+      <strong>CoT</strong>：给我一条推理路径 → <strong>Self-Consistency</strong>：给我多条独立路径，取最常见答案 → <strong>ToT</strong>：给我一棵可探索的推理树，在每一步评估并选择最优方向。ToT的关键突破在于引入了<strong>中间状态评估</strong>——不必等到最终答案才知道对错，在推理的每一步都可以判断方向是否正确。
+    </div>
+
+    <p>一个直观的类比：CoT像是走迷宫时只能一条路走到底；Self-Consistency像是派多个人同时走不同路，最后投票；<span class="hl">ToT像是在每个岔路口都先看看各条路的远景，选最有希望的走，发现死胡同就退回来换一条</span>。</p>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>关键实验</h2>
+    </div>
+
+    <p>论文在三个需要"审慎思考"的任务上验证了ToT的效果：</p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">74%</div>
+        <div class="stat-label">Game of 24 成功率</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">4%→74%</div>
+        <div class="stat-label">vs CoT (4%) 提升</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">78%</div>
+        <div class="stat-label">Mini Crosswords</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">7.56</div>
+        <div class="stat-label">Creative Writing 连贯性评分</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>任务</th>
+            <th>IO Prompt</th>
+            <th>CoT</th>
+            <th>CoT-SC</th>
+            <th>ToT</th>
+            <th>核心挑战</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Game of 24</strong></td>
+            <td>7.3%</td>
+            <td>4.0%</td>
+            <td>9.0%</td>
+            <td style="color:var(--green); font-weight:700;">74%</td>
+            <td>用4个数字通过加减乘除得到24，需要组合搜索</td>
+          </tr>
+          <tr>
+            <td><strong>Creative Writing</strong></td>
+            <td>6.19</td>
+            <td>6.93</td>
+            <td>7.08</td>
+            <td style="color:var(--cyan); font-weight:700;">7.56</td>
+            <td>写4段连贯文章，每段以指定句子结尾</td>
+          </tr>
+          <tr>
+            <td><strong>Mini Crosswords</strong></td>
+            <td>38.7%</td>
+            <td>40.6%</td>
+            <td>—</td>
+            <td style="color:var(--yellow); font-weight:700;">78%</td>
+            <td>5x5填字游戏，需要多约束同时满足</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">Game of 24 的震撼</div>
+      Game of 24是ToT最具说服力的实验：CoT的成功率仅有4%（甚至比直接输出更低，因为CoT容易走入死胡同），而ToT达到了74%。这个18.5倍的提升不是通过更强的模型实现的，而是纯粹通过更好的推理结构。这证明了一个关键论点：<strong>对于需要搜索的问题，推理的"结构"比模型的"能力"更重要</strong>。
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">5</div>
+      <h2>搜索策略</h2>
+    </div>
+
+    <p>ToT提供了两种搜索策略，适用于不同类型的问题：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">BFS（广度优先搜索）</div>
+        <div class="tool-desc">每层保留最有希望的b个状态，全部扩展后再进入下一层。适合搜索空间较浅、需要在早期就做出正确选择的问题。Game of 24和Creative Writing使用此策略。</div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">DFS（深度优先搜索）</div>
+        <div class="tool-desc">沿一个分支深入探索，直到找到解或被评估为"无望"时回溯。适合搜索空间较深、每步决策有明确对错的问题。Mini Crosswords使用此策略。</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>搜索策略</th>
+            <th>适用场景</th>
+            <th>优势</th>
+            <th>劣势</th>
+            <th>示例任务</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>BFS</strong></td>
+            <td>浅层搜索、多候选比较</td>
+            <td>保证找到最短路径解</td>
+            <td>内存开销大</td>
+            <td>Game of 24, Creative Writing</td>
+          </tr>
+          <tr>
+            <td><strong>DFS</strong></td>
+            <td>深度推理、约束满足</td>
+            <td>内存效率高</td>
+            <td>可能遗漏浅层好解</td>
+            <td>Mini Crosswords</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">成本权衡</div>
+      ToT的强大能力伴随着显著的计算成本：每个问题需要多次LLM调用（生成候选 + 评估状态），Token消耗是标准CoT的数倍到数十倍。在Game of 24中，ToT平均需要约100次LLM调用才能解决一个问题。因此，ToT更适合<strong>高价值、低频率</strong>的推理任务，而非大规模批处理场景。
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>斯坦福小镇Agent的规划模块采用的是<strong>线性规划</strong>：先生成一天的日程大纲，再将每个事项分解为5-15分钟的小步骤，然后按顺序执行。这种规划方式简单高效，但存在一个根本局限——<span class="hl">它不支持回溯和多方案比较</span>。</p>
+
+    <p>ToT为Agent规划模块提供了一种更强大的升级路径：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>斯坦福小镇规划</th>
+            <th>ToT增强规划</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>规划结构</strong></td>
+            <td>线性（日程→分解→执行）</td>
+            <td>树状（多方案→评估→选优→回溯）</td>
+          </tr>
+          <tr>
+            <td><strong>方案数量</strong></td>
+            <td>单一方案</td>
+            <td>多个并行候选方案</td>
+          </tr>
+          <tr>
+            <td><strong>中间评估</strong></td>
+            <td>无（生成后直接执行）</td>
+            <td>每步评估方案前景</td>
+          </tr>
+          <tr>
+            <td><strong>回溯能力</strong></td>
+            <td>无（计划生成后固定）</td>
+            <td>有（可回退到上一决策点）</td>
+          </tr>
+          <tr>
+            <td><strong>适用复杂度</strong></td>
+            <td>日常活动规划（低复杂度）</td>
+            <td>策略性决策规划（高复杂度）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      设想一个ToT增强版的小镇Agent：当Isabella需要决定是否去参加竞选活动时，她不再只生成一个方案，而是在思维树中模拟多条行动路径——"去参加活动会遇到谁、讨论什么"vs"留在家完成论文进度如何"，评估每条路径的社会收益和个人目标达成度，然后选择最优方案。如果在执行过程中发现情况不对（比如活动取消了），她可以回溯到决策点，切换到备选方案。这是Agent规划模块从"预设脚本"到"动态搜索"的自然升级。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读11 &middot; Tree of Thoughts: Deliberate Problem Solving with Large Language Models &middot; Yao et al. 2023<br>
+  arXiv:2305.10601 &middot; NeurIPS 2023 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读19：Generative Agents — 斯坦福小镇原始论文</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .core-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(167,139,250,0.18); color: var(--accent); border: 1px solid var(--accent);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 14px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .pillar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .pillar-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .pillar-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .pillar-card.p1::before { background: var(--orange); }
+    .pillar-card.p2::before { background: var(--accent); }
+    .pillar-card.p3::before { background: var(--green); }
+    .pillar-card.p4::before { background: var(--cyan); }
+    .pillar-card.p5::before { background: var(--pink); }
+    .pillar-card h4 { margin-top: 4px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Generative Agents — 斯坦福小镇原始论文 <span class="core-badge">核心</span></h1>
+  <p class="sub">深度解读:整个 workspace 的起点。25 个 LLM 驱动的 NPC 在 Smallville 沙盒里展现出情人节派对自发组织等涌现社会行为,确立了 Memory Stream / Reflection / Planning 三大支柱架构</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2304.03442" target="_blank">arXiv 2304.03442</a> &middot; Park, O'Brien, Cai, Morris, Liang, Bernstein (Stanford &amp; Google Research) &middot; UIST 2023 &middot; Best Paper</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/joonspk-research/generative_agents" target="_blank" style="color:inherit;">💻 GitHub: joonspk-research/generative_agents ⭐ 18k+</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文地位</a>
+    <a href="#sec2">2. 五大支柱</a>
+    <a href="#sec3">3. Memory Stream</a>
+    <a href="#sec4">4. Reflection</a>
+    <a href="#sec5">5. Planning</a>
+    <a href="#sec6">6. 涌现行为</a>
+    <a href="#sec7">7. 影响与局限</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html">论文库</a>
+  <a href="../architecture-study.html">架构研究</a>
+  <a href="../study-guide.html">学习指南</a>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文地位:为什么它是"LLM Agent 的创世论文"</h2>
+    </div>
+
+    <p>2023 年 4 月发表的 <em>"Generative Agents: Interactive Simulacra of Human Behavior"</em> 被普遍视为 LLM 驱动多 Agent 系统的<span class="hl">奠基之作</span>。在它之前,LLM 最多被当作"更聪明的聊天机器人";在它之后,"LLM 作为 Agent 的大脑"成为所有后续研究的默认前提。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">三个"第一次"</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>第一次</strong>把 LLM 用作长时记忆 + 自主行为的 Agent 大脑,而非单次对话</li>
+        <li><strong>第一次</strong>在可视化沙盒里同时运行 25 个互相交互的 Agent</li>
+        <li><strong>第一次</strong>观察到 LLM Agent 群体的<span class="hl">社会行为涌现</span>(情人节派对、市长竞选、朋友圈扩散)</li>
+      </ul>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">25</div>
+        <div class="stat-label">Agent 数量</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">2</div>
+        <div class="stat-label">仿真天数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">UIST'23</div>
+        <div class="stat-label">最佳论文</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">18k+</div>
+        <div class="stat-label">GitHub Stars</div>
+      </div>
+    </div>
+
+    <p>论文核心声明:<span class="hl">给定一个描述性的 Agent 人设,LLM 可以持续地、连贯地、可信地模拟其行为</span> —— 但前提是要有一个专门设计的架构来管理记忆、反思和规划。光有 LLM 是不够的。</p>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>五大支柱:Smallville 的完整架构</h2>
+    </div>
+
+    <p>论文提出的架构由五个紧密耦合的模块组成。它们不是独立的功能块,而是一个<strong>信息闭环</strong>。</p>
+
+    <div class="pillar-grid">
+      <div class="pillar-card p1">
+        <h4 style="color:var(--orange);">1. Memory Stream</h4>
+        <p style="font-size:13px;color:#c9d1d9;">每条观察作为一行自然语言日志存入,按时间顺序,不做结构化。</p>
+      </div>
+      <div class="pillar-card p2">
+        <h4 style="color:var(--accent);">2. Retrieval</h4>
+        <p style="font-size:13px;color:#c9d1d9;">按 <em>recency × importance × relevance</em> 三分打分,取 top-k 送入 LLM context。</p>
+      </div>
+      <div class="pillar-card p3">
+        <h4 style="color:var(--green);">3. Reflection</h4>
+        <p style="font-size:13px;color:#c9d1d9;">累积重要度超阈值时,LLM 自问:"最近 100 条记忆里能提炼什么高阶洞察?"</p>
+      </div>
+      <div class="pillar-card p4">
+        <h4 style="color:var(--cyan);">4. Planning</h4>
+        <p style="font-size:13px;color:#c9d1d9;">每天早晨生成当日日程(粗到细:大块 → 小时 → 分钟),执行中可被打断重规划。</p>
+      </div>
+      <div class="pillar-card p5">
+        <h4 style="color:var(--pink);">5. Action &amp; Interaction</h4>
+        <p style="font-size:13px;color:#c9d1d9;">行动落到沙盒瓦片地图;遇到另一个 Agent 就触发对话,对话内容再入 Memory Stream。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">闭环的意义</div>
+      观察 → 记忆 → 检索 → 反思 → 规划 → 行动 → 新观察。这个闭环让 Agent <strong>不是单次响应</strong>,而是随时间"生长" —— 昨天的反思影响今天的规划,今天的行动变成明天的记忆。这是 Smallville 最根本的贡献:把 LLM 从"函数"变成了"有状态的主体"。
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">3</div>
+      <h2>Memory Stream:扁平日志 + 三分检索</h2>
+    </div>
+
+    <p>Memory Stream 是论文最朴素也最巧妙的设计:<span class="hl">只是一个按时间顺序追加的自然语言列表</span>,每条记录形如:</p>
+
+    <div class="formula"><span class="label">单条记忆结构</span>
+{
+  "timestamp": 2023-02-13 08:30,
+  "description": "Isabella Rodriguez is setting up the café for Valentine's day party",
+  "importance": 7,        # LLM 自评 1-10
+  "last_accessed": ...,
+  "embedding": [...]      # 用于 relevance 检索
+}
+</div>
+
+    <h3>检索的三分打分公式</h3>
+
+    <div class="formula"><span class="label">Smallville retrieval score</span>
+score(m) = α_recency · recency(m)
+         + α_importance · importance(m)
+         + α_relevance · relevance(m, query)
+
+其中:
+  recency(m)   = 0.99^(小时数since_last_access)   # 指数衰减
+  importance(m) = LLM 自评的 1-10 分(写入时确定)
+  relevance(m, q) = cos_sim(embedding(m), embedding(q))
+</div>
+
+    <p>三个权重 α 在论文里被设为相等(均值归一化后)。<strong>top-k 取前若干条</strong>送入 LLM 的 prompt,让 LLM 基于这些记忆做决策或回答。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">为什么是这三个?</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>Recency</strong>:人类近期记忆更易被激活</li>
+        <li><strong>Importance</strong>:重要事件即使久远也该被想起(你会记得自己的婚礼)</li>
+        <li><strong>Relevance</strong>:语义相关 —— 标准的 RAG 思路</li>
+      </ul>
+      三者叠加,让 Agent 在"当下相关 + 近期 + 重要"之间达到平衡。这个简单的加权公式是后续所有 Agent 记忆系统的起点。
+    </div>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">4</div>
+      <h2>Reflection:把记忆抽象成洞察</h2>
+    </div>
+
+    <p>Memory Stream 只记原始观察,很快就会积累成千上万条琐事。如何从中提炼高阶理解?Smallville 的答案是 <strong>Reflection 机制</strong>。</p>
+
+    <h3>触发条件</h3>
+
+    <p>当 Agent 最近记忆的 <strong>importance 累积值</strong>超过某个阈值(论文里是 150),就触发一次反思。这保证反思是"偶发但规律"的 —— 不会每步都反思(浪费算力),也不会永远不反思(永远停留在表面)。</p>
+
+    <h3>反思流程(递归式)</h3>
+
+    <div class="formula"><span class="label">Reflection 三步</span>
+Step 1 — 提问:
+  从最近 100 条记忆里,LLM 生成 3 个"最值得深思的问题"
+  (例如:"Klaus 最关心的三件事是什么?")
+
+Step 2 — 检索:
+  每个问题作为 query,用 Memory Stream 的三分打分检索相关记忆
+
+Step 3 — 生成洞察:
+  LLM 基于检索到的记忆,生成几条高阶结论(importance 更高)
+  这些洞察本身也作为新记忆写回 Memory Stream
+</div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">反思的反思 —— 递归结构</div>
+      关键点:反思生成的洞察<strong>也是记忆</strong>,所以下一次反思可能基于之前的洞察进一步抽象。这形成了一棵<span class="hl">反思树</span>:叶子是原始观察,中间层是一级洞察,顶层是高度抽象的人格判断("我是一个内向但爱学习的人")。这是 Smallville 最精致的设计之一。
+    </div>
+
+    <p>论文给出的例子很具体:Klaus Mueller 经过若干次反思后生成了"I am someone who is passionate about research on gentrification and urban planning"这样的<strong>自我认知</strong>,并以此为基础决定去图书馆而非咖啡馆。反思不是装饰,而是直接影响行为选择。</p>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">5</div>
+      <h2>Planning:从一天到一分钟的层级分解</h2>
+    </div>
+
+    <p>Smallville 的规划机制处理一个根本难题:<strong>LLM 擅长短对话,但人类行为需要长时连贯性</strong>。解决方案是"粗到细的分解 + 可被打断的重规划"。</p>
+
+    <h3>三级分解</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>层级</th><th>粒度</th><th>示例</th><th>何时生成</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>日计划</strong></td>
+            <td>大块行为</td>
+            <td>上午:写论文 / 下午:在咖啡馆 / 晚上:和朋友聚餐</td>
+            <td>每天早晨一次,基于反思 + 人设</td>
+          </tr>
+          <tr>
+            <td><strong>小时级</strong></td>
+            <td>1 小时一块</td>
+            <td>9:00 起床洗漱,10:00 去咖啡馆写作...</td>
+            <td>从日计划展开,仅生成未来几小时</td>
+          </tr>
+          <tr>
+            <td><strong>分钟级</strong></td>
+            <td>5-15 分钟</td>
+            <td>10:00 出门,10:05 到达咖啡馆,10:10 点单...</td>
+            <td>从小时级进一步展开,只展开当下</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>打断与重规划</h3>
+
+    <p>行为执行中如果遇到"意外事件"(比如偶遇另一个 Agent 并开始对话),当前计划被挂起。对话结束后,LLM 被要求 <strong>判断是否需要修改剩余计划</strong>。这让 Smallville 的 Agent 不会显得僵硬 —— 他们会因为别人的一句话而改变下午的安排。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">层级 + 打断 = 可信行为</div>
+      层级分解保证"大方向稳定"(Klaus 一天都在写论文),打断机制保证"细节灵活"(他会因为朋友喊他吃午饭而暂停)。两者结合是后续所有 Agent 规划系统的模板,直到 2024 年 HiAgent / LATS 才出现结构性创新。
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">6</div>
+      <h2>涌现行为:论文最令人震撼的部分</h2>
+    </div>
+
+    <p>论文最广为传颂的不是架构,而是 25 个 Agent 在 2 天仿真里展现出的三个<strong>自发社会行为</strong>。这些行为都<span class="hl">没有被任何人显式编程</span>:</p>
+
+    <div class="card">
+      <h4 style="color:var(--pink);">🎉 自发组织的情人节派对</h4>
+      <p>实验者只给 Isabella 一个目标:"在咖啡馆办情人节派对"。Isabella 开始告诉其他 Agent。消息通过对话网络扩散,最终<strong>5 个 Agent 在正确时间出现在咖啡馆</strong>,其中有的甚至邀请了心仪对象作为"约会"。</p>
+      <p style="color:var(--muted);font-size:13px;">这是社会网络、信息传播、情感动机、时空协调的综合涌现。</p>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--cyan);">🗳️ Sam 的市长竞选</h4>
+      <p>Sam 向几个 Agent 提到自己想竞选市长。消息扩散中,<strong>其他 Agent 开始主动询问"你听说 Sam 要竞选了吗?"</strong>,并在对话里形成支持或质疑的观点 —— 完全没有人告诉他们这是个可以讨论的话题。</p>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--orange);">👥 关系网络的自发形成</h4>
+      <p>实验开始时 Agent 间的关系只在人设里简单描述。2 天后,新的<strong>朋友关系、回避关系、浪漫关系</strong>基于实际交互自然形成,许多并未在初始设定中。</p>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">为什么这重要</div>
+      这些涌现行为不是"LLM 聪明"的直接产物,而是<strong>架构 + LLM</strong>的乘积。单独的 LLM 做不出这些(它没有记忆、没有持续性);单独的符号系统做不出这些(它没有生成灵活对话的能力)。是 Memory Stream + Reflection + Planning 把 LLM 的单次能力<span class="hl">缝合成了持续的主体性</span>。
+    </div>
+  </div>
+
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">7</div>
+      <h2>影响与局限</h2>
+    </div>
+
+    <h3>对后续研究的直接影响</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>后续方向</th><th>代表工作</th><th>继承的核心</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>分层记忆</td>
+            <td><a href="18-hiagent.html">HiAgent</a> · <a href="20-a-mem.html">A-MEM</a> · <a href="21-memory-os.html">MemoryOS</a></td>
+            <td>扩展 Memory Stream 的扁平结构</td>
+          </tr>
+          <tr>
+            <td>自我改进</td>
+            <td><a href="10-reflexion.html">Reflexion</a></td>
+            <td>把 Reflection 机制泛化到任务失败学习</td>
+          </tr>
+          <tr>
+            <td>大规模仿真</td>
+            <td><a href="17-agent-society.html">AgentSociety</a></td>
+            <td>把 25 扩到 10,000+,验证可扩展性</td>
+          </tr>
+          <tr>
+            <td>搜索式决策</td>
+            <td><a href="13-lats.html">LATS</a></td>
+            <td>用 MCTS 替代 Smallville 的线性规划</td>
+          </tr>
+          <tr>
+            <td>应用落地</td>
+            <td>Inworld AI · Character.AI · Soul Machines</td>
+            <td>商业化 NPC / 伙伴 Agent 产品</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>已知局限(后续论文陆续攻击的点)</h3>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">Smallville 的五个痛点</div>
+      <ol style="margin-bottom:0;">
+        <li><strong>成本高</strong>:2 天仿真 25 Agent 花费数千美元,无法扩展(→ AgentSociety 异步调度)</li>
+        <li><strong>记忆扁平</strong>:线性增长,检索成本 O(N)(→ HiAgent/A-MEM/MemoryOS 的结构化改造)</li>
+        <li><strong>反思无评估</strong>:反思生成的洞察没有正确性保证(→ Reflexion 加入失败信号 / Multi-Agent 批评)</li>
+        <li><strong>规划无搜索</strong>:单路径贪心,无法回溯(→ ToT / LATS 的树搜索)</li>
+        <li><strong>缺乏真实性评估</strong>:涌现行为"像不像人"主要靠人类评分,缺客观指标(→ 挑战至今未完全解决)</li>
+      </ol>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">学习路径建议</div>
+      <p>如果刚开始接触这个领域,按这个顺序读:</p>
+      <ol style="margin-bottom:0;">
+        <li>本篇(Smallville 原论文)—— 建立完整心智模型</li>
+        <li><a href="07-chain-of-thought.html">CoT</a> + <a href="08-react.html">ReAct</a> —— 理解 LLM 推理与行动的基础</li>
+        <li><a href="10-reflexion.html">Reflexion</a> —— 看 Reflection 机制的演进形态</li>
+        <li><a href="18-hiagent.html">HiAgent</a> / <a href="20-a-mem.html">A-MEM</a> —— 看 Memory Stream 的现代替代方案</li>
+        <li><a href="17-agent-society.html">AgentSociety</a> —— 看 Smallville 架构的规模化验证</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  深度解读19 &middot; Generative Agents: Interactive Simulacra of Human Behavior &middot; Park et al. (Stanford &amp; Google) UIST 2023 Best Paper<br>
+  arXiv:2304.03442 &middot; GitHub: joonspk-research/generative_agents &middot; 本页由 AI 辅助生成,仅供学术研究参考
+</div>
+</body>
+</html>

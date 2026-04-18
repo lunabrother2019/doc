@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读14：Voyager — 开放世界具身Agent的终身学习</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Voyager — 开放世界具身Agent的终身学习 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：Minecraft中的LLM驱动Agent，具备自动课程、技能库和迭代改进能力，实现开放世界的持续探索与技能积累</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2305.16291" target="_blank">arXiv 2305.16291</a> &middot; Wang, Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar &middot; 2023</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/MineDojo/Voyager" target="_blank" style="color:inherit;">💻 GitHub: MineDojo/Voyager ⭐ 极活跃</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 三大核心组件</a>
+    <a href="#sec3">3. 技能库 = 长期记忆</a>
+    <a href="#sec4">4. 关键实验</a>
+    <a href="#sec5">5. 与其他Agent对比</a>
+    <a href="#sec6">6. 与斯坦福小镇的关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文概述：Minecraft中的终身学习Agent</h2>
+    </div>
+
+    <p>Voyager是第一个在Minecraft中实现<span class="hl">LLM驱动的终身学习</span>的具身Agent。它能够在开放世界中持续探索、获取新技能、并将技能存储为可复用的代码库，实现越玩越强的"滚雪球"效应。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心论点</div>
+      开放世界中的Agent不能依赖预定义的任务列表或人工设定的目标。Voyager通过三个核心组件 -- 自动课程(Automatic Curriculum)、技能库(Skill Library)、迭代提示(Iterative Prompting) -- 实现了<strong>无需人工干预的持续自主探索</strong>。它证明了LLM可以同时作为Agent的"大脑"（决策）、"老师"（课程设计）和"记忆"（技能积累）。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">3.3x</div>
+        <div class="stat-label">独特物品数 (vs AutoGPT)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">15.3x</div>
+        <div class="stat-label">技术树进度 (vs ReAct)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">0</div>
+        <div class="stat-label">人工干预次数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">GPT-4</div>
+        <div class="stat-label">驱动模型</div>
+      </div>
+    </div>
+
+    <p>Voyager的意义不仅在于Minecraft游戏本身，而在于它提出了一种<strong>通用的开放世界Agent范式</strong>：自动设定目标、通过代码执行行动、将成功经验存为可复用技能、遇到新问题时检索已有技能并组合。这个范式可以迁移到机器人控制、自动化测试、软件开发等多种开放世界场景。</p>
+
+    <div class="sv-link">
+      斯坦福小镇是一个封闭的社交仿真环境 -- Agent的行为空间有限（散步、交谈、工作等），环境不会产生真正的新挑战。Voyager则在一个开放世界中运行，环境无限广阔，需要不断学习新技能来应对新挑战。两者都是LLM Agent的里程碑，但代表了不同的Agent能力维度：小镇展示了社交智能，Voyager展示了探索智能。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>三大核心组件</h2>
+    </div>
+
+    <p>Voyager的架构由三个紧密协作的组件构成，形成一个<span class="hl">探索-执行-积累</span>的闭环。</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">自动课程 (Automatic Curriculum)</div>
+        <div class="tool-desc">GPT-4根据Agent当前的状态（背包物品、已解锁成就、所处生物群系等）自动生成下一个探索目标。目标遵循"最近发展区"原则 -- 既不太简单也不太难，确保Agent始终在学习边界上探索。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">技能库 (Skill Library)</div>
+        <div class="tool-desc">将成功完成的每个任务对应的行为程序存储为可复用的JavaScript代码。每个技能附带自然语言描述，通过嵌入向量进行语义索引。新任务时，检索最相关的已有技能作为参考。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">迭代提示 (Iterative Prompting)</div>
+        <div class="tool-desc">GPT-4生成代码 &rarr; 在Minecraft中执行 &rarr; 获取环境反馈和错误信息 &rarr; 自我验证是否成功 &rarr; 如未成功则修改代码重试。这个循环持续进行直到任务完成或达到重试上限。</div>
+      </div>
+    </div>
+
+    <h3>自动课程的工作流程</h3>
+
+    <div class="card">
+      <h4>课程生成的输入信号</h4>
+      <ul>
+        <li><strong>背包状态</strong>：当前拥有哪些物品和资源</li>
+        <li><strong>已完成任务</strong>：历史上成功完成过的目标列表</li>
+        <li><strong>失败记录</strong>：最近尝试但未成功的任务</li>
+        <li><strong>环境信息</strong>：当前所处的生物群系、附近的方块和生物</li>
+        <li><strong>技术树进度</strong>：在Minecraft合成树中的当前位置</li>
+      </ul>
+      <p>GPT-4综合以上信息，生成一个具体且可执行的下一目标，如"用铁锭制作一个铁剑"或"找到并进入一个洞穴"。</p>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">课程设计的"最近发展区"原则</div>
+      Voyager的自动课程借鉴了教育学中的"最近发展区"(Zone of Proximal Development)概念。GPT-4不会给一个刚开始游戏的Agent设定"击败末影龙"这样的终极目标，而是会从"收集木头"开始，逐步递进到"制作木镐"、"挖掘石头"、"制作石剑"等。这种渐进式的目标设定确保了Agent始终在其能力范围的边缘学习。
+    </div>
+
+    <h3>迭代提示机制</h3>
+
+    <div class="formula">
+      <span class="label">迭代提示循环</span>
+      GPT-4生成代码 &rarr; Minecraft执行 &rarr; 环境反馈(成功/失败/报错) &rarr; 自我验证 &rarr; [失败] 修改代码 &rarr; 重新执行 &rarr; ...
+    </div>
+
+    <div class="card">
+      <h4>三种反馈信号</h4>
+      <ol>
+        <li><strong>执行错误</strong>：代码语法错误、API调用失败等 -- GPT-4根据错误信息修复代码</li>
+        <li><strong>环境反馈</strong>：Minecraft返回的游戏状态变化 -- GPT-4判断行动是否产生预期效果</li>
+        <li><strong>自我验证</strong>：GPT-4检查背包/环境状态，判断任务是否真正完成 -- 避免虚假成功</li>
+      </ol>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">自我验证的重要性</div>
+      Voyager发现，如果不加自我验证步骤，Agent经常会在任务未完成时就"宣告成功"。例如，Agent可能在"制作铁剑"任务中成功冶炼了铁锭，但忘记了最后的合成步骤。自我验证机制强制Agent检查最终状态，大幅减少了虚假成功。
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>技能库 = Agent的长期记忆</h2>
+    </div>
+
+    <p>技能库是Voyager最核心的创新。它将Agent的成功经验以<span class="hl">可执行代码</span>的形式持久化存储，而非自然语言描述。这意味着存储的不是"我学会了怎么做"，而是"这就是具体怎么做的代码"。</p>
+
+    <h3>技能的结构</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>组成部分</th>
+            <th>说明</th>
+            <th>用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>JavaScript代码</strong></td>
+            <td>使用Mineflayer API编写的可执行函数</td>
+            <td>直接在Minecraft中执行，实现具体行为</td>
+          </tr>
+          <tr>
+            <td><strong>自然语言描述</strong></td>
+            <td>GPT-4生成的技能说明文本</td>
+            <td>用于语义检索和技能理解</td>
+          </tr>
+          <tr>
+            <td><strong>嵌入向量</strong></td>
+            <td>描述文本的向量表示</td>
+            <td>支持基于语义相似度的快速检索</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>技能的生命周期</h3>
+
+    <div class="formula">
+      <span class="label">技能从诞生到复用的完整流程</span>
+      新任务 &rarr; GPT-4生成代码 &rarr; 执行+迭代修改 &rarr; 自我验证通过 &rarr; 代码存入技能库 + 生成描述 + 向量化索引 &rarr; 未来遇到相关任务时检索复用
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">技能复用的"复利效应"</div>
+      技能库的价值随时间指数增长。当Agent拥有100个基础技能时，面对新任务可以检索到2-3个相关技能作为参考，GPT-4只需在已有代码基础上做少量修改即可完成新任务。这就像人类学习 -- 掌握的基础技能越多，学习新技能越快。Voyager在后期阶段完成新任务的速度明显快于早期，正是这种"复利效应"的体现。
+    </div>
+
+    <h3>检索机制</h3>
+
+    <div class="card">
+      <h4>语义检索流程</h4>
+      <ol>
+        <li>新任务到达时，将任务描述转化为嵌入向量</li>
+        <li>在技能库中搜索语义最相似的已有技能（Top-K）</li>
+        <li>将检索到的技能代码注入GPT-4的prompt中</li>
+        <li>GPT-4参考已有技能，生成新任务的代码</li>
+      </ol>
+      <p>这种机制使得Agent在面对"制作钻石胸甲"这样的新任务时，能够参考之前"制作铁胸甲"的成功代码，只需替换材料即可。</p>
+    </div>
+
+    <h3>技能库 vs 记忆流</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>Voyager 技能库</th>
+            <th>Smallville 记忆流</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>存储内容</strong></td>
+            <td>可执行的JavaScript代码</td>
+            <td>自然语言形式的经历描述</td>
+          </tr>
+          <tr>
+            <td><strong>索引方式</strong></td>
+            <td>语义嵌入检索</td>
+            <td>新近度+重要性+相关性三维评分</td>
+          </tr>
+          <tr>
+            <td><strong>复用方式</strong></td>
+            <td>直接执行或作为代码模板</td>
+            <td>注入prompt作为上下文</td>
+          </tr>
+          <tr>
+            <td><strong>增长模式</strong></td>
+            <td>仅存储成功经验（质量过滤）</td>
+            <td>存储所有经历（无过滤）</td>
+          </tr>
+          <tr>
+            <td><strong>可组合性</strong></td>
+            <td>高 -- 技能可以互相调用</td>
+            <td>低 -- 记忆仅作为文本参考</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心洞见：可执行记忆 vs 描述性记忆</div>
+      Voyager的技能库代表了一种根本不同的Agent记忆范式。传统的记忆系统（包括Smallville）存储的是"发生了什么"的描述，而技能库存储的是"怎么做"的程序。前者是<strong>陈述性记忆</strong>(declarative memory)，后者是<strong>程序性记忆</strong>(procedural memory)。Voyager证明了在需要行动执行的场景中，程序性记忆比陈述性记忆更高效。
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">4</div>
+      <h2>关键实验：全面碾压基线方法</h2>
+    </div>
+
+    <p>Voyager在Minecraft中进行了全面的对比实验，证明了其在开放世界探索中的压倒性优势。</p>
+
+    <h3>核心指标对比</h3>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">63</div>
+        <div class="stat-label">Voyager 独特物品数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">19</div>
+        <div class="stat-label">AutoGPT 独特物品数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--red);">4</div>
+        <div class="stat-label">ReAct 独特物品数</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>独特物品数</th>
+            <th>技术树进度</th>
+            <th>地图探索距离</th>
+            <th>零人工干预</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:rgba(34,211,238,0.05);">
+            <td><strong style="color:var(--cyan);">Voyager</strong></td>
+            <td style="color:var(--green); font-weight:700;">63</td>
+            <td style="color:var(--green); font-weight:700;">最高</td>
+            <td style="color:var(--green); font-weight:700;">最远</td>
+            <td style="color:var(--green);">是</td>
+          </tr>
+          <tr>
+            <td>AutoGPT</td>
+            <td>19</td>
+            <td>低</td>
+            <td>中等</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td>ReAct</td>
+            <td>4</td>
+            <td>极低</td>
+            <td>近</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td>Reflexion</td>
+            <td>7</td>
+            <td>低</td>
+            <td>近</td>
+            <td>是</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>终极成就：钻石镐</h3>
+
+    <div class="card">
+      <h4>Minecraft技术树的登顶</h4>
+      <p>Voyager成功制作了<span class="hl">钻石镐</span> -- Minecraft中最高级的采矿工具之一。这需要完成一长串前置任务：</p>
+      <ol>
+        <li>收集木头 &rarr; 制作工作台</li>
+        <li>制作木镐 &rarr; 挖掘石头</li>
+        <li>制作石镐 &rarr; 挖掘铁矿</li>
+        <li>建造熔炉 &rarr; 冶炼铁锭</li>
+        <li>制作铁镐 &rarr; 深入地下挖掘钻石</li>
+        <li>制作钻石镐</li>
+      </ol>
+      <p>这个过程涉及数十个子任务，每个子任务都需要正确的工具和材料。其他基线方法均未能达到钻石级别的技术树深度。</p>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么差距如此巨大？</div>
+      <ul>
+        <li><strong>技能积累的复利效应</strong>：Voyager每完成一个任务都积累了可复用技能，后续任务越来越容易；而ReAct和Reflexion每次都从零开始</li>
+        <li><strong>自动课程的引导作用</strong>：Voyager自动设定循序渐进的目标，而AutoGPT的目标设定较为随机</li>
+        <li><strong>迭代修正的鲁棒性</strong>：Voyager的代码生成+验证循环确保了高成功率，而单次生成方法容易因小错误而失败</li>
+      </ul>
+    </div>
+
+    <h3>消融实验</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>配置</th>
+            <th>独特物品数</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:rgba(34,211,238,0.05);">
+            <td><strong>完整Voyager</strong></td>
+            <td style="color:var(--green);">63</td>
+            <td>三个组件全部启用</td>
+          </tr>
+          <tr>
+            <td>无自动课程</td>
+            <td>40</td>
+            <td>使用固定目标列表，缺乏自适应性</td>
+          </tr>
+          <tr>
+            <td>无技能库</td>
+            <td>35</td>
+            <td>不复用历史技能，每次从零生成代码</td>
+          </tr>
+          <tr>
+            <td>无迭代提示</td>
+            <td>28</td>
+            <td>代码生成一次性完成，不修正</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>消融实验清晰地展示了每个组件的贡献。迭代提示的影响最大（移除后下降最多），说明<strong>执行-反馈-修正循环</strong>是Voyager成功的最关键因素。</p>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>与其他Agent的对比</h2>
+    </div>
+
+    <p>Voyager在LLM Agent的版图中占据了一个独特的位置。以下对比帮助理解Voyager的设计选择及其权衡。</p>
+
+    <h3>vs AutoGPT</h3>
+
+    <div class="card">
+      <h4>有积累 vs 无积累</h4>
+      <p>AutoGPT是一个通用的LLM Agent框架，可以执行各种任务，但<span class="hl">不会积累经验</span>。每次新任务都是独立的，之前的成功和失败不会影响未来的表现。Voyager则通过技能库实现了持续积累 -- 做过的事情不需要重新学，失败的教训也会被记住。</p>
+      <p>这导致了在Minecraft中的巨大性能差距：AutoGPT在第50个小时和第1个小时的表现几乎相同，而Voyager则越来越强。</p>
+    </div>
+
+    <h3>vs ReAct</h3>
+
+    <div class="card">
+      <h4>有记忆 vs 无状态</h4>
+      <p>ReAct提供了thought-action-observation的推理框架，但本质上是<span class="hl">无状态的</span> -- 它不会记住之前的交互。Voyager在ReAct的基础上增加了技能库（长期记忆）和自动课程（目标管理），将其从一个"单次推理器"升级为一个"持续学习者"。</p>
+    </div>
+
+    <h3>vs DEPS</h3>
+
+    <div class="card">
+      <h4>自动目标 vs 人工目标</h4>
+      <p>DEPS (Describe, Explain, Plan and Select) 也是一个Minecraft Agent，但它需要<span class="hl">人工设定最终目标</span>（如"获取钻石"），然后自动分解为子目标。Voyager则完全自主 -- 自动课程模块会根据当前状态自动决定下一步做什么，无需任何人工输入。这使得Voyager在开放式探索中更具自主性。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Voyager</th>
+            <th>AutoGPT</th>
+            <th>ReAct</th>
+            <th>DEPS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>长期记忆</strong></td>
+            <td style="color:var(--green);">技能库(代码)</td>
+            <td style="color:var(--red);">无</td>
+            <td style="color:var(--red);">无</td>
+            <td style="color:var(--yellow);">有限</td>
+          </tr>
+          <tr>
+            <td><strong>自主目标</strong></td>
+            <td style="color:var(--green);">自动课程</td>
+            <td style="color:var(--yellow);">用户设定</td>
+            <td style="color:var(--yellow);">用户设定</td>
+            <td style="color:var(--yellow);">用户设定</td>
+          </tr>
+          <tr>
+            <td><strong>行动形式</strong></td>
+            <td>代码生成+执行</td>
+            <td>工具调用</td>
+            <td>文本行动</td>
+            <td>API调用</td>
+          </tr>
+          <tr>
+            <td><strong>错误恢复</strong></td>
+            <td style="color:var(--green);">迭代修正</td>
+            <td style="color:var(--yellow);">重试</td>
+            <td style="color:var(--red);">无</td>
+            <td style="color:var(--yellow);">重规划</td>
+          </tr>
+          <tr>
+            <td><strong>技能复用</strong></td>
+            <td style="color:var(--green);">语义检索</td>
+            <td style="color:var(--red);">不支持</td>
+            <td style="color:var(--red);">不支持</td>
+            <td style="color:var(--red);">不支持</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">Voyager的独特定位</div>
+      在所有对比方法中，Voyager是唯一同时具备<strong>长期记忆、自主目标设定、迭代修正和技能复用</strong>的Agent。这四项能力的组合使其成为最接近"终身学习Agent"理想的系统。
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>Voyager和斯坦福小镇发表时间相近（2023年），都是LLM Agent的里程碑工作，但它们探索了Agent能力的不同维度。两者的对比揭示了LLM Agent研究的两条平行路径。</p>
+
+    <h3>两种记忆范式</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>小镇 Memory Stream</th>
+            <th>Voyager Skill Library</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>记忆类型</strong></td>
+            <td>情景记忆(episodic) -- "发生了什么"</td>
+            <td>程序记忆(procedural) -- "怎么做"</td>
+          </tr>
+          <tr>
+            <td><strong>存储格式</strong></td>
+            <td>自然语言描述</td>
+            <td>可执行代码</td>
+          </tr>
+          <tr>
+            <td><strong>用途</strong></td>
+            <td>社交决策、反思、对话</td>
+            <td>技能执行、任务完成</td>
+          </tr>
+          <tr>
+            <td><strong>增长方式</strong></td>
+            <td>被动记录所有经历</td>
+            <td>主动存储成功技能</td>
+          </tr>
+          <tr>
+            <td><strong>检索触发</strong></td>
+            <td>三维评分(新近+重要+相关)</td>
+            <td>语义相似度</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">互补而非替代</div>
+      <p>一个理想的Agent可能需要同时具备两种记忆：</p>
+      <ul>
+        <li><strong>Memory Stream</strong> 存储社交经历和环境观察 -- "Isabella昨天邀请我参加派对"</li>
+        <li><strong>Skill Library</strong> 存储可执行的行为程序 -- "这是参加派对的行动序列代码"</li>
+      </ul>
+      <p>前者帮助Agent理解世界和做出社交决策，后者帮助Agent高效地执行具体行动。两者的结合可能产生一个既懂社交又能行动的全能Agent。</p>
+    </div>
+
+    <h3>从社交仿真到开放世界</h3>
+
+    <div class="sv-link">
+      Voyager的技能库相当于小镇的记忆流(Memory Stream)，但存储的是可执行技能而非文本经验。两者都强调经验的积累和复用，但Voyager证明了在开放世界中这种范式也能工作。Voyager是小镇Agent从"社交仿真"到"开放世界探索"的转变 -- 它展示了同样的核心理念（LLM驱动、记忆积累、自主行动）如何在一个完全不同的环境中发挥作用。如果小镇中的Agent也拥有技能库，它们不仅能"谈论"做事，还能真正高效地"做事"。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读14 &middot; Voyager: An Open-Ended Embodied Agent with Large Language Models &middot; Wang et al. 2023<br>
+  arXiv:2305.16291 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

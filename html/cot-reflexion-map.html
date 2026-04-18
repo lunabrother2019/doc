@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoT × Reflexion 关系概念图 — 从推理到反思的演化谱系</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; --lime: #a3e635;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--accent); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Mermaid */
+    .mermaid-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 24px 16px; margin: 16px 0 32px; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    .mermaid svg { max-width: 100%; height: auto; }
+
+    /* Legend */
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 24px; font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; background: var(--bg2); border: 1px solid var(--border); }
+
+    /* Cards grid */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin: 16px 0 32px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; border-left: 3px solid var(--accent); transition: border-color .2s; }
+    .card:hover { border-color: var(--accent); }
+    .card .title { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 6px; }
+    .card .title a { color: var(--text); }
+    .card .title a:hover { color: var(--accent); }
+    .card .note { font-size: 13px; color: #c9d1d9; line-height: 1.7; margin-bottom: 8px; }
+    .card .keywords { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .card .keywords span { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(167,139,250,.1); color: var(--accent); }
+    .dd-link { font-size: 12px; color: var(--pink); font-weight: 600; }
+    .dd-link:hover { text-decoration: underline; }
+    .repo-link { display: inline-block; font-size: 11px; color: var(--green); font-weight: 600; margin-left: 10px; padding: 1px 8px; border-radius: 4px; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); }
+    .repo-link:hover { background: rgba(52,211,153,0.18); }
+    .repo-link.no-code { color: var(--muted); background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.2); }
+
+    /* Pillar colors */
+    .card-cot { border-left-color: var(--yellow); }
+    .card-reason { border-left-color: var(--blue); }
+    .card-reflect { border-left-color: var(--red); }
+    .card-plan { border-left-color: var(--orange); }
+    .card-agent { border-left-color: var(--green); }
+    .card-multi { border-left-color: var(--cyan); }
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
+    .tag-cot { background: rgba(251,191,36,.15); color: var(--yellow); }
+    .tag-reason { background: rgba(96,165,250,.15); color: var(--blue); }
+    .tag-reflect { background: rgba(248,113,113,.15); color: var(--red); }
+    .tag-plan { background: rgba(251,146,60,.15); color: var(--orange); }
+    .tag-agent { background: rgba(52,211,153,.15); color: var(--green); }
+    .tag-multi { background: rgba(34,211,238,.15); color: var(--cyan); }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 32px; margin: 24px 0; }
+    .timeline::before { content: ""; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--yellow), var(--blue), var(--red), var(--green), var(--cyan)); }
+    .tl-item { position: relative; margin-bottom: 24px; }
+    .tl-item::before { content: ""; position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg); }
+    .tl-item .tl-year { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .tl-item .tl-title { font-size: 15px; font-weight: 600; color: var(--text); margin: 2px 0 4px; }
+    .tl-item .tl-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Back link */
+    .back-link { display: inline-block; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+    .back-link:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>CoT × Reflexion 关系概念图 <span class="personal-badge">后加</span></h1>
+  <div class="sub">
+    从 Chain-of-Thought 到 Reflexion：追溯 LLM 推理能力如何演化为 Agent 自我改进能力的完整谱系。
+    覆盖 11 篇核心论文，展示推理(Reasoning)、行动(Acting)、反思(Reflection)、规划(Planning) 四大能力的交织关系。
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#sec-reading">推荐阅读路径</a>
+    <a href="#sec-map">核心关系图</a>
+    <a href="#sec-timeline">演化时间线</a>
+    <a href="#sec-layers">四层架构</a>
+    <a href="#sec-cot-to-reflexion">CoT → Reflexion 路径</a>
+    <a href="#sec-papers">论文索引</a>
+    <a href="#sec-code">代码仓库</a>
+    <a href="#sec-smallville">小镇映射</a>
+    <a href="index1.html">← 返回导航</a>
+  </div>
+</div>
+
+<div class="container">
+
+<a class="back-link" href="concepts-map.html">← 返回核心概念关联图</a>
+
+<!-- ═══════════ Section 0: Reading Path ═══════════ -->
+<div class="section" id="sec-reading">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--pink);">★</div>
+    <h2>推荐阅读路径</h2>
+  </div>
+
+  <p>11 篇论文按"<strong>核心 → 进阶 → 拓展</strong>"三层组织。每层都给出一句话核心思想和与小镇研究的相关度。</p>
+
+  <div class="callout callout-key">
+    <div class="callout-title">⏱ 时间预算</div>
+    <ul>
+      <li><strong>1 小时</strong> — 只读 Reflexion (10) + 本页"四层架构"和"小镇映射"两节</li>
+      <li><strong>半天</strong> — 第一层 4 篇按顺序读完（每篇 deep-dive 约 15-20 分钟）</li>
+      <li><strong>1-2 天</strong> — 第一层 + 第二层精选 1-2 篇</li>
+      <li><strong>完整谱系</strong> — 全部 11 篇 + 本页所有章节</li>
+    </ul>
+  </div>
+
+  <!-- ── Layer 1: Must Read ── -->
+  <h3 style="color:var(--red);margin-top:32px;">🔴 第一层：必读核心 4 篇 — 建立完整心智模型</h3>
+  <p>按顺序读，每篇都直接构建在前一篇之上。读完即掌握"<span class="hl">推理 → 行动 → 反思 → 搜索</span>"的完整谱系。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>顺序</th>
+          <th>论文</th>
+          <th>核心一句话</th>
+          <th>解决了什么</th>
+          <th>小镇相关度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><a href="deep-dive/07-chain-of-thought.html"><strong>CoT</strong></a></td>
+          <td>让 LLM 输出中间推理步骤</td>
+          <td>复杂推理基础能力</td>
+          <td>★★ 推理基础</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><a href="deep-dive/08-react.html"><strong>ReAct</strong></a></td>
+          <td>把 CoT 推理插入"行动-观察"循环</td>
+          <td>推理 → Agent</td>
+          <td>★★★ 行动循环</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td><a href="deep-dive/10-reflexion.html"><strong>Reflexion</strong></a></td>
+          <td>失败后写自然语言反思存入记忆</td>
+          <td>Agent → 会学习的 Agent</td>
+          <td>★★★★ Reflection 模块</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td><a href="deep-dive/11-tree-of-thoughts.html"><strong>Tree of Thoughts</strong></a></td>
+          <td>单链推理升级为树状搜索+回溯</td>
+          <td>推理 → 系统性探索</td>
+          <td>★★ 规划升级</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">⭐ 与小镇最相关的是 Reflexion</div>
+    <p>它直接对应 Generative Agents 的 <strong>Reflection 模块</strong>。两者都是用自然语言做 self-improvement，但 Reflexion 更面向任务导向的学习——是小镇 Reflection 的"工程化进化版"。</p>
+  </div>
+
+  <!-- ── Layer 2: Pick One ── -->
+  <h3 style="color:var(--orange);margin-top:32px;">🟡 第二层：按需精读 3 篇 — 看你关心哪个方向</h3>
+  <p>挑你最感兴趣的方向读 1-2 篇即可，不用全读。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>关心方向</th>
+          <th>推荐论文</th>
+          <th>为什么</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>想要"集大成者"</strong></td>
+          <td><a href="deep-dive/13-lats.html"><strong>LATS</strong></a></td>
+          <td>MCTS 统一 ReAct + ToT + Reflexion，<span class="hl">一篇看尽前面所有思想</span>。WebShop 75.9% SOTA，HumanEval 94.4%。</td>
+        </tr>
+        <tr>
+          <td><strong>关心 Agent 工程实践</strong></td>
+          <td><a href="deep-dive/14-voyager.html"><strong>Voyager</strong></a></td>
+          <td>Minecraft 中的"<span class="hl">技能库</span>"是小镇记忆流的可执行版本。证明开放世界中"经验积累 + 复用"范式可行。</td>
+        </tr>
+        <tr>
+          <td><strong>关心规划质量</strong></td>
+          <td><a href="deep-dive/12-plan-and-solve.html"><strong>Plan-and-Solve</strong></a></td>
+          <td>验证了"<span class="hl">先规划再执行</span>"比"边想边做"更可靠。小镇 daily plan 的理论基础。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Layer 3: Skim ── -->
+  <h3 style="color:var(--green);margin-top:32px;">🟢 第三层：拓展了解 4 篇 — 浏览摘要即可</h3>
+  <p>这些看 deep-dive 摘要 + 关键实验数据就够，不用细读原文。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>论文</th>
+          <th>何时回头细读</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="deep-dive/09-inner-monologue.html"><strong>Inner Monologue</strong></a></td>
+          <td>做具身/机器人 Agent 时</td>
+        </tr>
+        <tr>
+          <td><a href="deep-dive/15-camel.html"><strong>CAMEL</strong></a></td>
+          <td>研究多 Agent 角色扮演的社会动态时</td>
+        </tr>
+        <tr>
+          <td><a href="deep-dive/16-multi-agent-tot-validator.html"><strong>Multi-Agent ToT</strong></a></td>
+          <td>想用多 Agent 验证克服单 LLM 偏见时</td>
+        </tr>
+        <tr>
+          <td><a href="deep-dive/17-agent-society.html"><strong>AgentSociety</strong></a></td>
+          <td>做大规模仿真扩展时（小镇直系后代）</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Key insight ── -->
+  <h3 style="color:var(--accent);margin-top:32px;">💡 核心演化公式</h3>
+  <p>记住这 3 个公式就抓住了精髓——每一层都是前一层的超集：</p>
+
+  <div class="callout callout-insight">
+    <pre style="font-family:'Courier New',monospace;font-size:14px;line-height:2;color:var(--cyan);margin:0;">
+<span style="color:var(--yellow);">CoT</span>       +  <span style="color:var(--blue);">环境交互</span>   =  <span style="color:var(--blue);">ReAct</span>       <span style="color:var(--muted);">(推理 → 行动)</span>
+<span style="color:var(--blue);">ReAct</span>     +  <span style="color:var(--red);">经验记忆</span>   =  <span style="color:var(--red);">Reflexion</span>   <span style="color:var(--muted);">(行动 → 学习)</span>
+<span style="color:var(--red);">Reflexion</span> +  <span style="color:var(--orange);">树搜索</span>     =  <span style="color:var(--orange);">LATS</span>        <span style="color:var(--muted);">(学习 → 系统探索)</span>
+    </pre>
+  </div>
+
+  <p><strong>LATS 是终点站</strong>——它包含了前面所有思想。如果你想"一篇读完所有"，直接读 LATS；但你需要先理解 ReAct/ToT/Reflexion 才能读懂 LATS 在统一什么。</p>
+</div>
+
+<!-- ═══════════ Section 1: Core Relationship Map ═══════════ -->
+<div class="section" id="sec-map">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent);">1</div>
+    <h2>核心关系图</h2>
+  </div>
+
+  <div class="legend">
+    <span style="color:var(--yellow);">● CoT 基础</span>
+    <span style="color:var(--blue);">● 推理+行动</span>
+    <span style="color:var(--red);">● 反思系统</span>
+    <span style="color:var(--orange);">● 规划增强</span>
+    <span style="color:var(--green);">● 具身/应用</span>
+    <span style="color:var(--cyan);">● 多Agent</span>
+    <span style="color:var(--accent);">● 斯坦福小镇</span>
+  </div>
+
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+graph TB
+  %% ── CoT 基础层 ──
+  COT["<b>Chain-of-Thought</b><br/>Wei et al. 2022<br/>NeurIPS 2022<br/><i>中间推理步骤</i>"]
+
+  %% ── 推理+行动层 ──
+  REACT["<b>ReAct</b><br/>Yao et al. 2022<br/>ICLR 2023<br/><i>Thought→Action→Obs</i>"]
+  IM["<b>Inner Monologue</b><br/>Huang et al. 2022<br/>CoRL 2022<br/><i>具身闭环推理</i>"]
+
+  %% ── 反思层 ──
+  REF["<b>Reflexion</b><br/>Shinn et al. 2023<br/>NeurIPS 2023<br/><i>语言强化学习</i>"]
+
+  %% ── 规划增强层 ──
+  TOT["<b>Tree of Thoughts</b><br/>Yao et al. 2023<br/>NeurIPS 2023<br/><i>思维树搜索</i>"]
+  PS["<b>Plan-and-Solve</b><br/>Wang et al. 2023<br/>ACL 2023<br/><i>先规划再求解</i>"]
+  LATS["<b>LATS</b><br/>Zhou et al. 2023<br/><i>MCTS统一框架</i>"]
+
+  %% ── 具身/应用层 ──
+  VOY["<b>Voyager</b><br/>Wang et al. 2023<br/><i>开放世界Agent</i>"]
+
+  %% ── 多Agent层 ──
+  CAM["<b>CAMEL</b><br/>Li et al. 2023<br/>NeurIPS 2023<br/><i>角色扮演协作</i>"]
+  MATOT["<b>Multi-Agent ToT</b><br/>2024<br/><i>并行推理+验证</i>"]
+  AS["<b>AgentSociety</b><br/>Tsinghua 2025<br/><i>万人级仿真</i>"]
+
+  %% ── 斯坦福小镇 ──
+  SV["<b>Stanford Smallville</b><br/>Park et al. 2023<br/>UIST 2023<br/><i>25个Generative Agents</i>"]
+
+  %% ═══ 演化关系（实线 = 直接发展）═══
+  COT ==>|"加入行动循环"| REACT
+  COT ==>|"加入环境反馈"| IM
+  COT ==>|"线性→树状"| TOT
+  COT ==>|"零样本改进"| PS
+  REACT ==>|"加入反思记忆"| REF
+  REACT ==>|"加入树搜索"| LATS
+  REF ==>|"反思+搜索"| LATS
+  TOT ==>|"ToT+MCTS"| LATS
+  TOT ==>|"多Agent化"| MATOT
+
+  %% ═══ 概念桥接（虚线 = 影响/类比）═══
+  COT -.->|"推理基础"| SV
+  REACT -.->|"行动范式"| SV
+  REF -.->|"反思进化"| SV
+  IM -.->|"语言接口"| SV
+  PS -.->|"daily plan"| SV
+  VOY -.->|"技能库≈记忆流"| SV
+  CAM -.->|"社交理论"| SV
+  AS ==>|"直系扩展<br/>25→10000"| SV
+
+  %% ═══ 横向关系 ═══
+  REACT -.->|"具身化"| IM
+  REF -.->|"经验驱动"| VOY
+  REACT -.->|"多Agent化"| CAM
+  LATS -.->|"系统搜索"| VOY
+  CAM -.->|"规模扩展"| AS
+  MATOT -.->|"验证机制"| REF
+
+  %% ═══ 样式 ═══
+  style COT fill:#1a1400,stroke:#fbbf24,stroke-width:3px,color:#fbbf24
+  style REACT fill:#0a1628,stroke:#60a5fa,stroke-width:3px,color:#60a5fa
+  style IM fill:#0a1628,stroke:#60a5fa,stroke-width:2px,color:#93c5fd
+  style REF fill:#1a0a0a,stroke:#f87171,stroke-width:3px,color:#f87171
+  style TOT fill:#1a1000,stroke:#fb923c,stroke-width:2px,color:#fb923c
+  style PS fill:#1a1000,stroke:#fb923c,stroke-width:2px,color:#fdba74
+  style LATS fill:#1a1000,stroke:#fb923c,stroke-width:3px,color:#fb923c
+  style VOY fill:#0a1a10,stroke:#34d399,stroke-width:2px,color:#34d399
+  style CAM fill:#0a1a1a,stroke:#22d3ee,stroke-width:2px,color:#22d3ee
+  style MATOT fill:#0a1a1a,stroke:#22d3ee,stroke-width:2px,color:#67e8f9
+  style AS fill:#0a1a1a,stroke:#22d3ee,stroke-width:3px,color:#22d3ee
+  style SV fill:#1a1030,stroke:#a78bfa,stroke-width:4px,color:#a78bfa
+    </pre>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">关系图解读</div>
+    <ul>
+      <li><strong>实线箭头</strong> = 直接发展关系（A 论文直接启发/扩展了 B）</li>
+      <li><strong>虚线箭头</strong> = 概念桥接（影响、类比、间接关系）</li>
+      <li><strong>CoT（黄色）</strong>是整个谱系的根节点，所有论文都依赖 CoT 的推理能力</li>
+      <li><strong>LATS（橙色）</strong>是集大成者，统一了 ReAct + ToT + Reflexion</li>
+      <li><strong>斯坦福小镇（紫色）</strong>是应用锚点，所有论文都可以映射到小镇架构</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════ Section 2: Timeline ═══════════ -->
+<div class="section" id="sec-timeline">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--blue);">2</div>
+    <h2>演化时间线</h2>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-year">2022.01</div>
+      <div class="tl-title">Chain-of-Thought Prompting</div>
+      <div class="tl-desc">Wei et al. 发现让 LLM 生成中间推理步骤可以大幅提升复杂推理性能。GSM8K: 18%→74%。奠定了 LLM 推理的基础范式。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2022.07</div>
+      <div class="tl-title">Inner Monologue</div>
+      <div class="tl-desc">Huang et al. 将 CoT 推理引入具身 Agent：机器人用自然语言"内心独白"做闭环规划。证明语言作为模块间统一接口的可行性。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2022.10</div>
+      <div class="tl-title">ReAct</div>
+      <div class="tl-desc">Yao et al. 将 CoT 推理与环境交互统一：Thought→Action→Observation 循环。成为几乎所有 Agent 框架的基础范式。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2023.03</div>
+      <div class="tl-title">Reflexion + CAMEL</div>
+      <div class="tl-desc">Reflexion: 在 ReAct 基础上加入自然语言反思，从失败中学习。CAMEL: 将多 Agent 角色扮演系统化研究。两者分别推进了"个体反思"和"集体协作"。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2023.04</div>
+      <div class="tl-title" style="color:var(--accent);">Generative Agents (斯坦福小镇)</div>
+      <div class="tl-desc">Park et al. 将记忆流 + 反思 + 规划统一为完整的 Agent 架构。25 个 Agent 在沙盒中涌现社会行为。是 CoT/ReAct/Reflexion 思想的集大成应用。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2023.05</div>
+      <div class="tl-title">ToT + Plan-and-Solve + Voyager</div>
+      <div class="tl-desc">三篇论文同时推进规划能力：ToT 引入树搜索，Plan-and-Solve 改进零样本规划，Voyager 实现开放世界终身学习。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2023.10</div>
+      <div class="tl-title">LATS — 大一统框架</div>
+      <div class="tl-desc">Zhou et al. 用 MCTS 统一 ReAct + ToT + Reflexion，实现 Agent 推理/行动/规划的系统性搜索。WebShop 75.9%, HumanEval 94.4%。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2024.09</div>
+      <div class="tl-title">Multi-Agent ToT Validator</div>
+      <div class="tl-desc">将 ToT 与多 Agent 结合：并行 Reasoner + Validator 验证。引入集体智慧克服单 Agent 偏见。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2025.02</div>
+      <div class="tl-title">AgentSociety</div>
+      <div class="tl-desc">清华团队将小镇扩展到 10,000+ Agent，500万+交互。证明 Generative Agents 架构可扩展，涌现宏观社会现象。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Section 3: Four Layers ═══════════ -->
+<div class="section" id="sec-layers">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--green);">3</div>
+    <h2>四层架构：从推理到自我改进</h2>
+  </div>
+
+  <p>CoT 到 Reflexion 的演化可以归纳为四个递进层次：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>层次</th>
+          <th>能力</th>
+          <th>代表论文</th>
+          <th>核心贡献</th>
+          <th>小镇对应</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-cot">L1 推理</span></td>
+          <td>生成中间步骤</td>
+          <td><a href="deep-dive/07-chain-of-thought.html">CoT</a>, <a href="deep-dive/12-plan-and-solve.html">Plan-and-Solve</a></td>
+          <td>让 LLM 能"想清楚"</td>
+          <td>规划模块的逐步分解</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-reason">L2 行动</span></td>
+          <td>推理+环境交互</td>
+          <td><a href="deep-dive/08-react.html">ReAct</a>, <a href="deep-dive/09-inner-monologue.html">Inner Monologue</a></td>
+          <td>让 LLM 能"边想边做"</td>
+          <td>感知→规划→执行循环</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-reflect">L3 反思</span></td>
+          <td>从经验中学习</td>
+          <td><a href="deep-dive/10-reflexion.html">Reflexion</a></td>
+          <td>让 LLM 能"从失败中改进"</td>
+          <td>Reflection 反思模块</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-plan">L4 搜索</span></td>
+          <td>系统性探索+回溯</td>
+          <td><a href="deep-dive/11-tree-of-thoughts.html">ToT</a>, <a href="deep-dive/13-lats.html">LATS</a></td>
+          <td>让 LLM 能"系统探索最优方案"</td>
+          <td>规划的多方案评估</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">关键洞察：每一层都是前一层的超集</div>
+    <p>L2(行动) = L1(推理) + 环境交互。L3(反思) = L2(行动) + 经验记忆。L4(搜索) = L3(反思) + 多路径探索。LATS 之所以是集大成者，正是因为它同时具备了所有四层能力。</p>
+  </div>
+</div>
+
+<!-- ═══════════ Section 4: CoT → Reflexion Path ═══════════ -->
+<div class="section" id="sec-cot-to-reflexion">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--red);">4</div>
+    <h2>CoT → Reflexion 核心路径解析</h2>
+  </div>
+
+  <h3>4.1 CoT 解决了什么问题？</h3>
+  <p>LLM 在面对复杂推理任务时，直接输出答案的准确率很低。CoT 通过让模型"说出思考过程"来暴露中间推理步骤，将复杂问题分解为可管理的子步骤。这是一种<span class="hl">推理时计算(inference-time compute)</span>的思路——用更多 token 换取更好的结果。</p>
+
+  <h3>4.2 ReAct 将推理接地(ground)</h3>
+  <p>CoT 的问题：推理可能不忠实(unfaithful)，模型可能在推理链中幻觉。ReAct 的解决方案：让推理与环境交互交替——每次推理后执行行动，用真实观察来校正推理。这将 CoT 从"自说自话"变为"与世界对话"。</p>
+
+  <h3>4.3 Reflexion 加入长期学习</h3>
+  <p>ReAct 的问题：每次任务都从零开始，不能从过去经验中学习。Reflexion 的解决方案：任务失败后生成自然语言反思（"我上次忘了检查边界条件"），存入 episodic memory，下次检索复用。这将 Agent 从<span class="hl">无状态执行器</span>变为<span class="hl">持续学习者</span>。</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">核心演化公式</div>
+    <p><strong>CoT</strong>（推理）+ <strong>环境交互</strong> = <strong>ReAct</strong>（行动）</p>
+    <p><strong>ReAct</strong>（行动）+ <strong>经验记忆</strong> = <strong>Reflexion</strong>（反思）</p>
+    <p><strong>Reflexion</strong>（反思）+ <strong>树搜索</strong> = <strong>LATS</strong>（系统搜索）</p>
+  </div>
+
+  <h3>4.4 与斯坦福小镇的映射</h3>
+  <div class="sv-link">
+    <p>斯坦福小镇的架构完美体现了这条演化路径：</p>
+    <ul>
+      <li><strong>Memory Stream</strong> = 经验存储（类似 Reflexion 的 episodic memory）</li>
+      <li><strong>Reflection</strong> = 从记忆中提炼洞察（Reflexion 的反思机制）</li>
+      <li><strong>Planning</strong> = 基于推理的行动规划（CoT + Plan-and-Solve）</li>
+      <li><strong>Action</strong> = 与环境交互（ReAct 的行动循环）</li>
+    </ul>
+    <p>小镇是在 2023 年 4 月发布的——恰好在 CoT(2022.01)、ReAct(2022.10)、Reflexion(2023.03) 之后，吸收了这些工作的精华。</p>
+  </div>
+</div>
+
+<!-- ═══════════ Section 5: Paper Index ═══════════ -->
+<div class="section" id="sec-papers">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--orange);">5</div>
+    <h2>论文索引 — 全部 11 篇 Deep Dive</h2>
+  </div>
+
+  <div class="cards">
+
+    <div class="card card-cot">
+      <span class="tag tag-cot">CoT 基础</span>
+      <span class="title"><a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought Prompting</a></span>
+      <div class="keywords"><span>NeurIPS 2022</span><span>GSM8K 18%→74%</span><span>涌现能力</span></div>
+      <div class="note">CoT 奠基论文，所有 Agent 推理能力的基础</div>
+      <a class="dd-link" href="deep-dive/07-chain-of-thought.html">深度解读07 →</a>
+      <a class="repo-link no-code">📄 无代码</a>
+    </div>
+
+    <div class="card card-reason">
+      <span class="tag tag-reason">推理+行动</span>
+      <span class="title"><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a></span>
+      <div class="keywords"><span>ICLR 2023</span><span>Thought→Action→Obs</span><span>Agent框架基础</span></div>
+      <div class="note">推理与行动交替，几乎所有 Agent 框架的核心循环</div>
+      <a class="dd-link" href="deep-dive/08-react.html">深度解读08 →</a>
+      <a class="repo-link" href="https://github.com/ysymyth/ReAct" target="_blank">💻 ysymyth/ReAct</a>
+    </div>
+
+    <div class="card card-reason">
+      <span class="tag tag-reason">推理+行动</span>
+      <span class="title"><a href="https://arxiv.org/abs/2207.05608" target="_blank">Inner Monologue</a></span>
+      <div class="keywords"><span>CoRL 2022</span><span>具身闭环</span><span>语言作统一接口</span></div>
+      <div class="note">具身 Agent 的内心独白式规划，自然语言作为通信协议</div>
+      <a class="dd-link" href="deep-dive/09-inner-monologue.html">深度解读09 →</a>
+      <a class="repo-link no-code" href="https://innermonologue.github.io/" target="_blank">🌐 仅项目页</a>
+    </div>
+
+    <div class="card card-reflect">
+      <span class="tag tag-reflect">反思系统</span>
+      <span class="title"><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a></span>
+      <div class="keywords"><span>NeurIPS 2023</span><span>Verbal RL</span><span>HumanEval 91%</span></div>
+      <div class="note">自然语言反思替代标量 reward，小镇 Reflection 的直接进化</div>
+      <a class="dd-link" href="deep-dive/10-reflexion.html">深度解读10 →</a>
+      <a class="repo-link" href="https://github.com/noahshinn/reflexion" target="_blank">💻 noahshinn/reflexion</a>
+    </div>
+
+    <div class="card card-plan">
+      <span class="tag tag-plan">规划增强</span>
+      <span class="title"><a href="https://arxiv.org/abs/2305.10601" target="_blank">Tree of Thoughts</a></span>
+      <div class="keywords"><span>NeurIPS 2023</span><span>BFS/DFS</span><span>Game of 24: 4%→74%</span></div>
+      <div class="note">CoT 从单链→思维树，支持搜索和回溯</div>
+      <a class="dd-link" href="deep-dive/11-tree-of-thoughts.html">深度解读11 →</a>
+      <a class="repo-link" href="https://github.com/princeton-nlp/tree-of-thought-llm" target="_blank">💻 princeton-nlp/tree-of-thought-llm</a>
+    </div>
+
+    <div class="card card-plan">
+      <span class="tag tag-plan">规划增强</span>
+      <span class="title"><a href="https://arxiv.org/abs/2305.04091" target="_blank">Plan-and-Solve</a></span>
+      <div class="keywords"><span>ACL 2023</span><span>Zero-Shot改进</span><span>修复漏步</span></div>
+      <div class="note">"先规划再执行"替代简单 CoT，小镇 daily plan 的理论验证</div>
+      <a class="dd-link" href="deep-dive/12-plan-and-solve.html">深度解读12 →</a>
+      <a class="repo-link" href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" target="_blank">💻 AGI-Edgerunners/Plan-and-Solve</a>
+    </div>
+
+    <div class="card card-plan">
+      <span class="tag tag-plan">规划增强</span>
+      <span class="title"><a href="https://arxiv.org/abs/2310.04406" target="_blank">LATS</a></span>
+      <div class="keywords"><span>arXiv 2023</span><span>MCTS+LLM</span><span>ReAct+ToT+Reflexion</span></div>
+      <div class="note">集大成者：MCTS 统一推理/行动/规划</div>
+      <a class="dd-link" href="deep-dive/13-lats.html">深度解读13 →</a>
+      <a class="repo-link" href="https://github.com/lapisrocks/LanguageAgentTreeSearch" target="_blank">💻 lapisrocks/LATS</a>
+    </div>
+
+    <div class="card card-agent">
+      <span class="tag tag-agent">具身应用</span>
+      <span class="title"><a href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager</a></span>
+      <div class="keywords"><span>arXiv 2023</span><span>Minecraft</span><span>技能库</span><span>终身学习</span></div>
+      <div class="note">开放世界 Agent，技能库 ≈ 可执行版记忆流</div>
+      <a class="dd-link" href="deep-dive/14-voyager.html">深度解读14 →</a>
+      <a class="repo-link" href="https://github.com/MineDojo/Voyager" target="_blank">💻 MineDojo/Voyager ⭐</a>
+    </div>
+
+    <div class="card card-multi">
+      <span class="tag tag-multi">多Agent</span>
+      <span class="title"><a href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL</a></span>
+      <div class="keywords"><span>NeurIPS 2023</span><span>角色扮演</span><span>25万对话</span></div>
+      <div class="note">角色扮演多 Agent 协作，涌现类人社会行为</div>
+      <a class="dd-link" href="deep-dive/15-camel.html">深度解读15 →</a>
+      <a class="repo-link" href="https://github.com/camel-ai/camel" target="_blank">💻 camel-ai/camel ⭐ 框架</a>
+    </div>
+
+    <div class="card card-multi">
+      <span class="tag tag-multi">多Agent</span>
+      <span class="title"><a href="https://arxiv.org/abs/2409.11527" target="_blank">Multi-Agent ToT Validator</a></span>
+      <div class="keywords"><span>arXiv 2024</span><span>并行Reasoner</span><span>Validator</span></div>
+      <div class="note">多 Agent 并行推理 + 逻辑验证</div>
+      <a class="dd-link" href="deep-dive/16-multi-agent-tot-validator.html">深度解读16 →</a>
+      <a class="repo-link" href="https://github.com/SecureAIAutonomyLab/MA-ToT" target="_blank">💻 SecureAIAutonomyLab/MA-ToT</a>
+    </div>
+
+    <div class="card card-multi">
+      <span class="tag tag-multi">多Agent</span>
+      <span class="title"><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety</a></span>
+      <div class="keywords"><span>arXiv 2025</span><span>10,000+ Agent</span><span>500万交互</span></div>
+      <div class="note">小镇直系后代，万人级 Generative Agents 验证</div>
+      <a class="dd-link" href="deep-dive/17-agent-society.html">深度解读17 →</a>
+      <a class="repo-link" href="https://github.com/tsinghua-fib-lab/AgentSociety" target="_blank">💻 tsinghua-fib-lab/AgentSociety ⭐</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ Section 5.5: Code Repos ═══════════ -->
+<div class="section" id="sec-code">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--green);">💻</div>
+    <h2>代码仓库速查</h2>
+  </div>
+
+  <p><strong>11 篇里 10 篇有官方代码，仅 Inner Monologue 没有。</strong>下表按"上手友好度"排序——⭐ 标记的是已发展为完整框架/有完善文档的项目。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>论文</th>
+          <th>GitHub</th>
+          <th>状态</th>
+          <th>上手建议</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>14</td>
+          <td><strong>Voyager</strong></td>
+          <td><a href="https://github.com/MineDojo/Voyager" target="_blank">MineDojo/Voyager</a></td>
+          <td>⭐ 极活跃</td>
+          <td>装个 Minecraft 就能看 Agent 自主探索，最有视觉冲击力</td>
+        </tr>
+        <tr>
+          <td>15</td>
+          <td><strong>CAMEL</strong></td>
+          <td><a href="https://github.com/camel-ai/camel" target="_blank">camel-ai/camel</a></td>
+          <td>⭐ 完整框架</td>
+          <td><code>pip install camel-ai</code>，可直接当工具用</td>
+        </tr>
+        <tr>
+          <td>17</td>
+          <td><strong>AgentSociety</strong></td>
+          <td><a href="https://github.com/tsinghua-fib-lab/AgentSociety" target="_blank">tsinghua-fib-lab/AgentSociety</a></td>
+          <td>⭐ 文档完善</td>
+          <td>有 readthedocs 站点，适合做大规模仿真</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><strong>Reflexion</strong></td>
+          <td><a href="https://github.com/noahshinn/reflexion" target="_blank">noahshinn/reflexion</a></td>
+          <td>官方</td>
+          <td>代码精简，最容易读懂"反思循环"是怎么实现的</td>
+        </tr>
+        <tr>
+          <td>08</td>
+          <td><strong>ReAct</strong></td>
+          <td><a href="https://github.com/ysymyth/ReAct" target="_blank">ysymyth/ReAct</a></td>
+          <td>官方</td>
+          <td>经典实现，代码量小，适合学习核心思想</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td><strong>Tree of Thoughts</strong></td>
+          <td><a href="https://github.com/princeton-nlp/tree-of-thought-llm" target="_blank">princeton-nlp/tree-of-thought-llm</a></td>
+          <td>官方</td>
+          <td>包含 Game of 24 / Crosswords / Creative Writing 三个任务</td>
+        </tr>
+        <tr>
+          <td>13</td>
+          <td><strong>LATS</strong></td>
+          <td><a href="https://github.com/lapisrocks/LanguageAgentTreeSearch" target="_blank">lapisrocks/LanguageAgentTreeSearch</a></td>
+          <td>官方</td>
+          <td>看 MCTS 如何与 LLM 推理结合，比较复杂</td>
+        </tr>
+        <tr>
+          <td>12</td>
+          <td><strong>Plan-and-Solve</strong></td>
+          <td><a href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" target="_blank">AGI-Edgerunners/Plan-and-Solve-Prompting</a></td>
+          <td>官方</td>
+          <td>纯 prompting 实验代码，看 PS / PS+ 模板</td>
+        </tr>
+        <tr>
+          <td>16</td>
+          <td><strong>Multi-Agent ToT</strong></td>
+          <td><a href="https://github.com/SecureAIAutonomyLab/MA-ToT" target="_blank">SecureAIAutonomyLab/MA-ToT</a></td>
+          <td>官方</td>
+          <td>UTSA SecureAI 实验室出品</td>
+        </tr>
+        <tr>
+          <td>07</td>
+          <td><strong>Chain-of-Thought</strong></td>
+          <td>—</td>
+          <td>纯 Prompting</td>
+          <td>无需代码，社区实现遍地（每个 LLM 框架都有）</td>
+        </tr>
+        <tr>
+          <td>09</td>
+          <td><strong>Inner Monologue</strong></td>
+          <td><a href="https://innermonologue.github.io/" target="_blank">项目主页</a></td>
+          <td>无官方代码</td>
+          <td>Google Robotics 未发布代码，只有项目页和视频</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">🎯 学习路径建议</div>
+    <ol>
+      <li><strong>想"看效果"</strong> → Voyager（视觉冲击力最强）</li>
+      <li><strong>想"用框架做项目"</strong> → CAMEL（完整 Agent 开发框架）</li>
+      <li><strong>想"读懂核心机制"</strong> → Reflexion（代码最精简，最贴近论文）</li>
+      <li><strong>想"做大规模仿真"</strong> → AgentSociety（小镇直系扩展，文档完善）</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ═══════════ Section 6: Smallville Mapping ═══════════ -->
+<div class="section" id="sec-smallville">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--cyan);">6</div>
+    <h2>斯坦福小镇模块映射</h2>
+  </div>
+
+  <p>下表展示每篇论文与斯坦福小镇四大模块的对应关系：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>论文</th>
+          <th>Memory 记忆</th>
+          <th>Reflection 反思</th>
+          <th>Planning 规划</th>
+          <th>Action 行动</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Chain-of-Thought</strong></td>
+          <td>—</td>
+          <td>反思推理的基础</td>
+          <td>★ 逐步分解的核心</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>ReAct</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td>★ 实时规划范式</td>
+          <td>★ 行动循环基础</td>
+        </tr>
+        <tr>
+          <td><strong>Inner Monologue</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td>★ 闭环重规划</td>
+          <td>★ 具身执行</td>
+        </tr>
+        <tr>
+          <td><strong>Reflexion</strong></td>
+          <td>★ episodic memory</td>
+          <td>★★ 直接进化</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>Tree of Thoughts</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td>★★ 多方案搜索</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>Plan-and-Solve</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td>★ daily plan 验证</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>LATS</strong></td>
+          <td>反思记忆</td>
+          <td>★ 失败学习</td>
+          <td>★★ MCTS 搜索</td>
+          <td>★ 行动循环</td>
+        </tr>
+        <tr>
+          <td><strong>Voyager</strong></td>
+          <td>★★ 技能库</td>
+          <td>迭代改进</td>
+          <td>★ 自动课程</td>
+          <td>★ 代码执行</td>
+        </tr>
+        <tr>
+          <td><strong>CAMEL</strong></td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+          <td>★ 社交互动</td>
+        </tr>
+        <tr>
+          <td><strong>Multi-Agent ToT</strong></td>
+          <td>—</td>
+          <td>★ 外部验证</td>
+          <td>★ 并行搜索</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>AgentSociety</strong></td>
+          <td>★ 分层记忆</td>
+          <td>★ CoT 推理</td>
+          <td>★ 异步调度</td>
+          <td>★ 大规模交互</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">★★ = 核心贡献，★ = 有贡献，— = 不涉及</div>
+    <p><strong>Reflexion</strong> 是与小镇 Reflection 模块最直接相关的论文。<strong>LATS</strong> 是覆盖小镇模块最全面的论文（四模块均有贡献）。<strong>AgentSociety</strong> 是小镇的直系扩展。</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a1d27',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#a78bfa',
+      lineColor: '#6b7280',
+      secondaryColor: '#242837',
+      tertiaryColor: '#0f1117',
+      fontSize: '13px'
+    },
+    flowchart: {
+      htmlLabels: true,
+      curve: 'basis',
+      rankSpacing: 60,
+      nodeSpacing: 40,
+      padding: 12
+    }
+  });
+</script>
+</body>
+</html>

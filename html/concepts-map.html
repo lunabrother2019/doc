@@ -188,6 +188,14 @@
     .card .dd-link { display: inline-block; margin-top: 6px; font-size: 11px; padding: 2px 10px; border-radius: 5px; background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.25); color: #22d3ee; text-decoration: none; font-weight: 600; }
     .card .dd-link:hover { background: rgba(34,211,238,0.18); }
 
+    /* ── Collapsible card groups ── */
+    .card-group summary { list-style: none; }
+    .card-group summary::-webkit-details-marker { display: none; }
+    .card-group summary::before { content: "▸ "; font-size: 14px; transition: transform .15s; display: inline-block; }
+    .card-group[open] summary::before { content: "▾ "; }
+    .card-group[open] summary { border-color: var(--accent); background: rgba(167,139,250,0.06); }
+    .card-group summary:hover { border-color: var(--accent); }
+
     /* ── Tab 1 legend colors ── */
     .lg-mem   { background: rgba(59,130,246,.15); color: var(--mem); }
     .lg-ref   { background: rgba(239,68,68,.15);  color: var(--ref); }
@@ -412,17 +420,48 @@
   <span style="background:rgba(244,114,182,.15);color:#f472b6;border:1px dashed #f472b6;">后加（粉色节点）</span>
 </div>
 
+<!-- ── Toggle Buttons ── -->
+<div style="max-width:1400px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+  <span style="color:var(--muted);font-size:12px;line-height:32px;margin-right:4px;">展开/折叠：</span>
+  <button class="grp-btn active" data-grp="mem" style="--gc:#3b82f6;">Memory (3)</button>
+  <button class="grp-btn active" data-grp="ref" style="--gc:#ef4444;">Reflection (5)</button>
+  <button class="grp-btn active" data-grp="pln" style="--gc:#f59e0b;">Planning (3)</button>
+  <button class="grp-btn active" data-grp="act" style="--gc:#22c55e;">Action (3)</button>
+  <button class="grp-btn active" data-grp="mul" style="--gc:#a78bfa;">Multi-Agent (3)</button>
+  <button class="grp-btn" data-grp="ext" style="--gc:#94a3b8;">跨领域 (5)</button>
+  <button class="grp-btn" data-grp="cot" style="--gc:#f472b6;">CoT推理链 (11)</button>
+  <span style="color:var(--border);margin:0 4px;">|</span>
+  <button class="grp-btn" id="grp-all-btn" style="--gc:#e2e8f0;">全部展开</button>
+</div>
+<style>
+  .grp-btn {
+    background: var(--bg2); border: 1px solid var(--border); color: var(--muted);
+    font-family: inherit; font-size: 12px; padding: 4px 14px; border-radius: 6px;
+    cursor: pointer; transition: all .15s; user-select: none;
+  }
+  .grp-btn:hover { color: var(--text); border-color: var(--gc); }
+  .grp-btn.active { background: color-mix(in srgb, var(--gc) 18%, transparent); color: var(--gc); border-color: var(--gc); }
+</style>
+
 <div class="mermaid-wrap">
-<pre class="mermaid">
-%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a1d27","primaryBorderColor":"#4b5563","lineColor":"#6b7280","textColor":"#e2e8f0","fontSize":"13px"}}}%%
+  <div id="mermaid-container"></div>
+</div>
+
+<!-- Full static diagram (collapsible) -->
+<details id="full-diagram-details" style="max-width:1400px;margin:0 auto 32px;">
+  <summary style="cursor:pointer;color:var(--muted);font-size:13px;padding:10px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;user-select:none;text-align:center;">
+    <span style="font-weight:600;">全景图（所有节点）</span>
+    <span style="font-size:12px;margin-left:6px;">— 点击展开完整关系图</span>
+  </summary>
+  <div class="mermaid-wrap" style="margin-top:12px;">
+    <pre class="mermaid" id="full-static-diagram">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a1d27","primaryBorderColor":"#4b5563","lineColor":"#6b7280","textColor":"#e2e8f0","fontSize":"12px"}}}%%
 
 graph TB
 
-  %% ── Core ──
   SV(["Generative Agents\nPark et al. 2023\narXiv:2304.03442"])
   style SV fill:#2d1f4e,stroke:#a78bfa,stroke-width:2px,color:#e9d5ff
 
-  %% ── 5 Pillars ──
   MEM["Memory\n记忆系统"]
   REF["Reflection\n反思机制"]
   PLN["Planning\n规划"]
@@ -441,95 +480,112 @@ graph TB
   SV --> ACT
   SV --> MUL
 
-  %% ── Memory papers ──
   M1["HiAgent\n子目标分层记忆"]
   M2["A-MEM\nZettelkasten语义链接"]
   M3["Cross-Attention检索\nFrontiers 2025"]
-
   style M1 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
   style M2 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
   style M3 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
-
   MEM --- M1
   MEM --- M2
   MEM --- M3
 
-  %% ── Reflection papers ──
   R1["Reflexion\nNeurIPS 2023\n语言强化学习"]
   R2["ICLR 2024\n自我反思90%无效"]
   R3["MAD / MAR\n多Agent辩论式反思"]
   R4["ExpeL / ERL\n跨轨迹经验反思"]
   R5["Dual-Loop\n双环元认知反思"]
-
   style R1 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
   style R2 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
   style R3 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
   style R4 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
   style R5 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
-
   REF --- R1
   REF --- R2
   REF --- R3
   REF --- R4
   REF --- R5
 
-  %% ── Planning papers ──
   P1["ReAct\n推理+行动交替"]
   P2["ChatDev / MetaGPT\n多角色分工"]
   P3["CVPR 2025 具身AI\nMLLM+World Model"]
-
   style P1 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
   style P2 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
   style P3 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
-
   PLN --- P1
   PLN --- P2
   PLN --- P3
 
-  %% ── Action papers ──
   A1["Inworld AI\n工程化显式实现\n≤250ms延迟"]
   A2["Character.AI\n参数化隐式压缩"]
   A3["Soul Machines\n动画数字人"]
-
   style A1 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
   style A2 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
   style A3 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
-
   ACT --- A1
   ACT --- A2
   ACT --- A3
 
-  %% ── Multi-Agent papers ──
   MA1["OpenCity\n10K Agent 并行化"]
   MA2["AgentSociety\n500万次交互"]
   MA3["A-HMAD\n异构Agent辩论"]
-
   style MA1 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
   style MA2 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
   style MA3 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
-
   MUL --- MA1
   MUL --- MA2
   MUL --- MA3
 
-  %% ── 外围方法论启发（跨领域，非直接依赖） ──
-  subgraph EXT ["外围方法论启发 — 跨领域概念桥接（含后加）"]
+  subgraph EXT ["跨领域方法论启发"]
     direction TB
-    X1["ALCS\n自动折叠采样\nCambridge 2026\n贝叶斯潜变量边缘化"]
-    X2["TimesFM\nGoogle Research\nICML 2024\n时间序列基础模型"]
-    AB1["Abliteration ★后加\n拒绝向量消融\nICLR 2025\n单向量移除安全拒绝"]
-    AB2["Abliteration Defense ★后加\n扩展拒绝微调\narXiv 2025\n分散安全信号防御消融"]
-    MM1["Memori ★后加\n持久化记忆层\narXiv 2026\n语义三元组+混合检索"]
+    X1["ALCS\n自动折叠采样\nCambridge 2026"]
+    X2["TimesFM\nGoogle ICML 2024"]
+    AB1["Abliteration ★后加\n拒绝向量消融 ICLR 2025"]
+    AB2["Abliteration Defense ★后加\n扩展拒绝微调 arXiv 2025"]
+    MM1["Memori ★后加\n持久化记忆层 arXiv 2026"]
+    HA1["HiAgent ★后加\n分层工作记忆 arXiv 2024.08"]
+    MG1["MetaGPT ★后加\nSOP 流水线 ICLR 2024"]
+    CD1["ChatDev ★后加\nWaterfall 虚拟软件公司 ACL 2024"]
+    MS1["Memory 综述 ★后加\n记忆分类三棱镜 arXiv 2025.12"]
   end
-
   style EXT fill:#0f1117,stroke:#475569,stroke-dasharray:6,color:#94a3b8
   style X1 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
   style X2 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
   style AB1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
   style AB2 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
   style MM1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style HA1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style MG1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style CD1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style MS1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
 
-  %% ── Cross-links ──
+  subgraph COTGRP ["CoT 推理链系列 ★后加"]
+    direction TB
+    COT1["Chain-of-Thought\nNeurIPS 2022\nGSM8K 18%→74%"]
+    COT2["ReAct\nICLR 2023\nThought→Action→Obs"]
+    COT3["Inner Monologue\nCoRL 2022\n具身闭环推理"]
+    COT4["Reflexion\nNeurIPS 2023\n语言强化学习"]
+    COT5["Tree of Thoughts\nNeurIPS 2023\n思维树搜索"]
+    COT6["Plan-and-Solve\nACL 2023\n先规划再求解"]
+    COT7["LATS\narXiv 2023\nMCTS统一框架"]
+    COT8["Voyager\narXiv 2023\n技能库+自动课程"]
+    COT9["CAMEL\nNeurIPS 2023\n角色扮演协作"]
+    COT10["Multi-Agent ToT\narXiv 2024\n并行推理+验证"]
+    COT11["AgentSociety\narXiv 2025\n万人级仿真"]
+  end
+  style COTGRP fill:#0f1117,stroke:#f472b6,stroke-dasharray:6,color:#f9a8d4
+  style COT1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT2 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT3 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT4 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT5 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT6 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT7 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT8 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT9 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT10 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT11 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+
   R3 -.->|辩论| MUL
   P2 -.->|角色分工| MUL
   R4 -.->|经验复用| MEM
@@ -537,17 +593,44 @@ graph TB
   P1 -.->|工具调用| ACT
   MA3 -.->|异构辩论| REF
 
-  %% ── 外围启发连线 ──
   X1 -.->|"降维压缩类比\n潜变量折叠 ≈ 记忆压缩"| MEM
   X1 -.->|"不确定性量化\n记忆置信度建模"| REF
   X2 -.->|"zero-shot预测\nAgent World Model"| PLN
-  AB1 -.->|"安全对齐攻击\nRLHF 训练的拒绝\n可被单向量移除"| REF
-  AB1 -.->|"Agent 安全隐患\n底层模型被消融\n上层Agent失去安全边界"| ACT
-  AB2 -.->|"防御启示\n安全信号需分散\n不能集中在单一方向"| REF
-  MM1 -.->|"记忆结构化\n语义三元组替代\n平面记忆流"| MEM
-  MM1 -.->|"成本启示\n20x降本使大规模\nAgent记忆可行"| MUL
-</pre>
-</div>
+  AB1 -.->|"安全对齐攻击\n单向量移除拒绝"| REF
+  AB1 -.->|"Agent 安全隐患\n底层模型被消融"| ACT
+  AB2 -.->|"防御启示\n安全信号需分散"| REF
+  MM1 -.->|"记忆结构化\n语义三元组"| MEM
+  MM1 -.->|"成本启示\n20x降本"| MUL
+  HA1 -.->|"分层压缩\n子目标栈+窗口"| MEM
+  HA1 -.->|"任务分解\n主动切换子目标"| PLN
+  MG1 -.->|"SOP 流水线\nPM→架构→工程→QA"| MUL
+  MG1 -.->|"标准作业流程\nprompt 工程化"| PLN
+  CD1 -.->|"角色对话协作\nWaterfall 瀑布"| MUL
+  CD1 -.->|"Memory Stream\n短期/长期分层"| MEM
+  MS1 -.->|"记忆分类三棱镜\nForms/Functions/Dynamics"| MEM
+  MS1 -.->|"综述边界划分\nvs RAG/LLM Memory"| REF
+
+  COT1 -.->|"推理基础"| PLN
+  COT1 -.->|"反思推理"| REF
+  COT2 -.->|"行动范式"| ACT
+  COT2 -.->|"实时规划"| PLN
+  COT3 -.->|"闭环规划"| PLN
+  COT3 -.->|"具身行动"| ACT
+  COT4 -.->|"反思进化"| REF
+  COT4 -.->|"经验记忆"| MEM
+  COT5 -.->|"规划升级"| PLN
+  COT6 -.->|"规划验证"| PLN
+  COT7 -.->|"统一框架"| PLN
+  COT7 -.->|"搜索行动"| ACT
+  COT8 -.->|"技能记忆"| MEM
+  COT8 -.->|"自动课程"| PLN
+  COT9 -.->|"多Agent协作"| MUL
+  COT10 -.->|"集体推理"| MUL
+  COT10 -.->|"外部批评"| REF
+  COT11 -.->|"规模扩展"| MUL
+    </pre>
+  </div>
+</details>
 
 <!-- Paper Cards -->
 <div class="section-title" style="color:var(--accent);">关键论文索引</div>
@@ -557,16 +640,26 @@ graph TB
   <!-- Memory -->
   <div class="card card-mem">
     <span class="pillar-tag tag-mem">Memory</span>
-    <span class="title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent</a></span>
+    <span class="title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent (2024)</a></span>
     <div class="keywords"><span>子目标分层</span><span>记忆压缩</span><span>层级结构</span></div>
     <div class="note">用子目标切分记忆，完成后压缩成摘要，保留层级结构</div>
+    <a class="dd-link" href="deep-dive/18-hiagent.html">深度解读 →</a>
   </div>
 
   <div class="card card-mem">
     <span class="pillar-tag tag-mem">Memory</span>
-    <span class="title"><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM (2025)</a></span>
+    <span class="title"><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS (EMNLP 2025 Oral)</a></span>
+    <div class="keywords"><span>三级存储</span><span>OS 内存管理</span><span>FIFO + 分段分页</span><span>LoCoMo +49%</span></div>
+    <div class="note">把 OS 内存管理思想搬到 LLM 记忆:短期/中期/长期三级,配合 FIFO 对话链与分段分页策略。LoCoMo 基准 F1 +49.11%、BLEU-1 +46.18%</div>
+    <a class="dd-link" href="deep-dive/21-memory-os.html">深度解读 →</a>
+  </div>
+
+  <div class="card card-mem">
+    <span class="pillar-tag tag-mem">Memory</span>
+    <span class="title"><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM (NeurIPS 2025)</a></span>
     <div class="keywords"><span>Zettelkasten</span><span>语义链接</span><span>关联记忆网络</span></div>
     <div class="note">每条记忆带关键词/标签，动态建立语义链接，从平面日志走向知识图谱</div>
+    <a class="dd-link" href="deep-dive/20-a-mem.html">深度解读 →</a>
   </div>
 
   <div class="card card-mem">
@@ -679,7 +772,14 @@ graph TB
     <div class="note">不同 Persona 从不同视角批判失败推理，跨越反思与多Agent两个支柱</div>
   </div>
 
-  <!-- External Methodology -->
+  <!-- External Methodology (collapsible) -->
+</div>
+<details class="card-group" style="max-width:1400px;margin:0 auto 12px;">
+  <summary style="cursor:pointer;color:var(--muted);font-size:14px;padding:10px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;user-select:none;">
+    <span style="color:#94a3b8;font-weight:600;">跨领域方法论启发</span>
+    <span style="font-size:12px;color:var(--muted);margin-left:8px;">9 篇 — 点击展开</span>
+  </summary>
+  <div class="cards" style="margin-top:12px;">
   <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
     <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
     <span class="title"><a href="https://arxiv.org/abs/2603.26644" target="_blank">ALCS — 自动折叠采样 (Cambridge 2026)</a></span>
@@ -720,7 +820,138 @@ graph TB
     <a class="dd-link" href="deep-dive/06-memori.html">深度解读 →</a>
   </div>
 
-</div>
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent — 分层工作记忆管理 (arXiv 2024.08)</a></span>
+    <div class="keywords"><span>Subgoal Stack</span><span>Working Memory</span><span>Hierarchical Compression</span><span>2x Success Rate</span><span>AgentBoard</span></div>
+    <div class="note">双层工作记忆：高层"子目标栈"保留阶段摘要，底层"行动-观察窗口"只存当前子目标相关记录。LLM 主动决定何时"结案"子目标并切换，把长程任务的上下文成本从 O(N) 压到近似 O(1)。5 个长程任务上成功率翻倍、平均步数 -3.8。代码：<a href="https://github.com/HiAgent2024/HiAgent" target="_blank">GitHub</a>。</div>
+    <a class="dd-link" href="deep-dive/18-hiagent.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT — SOP 驱动的软件公司 (ICLR 2024 Oral)</a></span>
+    <div class="keywords"><span>SOP as Prompt</span><span>Structured Artifacts</span><span>Pub-Sub Pool</span><span>HumanEval 85.9%</span><span>40k+ Stars</span></div>
+    <div class="note">把软件公司的标准作业流程（SOP）编码成 prompt，PM/架构师/项目经理/工程师/QA 五角色用<strong>结构化 artifact</strong>（而非自由对话）按流水线协作。与 ChatDev 的自由对话路线形成对照：工程化约束换取稳定性。对小镇的启示：自主规划 vs 固定 SOP 是多 Agent 系统的两条根本路线。代码：<a href="https://github.com/geekan/MetaGPT" target="_blank">GitHub ⭐40k+</a>。</div>
+    <a class="dd-link" href="deep-dive/22-metagpt.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev — Waterfall 虚拟软件公司 (ACL 2024)</a></span>
+    <div class="keywords"><span>Chat Chain</span><span>Communicative Dehallucination</span><span>Memory Stream 分层</span><span>26k Stars</span></div>
+    <div class="note">CEO/CTO/程序员/审查/测试员通过<strong>两两对话</strong>推进 Waterfall 四阶段（设计→编码→测试→文档）。核心机制：Chat Chain 把 phase 拆成 subtask 链条 + 对话式质疑（instructor 索求细节）抗幻觉 + 短期/长期 Memory Stream 分层。直接借鉴小镇同名 memory stream 做工程化。与 MetaGPT 是多 Agent 协作的两条路线。代码：<a href="https://github.com/OpenBMB/ChatDev" target="_blank">GitHub ⭐26k+</a>。</div>
+    <a class="dd-link" href="deep-dive/23-chatdev.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents — 记忆综述 (arXiv 2025.12)</a></span>
+    <div class="keywords"><span>Forms/Functions/Dynamics 三棱镜</span><span>事实/经验/工作记忆</span><span>Benchmark 目录</span><span>47 作者</span></div>
+    <div class="note">目前最全面的 Agent 记忆综述。三个维度拆分：<strong>Forms</strong>（token-level/parametric/latent）× <strong>Functions</strong>（事实/经验/工作）× <strong>Dynamics</strong>（形成/演化/检索）。明确 Agent Memory 与 RAG/LLM Memory/Context Engineering 的边界。对本库已读论文（HiAgent/A-MEM/MemoryOS/Generative Agents）提供统一坐标系。</div>
+    <a class="dd-link" href="deep-dive/24-memory-survey.html">深度解读 →</a>
+  </div>
+
+  </div>
+</details>
+
+<details class="card-group" style="max-width:1400px;margin:0 auto 12px;">
+  <summary style="cursor:pointer;color:var(--muted);font-size:14px;padding:10px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;user-select:none;">
+    <span style="color:#f472b6;font-weight:600;">CoT 推理链系列</span>
+    <span style="font-size:12px;color:var(--muted);margin-left:8px;">11 篇 — 点击展开</span>
+  </summary>
+  <div class="cards" style="margin-top:12px;">
+  <!-- CoT 系列（后加）-->
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought — 推理中间步骤 (NeurIPS 2022)</a></span>
+    <div class="keywords"><span>CoT Prompting</span><span>Few-Shot</span><span>GSM8K 18%→74%</span><span>涌现能力</span></div>
+    <div class="note">CoT 奠基论文。让 LLM 生成中间推理步骤，仅在 >100B 参数时有效。Agent 推理/规划/反思的基础技术——小镇 Agent 的"想清楚再做"本质上就是 CoT。</div>
+    <a class="dd-link" href="deep-dive/07-chain-of-thought.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct — 推理与行动交替 (ICLR 2023)</a></span>
+    <div class="keywords"><span>Thought→Action→Obs</span><span>Tool Use</span><span>HotpotQA</span><span>ALFWorld +34%</span></div>
+    <div class="note">Reasoning+Acting 交替范式，几乎所有现代 Agent 框架的核心循环。小镇的规划→行动→感知循环本质上是 ReAct 的具象化。</div>
+    <a class="dd-link" href="deep-dive/08-react.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2207.05608" target="_blank">Inner Monologue — 具身内心独白 (CoRL 2022)</a></span>
+    <div class="keywords"><span>闭环反馈</span><span>语言作统一接口</span><span>机器人规划</span><span>环境扰动处理</span></div>
+    <div class="note">用自然语言"内心独白"做机器人闭环规划。证明了语言作为 Agent 模块间统一通信接口在物理世界也能工作。</div>
+    <a class="dd-link" href="deep-dive/09-inner-monologue.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion — 语言强化学习 (NeurIPS 2023)</a></span>
+    <div class="keywords"><span>Verbal RL</span><span>Episodic Memory</span><span>HumanEval 91%</span><span>从失败中学习</span></div>
+    <div class="note">小镇 Reflection 模块的直接进化：从"达阈值总结记忆"升级为"任务失败→反思原因→存入记忆→下次复用"。自然语言反思替代标量 reward。</div>
+    <a class="dd-link" href="deep-dive/10-reflexion.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2305.10601" target="_blank">Tree of Thoughts — 思维树搜索 (NeurIPS 2023)</a></span>
+    <div class="keywords"><span>BFS/DFS</span><span>状态评估</span><span>回溯</span><span>Game of 24: 4%→74%</span></div>
+    <div class="note">CoT 从单链→树：每步多候选 + LLM 评估前景 + 搜索回溯。Agent 规划的自然升级——模拟多个行动方案，评估各方案前景，选最优路径。</div>
+    <a class="dd-link" href="deep-dive/11-tree-of-thoughts.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2305.04091" target="_blank">Plan-and-Solve — 先规划再求解 (ACL 2023)</a></span>
+    <div class="keywords"><span>Zero-Shot CoT改进</span><span>漏步修复</span><span>变量提取</span><span>中间计算</span></div>
+    <div class="note">"先制定计划再执行"替代"let's think step by step"。小镇的 daily plan 就是 Plan-and-Solve 的具象化：先大计划，再分解为 5-15 分钟步骤。</div>
+    <a class="dd-link" href="deep-dive/12-plan-and-solve.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2310.04406" target="_blank">LATS — MCTS + LLM 统一框架 (arXiv 2023)</a></span>
+    <div class="keywords"><span>蒙特卡洛树搜索</span><span>ReAct+ToT+Reflexion</span><span>WebShop 75.9%</span><span>HumanEval 94.4%</span></div>
+    <div class="note">将 MCTS 与 LLM 推理统一，集成 ReAct 的行动循环 + ToT 的树搜索 + Reflexion 的失败学习。统一了小镇三个核心模块到单一搜索框架。</div>
+    <a class="dd-link" href="deep-dive/13-lats.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager — 开放世界具身 Agent (arXiv 2023)</a></span>
+    <div class="keywords"><span>Minecraft</span><span>技能库</span><span>自动课程</span><span>3.3x AutoGPT</span><span>终身学习</span></div>
+    <div class="note">技能库 ≈ 小镇记忆流的可执行版本：成功行为存为代码片段，按语义索引检索复用。从"社交仿真"到"开放世界探索"的转变。</div>
+    <a class="dd-link" href="deep-dive/14-voyager.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL — 角色扮演多 Agent 协作 (NeurIPS 2023)</a></span>
+    <div class="keywords"><span>Inception Prompting</span><span>AI User + AI Assistant</span><span>25万对话</span><span>50领域</span></div>
+    <div class="note">将小镇的多 Agent 社交互动抽象为可控的角色扮演框架。发现 LLM Agent 涌现类人社会行为（领导力、群体思维）。</div>
+    <a class="dd-link" href="deep-dive/15-camel.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2409.11527" target="_blank">Multi-Agent ToT Validator — 多 Agent 推理验证 (arXiv 2024)</a></span>
+    <div class="keywords"><span>并行Reasoner</span><span>Thought Validator</span><span>多样性</span><span>外部批评</span></div>
+    <div class="note">多个 Reasoner 并行探索 + Validator 验证逻辑。引入多 Agent 多样性克服单 LLM 偏见，将集体智慧形式化为可控推理框架。</div>
+    <a class="dd-link" href="deep-dive/16-multi-agent-tot-validator.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety — 万人级 Generative Agents (arXiv 2025)</a></span>
+    <div class="keywords"><span>10,000+ Agent</span><span>500万次交互</span><span>分层记忆</span><span>异步调度</span></div>
+    <div class="note">小镇的直系后代：25→10,000+ Agent，500 万+交互。涌现社区形成、信息传播等宏观现象。从概念验证到实际应用的关键一步。</div>
+    <a class="dd-link" href="deep-dive/17-agent-society.html">深度解读 →</a>
+  </div>
+
+  </div>
+</details>
 
 </div><!-- /tab1 -->
 
@@ -1681,9 +1912,279 @@ flowchart TD
     flowchart: { curve: 'basis', padding: 16, nodeSpacing: 30, rankSpacing: 50 }
   });
 
+  /* ══════════════════════════════════════════════════
+     Dynamic Mermaid diagram for Tab 1
+     Groups can be toggled on/off via buttons
+     ══════════════════════════════════════════════════ */
+
+  const INIT = '%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a1d27","primaryBorderColor":"#4b5563","lineColor":"#6b7280","textColor":"#e2e8f0","fontSize":"13px"}}}%%';
+
+  // Core (always visible)
+  const CORE_NODES = `
+  SV(["Generative Agents\\nPark et al. 2023\\narXiv:2304.03442"])
+  style SV fill:#2d1f4e,stroke:#a78bfa,stroke-width:2px,color:#e9d5ff
+  MEM["Memory\\n记忆系统"]
+  REF["Reflection\\n反思机制"]
+  PLN["Planning\\n规划"]
+  ACT["Action\\n行动"]
+  MUL["Multi-Agent\\n多智能体协调"]
+  style MEM fill:#1e3a5f,stroke:#3b82f6,color:#bfdbfe
+  style REF fill:#3b1f1f,stroke:#ef4444,color:#fecaca
+  style PLN fill:#2d2a1a,stroke:#f59e0b,color:#fde68a
+  style ACT fill:#1f2d1f,stroke:#22c55e,color:#bbf7d0
+  style MUL fill:#2a1f3b,stroke:#a78bfa,color:#ddd6fe
+  SV --> MEM
+  SV --> REF
+  SV --> PLN
+  SV --> ACT
+  SV --> MUL`;
+
+  // Cross-links between pillar papers (only when source group active)
+  const CROSS_LINKS = {
+    ref: 'R3 -.->|辩论| MUL\n  R4 -.->|经验复用| MEM\n  R5 -.->|"Reflection Bank"| MEM',
+    pln: 'P2 -.->|角色分工| MUL\n  P1 -.->|工具调用| ACT',
+    mul: 'MA3 -.->|异构辩论| REF'
+  };
+
+  const GROUPS = {
+    mem: {
+      nodes: `M1["HiAgent\\n子目标分层记忆"]
+  M2["A-MEM\\nZettelkasten语义链接"]
+  M3["Cross-Attention检索\\nFrontiers 2025"]
+  style M1 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+  style M2 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+  style M3 fill:#0f1117,stroke:#3b82f6,stroke-dasharray:4,color:#93c5fd
+  MEM --- M1
+  MEM --- M2
+  MEM --- M3`
+    },
+    ref: {
+      nodes: `R1["Reflexion\\nNeurIPS 2023\\n语言强化学习"]
+  R2["ICLR 2024\\n自我反思90%无效"]
+  R3["MAD / MAR\\n多Agent辩论式反思"]
+  R4["ExpeL / ERL\\n跨轨迹经验反思"]
+  R5["Dual-Loop\\n双环元认知反思"]
+  style R1 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R2 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R3 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R4 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  style R5 fill:#0f1117,stroke:#ef4444,stroke-dasharray:4,color:#fca5a5
+  REF --- R1
+  REF --- R2
+  REF --- R3
+  REF --- R4
+  REF --- R5`
+    },
+    pln: {
+      nodes: `P1["ReAct\\n推理+行动交替"]
+  P2["ChatDev / MetaGPT\\n多角色分工"]
+  P3["CVPR 2025 具身AI\\nMLLM+World Model"]
+  style P1 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+  style P2 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+  style P3 fill:#0f1117,stroke:#f59e0b,stroke-dasharray:4,color:#fcd34d
+  PLN --- P1
+  PLN --- P2
+  PLN --- P3`
+    },
+    act: {
+      nodes: `A1["Inworld AI\\n工程化显式实现\\n≤250ms延迟"]
+  A2["Character.AI\\n参数化隐式压缩"]
+  A3["Soul Machines\\n动画数字人"]
+  style A1 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+  style A2 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+  style A3 fill:#0f1117,stroke:#22c55e,stroke-dasharray:4,color:#86efac
+  ACT --- A1
+  ACT --- A2
+  ACT --- A3`
+    },
+    mul: {
+      nodes: `MA1["OpenCity\\n10K Agent 并行化"]
+  MA2["AgentSociety\\n500万次交互"]
+  MA3["A-HMAD\\n异构Agent辩论"]
+  style MA1 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+  style MA2 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+  style MA3 fill:#0f1117,stroke:#a78bfa,stroke-dasharray:4,color:#c4b5fd
+  MUL --- MA1
+  MUL --- MA2
+  MUL --- MA3`
+    },
+    ext: {
+      nodes: `subgraph EXT ["跨领域方法论启发"]
+    direction TB
+    X1["ALCS\\n自动折叠采样\\nCambridge 2026"]
+    X2["TimesFM\\nGoogle ICML 2024"]
+    AB1["Abliteration ★后加\\n拒绝向量消融 ICLR 2025"]
+    AB2["Abliteration Defense ★后加\\n扩展拒绝微调 arXiv 2025"]
+    MM1["Memori ★后加\\n持久化记忆层 arXiv 2026"]
+    HA1["HiAgent ★后加\\n分层工作记忆 arXiv 2024.08"]
+    MG1["MetaGPT ★后加\\nSOP 流水线 ICLR 2024"]
+    CD1["ChatDev ★后加\\nWaterfall 虚拟软件公司 ACL 2024"]
+    MS1["Memory 综述 ★后加\\n记忆分类三棱镜 arXiv 2025.12"]
+  end
+  style EXT fill:#0f1117,stroke:#475569,stroke-dasharray:6,color:#94a3b8
+  style X1 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
+  style X2 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
+  style AB1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style AB2 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style MM1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style HA1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style MG1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style CD1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style MS1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  X1 -.->|"降维压缩类比\\n潜变量折叠 ≈ 记忆压缩"| MEM
+  X1 -.->|"不确定性量化\\n记忆置信度建模"| REF
+  X2 -.->|"zero-shot预测\\nAgent World Model"| PLN
+  AB1 -.->|"安全对齐攻击\\n单向量移除拒绝"| REF
+  AB1 -.->|"Agent 安全隐患\\n底层模型被消融"| ACT
+  AB2 -.->|"防御启示\\n安全信号需分散"| REF
+  MM1 -.->|"记忆结构化\\n语义三元组"| MEM
+  MM1 -.->|"成本启示\\n20x降本"| MUL
+  HA1 -.->|"分层压缩\\n子目标栈+窗口"| MEM
+  HA1 -.->|"任务分解\\n主动切换子目标"| PLN
+  MG1 -.->|"SOP 流水线\\nPM→架构→工程→QA"| MUL
+  MG1 -.->|"标准作业流程\\nprompt 工程化"| PLN
+  CD1 -.->|"角色对话协作\\nWaterfall 瀑布"| MUL
+  CD1 -.->|"Memory Stream\\n短期/长期分层"| MEM
+  MS1 -.->|"记忆分类三棱镜\\nForms/Functions/Dynamics"| MEM
+  MS1 -.->|"综述边界划分\\nvs RAG/LLM Memory"| REF`
+    },
+    cot: {
+      nodes: `subgraph COTGRP ["CoT 推理链系列 ★后加"]
+    direction TB
+    COT1["Chain-of-Thought\\nNeurIPS 2022\\nGSM8K 18%→74%"]
+    COT2["ReAct\\nICLR 2023\\nThought→Action→Obs"]
+    COT3["Inner Monologue\\nCoRL 2022\\n具身闭环推理"]
+    COT4["Reflexion\\nNeurIPS 2023\\n语言强化学习"]
+    COT5["Tree of Thoughts\\nNeurIPS 2023\\n思维树搜索"]
+    COT6["Plan-and-Solve\\nACL 2023\\n先规划再求解"]
+    COT7["LATS\\narXiv 2023\\nMCTS统一框架"]
+    COT8["Voyager\\narXiv 2023\\n技能库+自动课程"]
+    COT9["CAMEL\\nNeurIPS 2023\\n角色扮演协作"]
+    COT10["Multi-Agent ToT\\narXiv 2024\\n并行推理+验证"]
+    COT11["AgentSociety\\narXiv 2025\\n万人级仿真"]
+  end
+  style COTGRP fill:#0f1117,stroke:#f472b6,stroke-dasharray:6,color:#f9a8d4
+  style COT1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT2 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT3 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT4 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT5 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT6 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT7 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT8 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT9 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT10 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style COT11 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  COT1 -.->|"推理基础"| PLN
+  COT1 -.->|"反思推理"| REF
+  COT2 -.->|"行动范式"| ACT
+  COT2 -.->|"实时规划"| PLN
+  COT3 -.->|"闭环规划"| PLN
+  COT3 -.->|"具身行动"| ACT
+  COT4 -.->|"反思进化"| REF
+  COT4 -.->|"经验记忆"| MEM
+  COT5 -.->|"规划升级"| PLN
+  COT6 -.->|"规划验证"| PLN
+  COT7 -.->|"统一框架"| PLN
+  COT7 -.->|"搜索行动"| ACT
+  COT8 -.->|"技能记忆"| MEM
+  COT8 -.->|"自动课程"| PLN
+  COT9 -.->|"多Agent协作"| MUL
+  COT10 -.->|"集体推理"| MUL
+  COT10 -.->|"外部批评"| REF
+  COT11 -.->|"规模扩展"| MUL`
+    }
+  };
+
+  // Track active groups
+  const activeGroups = new Set(['mem', 'ref', 'pln', 'act', 'mul']);
+  let renderCounter = 0;
+
+  function buildDiagram() {
+    let def = INIT + '\ngraph TB\n  ' + CORE_NODES;
+    for (const grp of activeGroups) {
+      def += '\n  ' + GROUPS[grp].nodes;
+      if (CROSS_LINKS[grp]) def += '\n  ' + CROSS_LINKS[grp];
+    }
+    return def;
+  }
+
+  async function renderDiagram() {
+    const container = document.getElementById('mermaid-container');
+    const id = 'dyn-diagram-' + (++renderCounter);
+    try {
+      const { svg } = await mermaid.render(id, buildDiagram());
+      container.innerHTML = svg;
+    } catch (e) {
+      console.error('Mermaid render error', e);
+    }
+  }
+
+  // Toggle buttons
+  document.querySelectorAll('.grp-btn[data-grp]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const grp = btn.dataset.grp;
+      if (activeGroups.has(grp)) {
+        activeGroups.delete(grp);
+        btn.classList.remove('active');
+      } else {
+        activeGroups.add(grp);
+        btn.classList.add('active');
+      }
+      updateAllBtn();
+      renderDiagram();
+    });
+  });
+
+  // "全部展开" button
+  const allBtn = document.getElementById('grp-all-btn');
+  const ALL_GRPS = ['mem','ref','pln','act','mul','ext','cot'];
+
+  function updateAllBtn() {
+    const allActive = ALL_GRPS.every(g => activeGroups.has(g));
+    allBtn.classList.toggle('active', allActive);
+    allBtn.textContent = allActive ? '全部折叠' : '全部展开';
+  }
+
+  allBtn.addEventListener('click', () => {
+    const allActive = ALL_GRPS.every(g => activeGroups.has(g));
+    if (allActive) {
+      // collapse to core only
+      ALL_GRPS.forEach(g => activeGroups.delete(g));
+    } else {
+      ALL_GRPS.forEach(g => activeGroups.add(g));
+    }
+    document.querySelectorAll('.grp-btn[data-grp]').forEach(btn => {
+      btn.classList.toggle('active', activeGroups.has(btn.dataset.grp));
+    });
+    updateAllBtn();
+    renderDiagram();
+  });
+
+  // Render static full diagram when <details> opens
+  let fullDiagramRendered = false;
+  document.getElementById('full-diagram-details').addEventListener('toggle', async function() {
+    if (this.open && !fullDiagramRendered) {
+      fullDiagramRendered = true;
+      const node = document.getElementById('full-static-diagram');
+      await mermaid.run({ nodes: [node] });
+    }
+  });
+
+  /* ══════════════════════════════════════════════════
+     Tab switching (Tab 2 & Tab 3 still use static pre.mermaid)
+     ══════════════════════════════════════════════════ */
   const renderedTabs = new Set();
 
   async function renderTab(panelId) {
+    if (panelId === 'tab1') {
+      // Tab 1 uses dynamic rendering
+      if (!renderedTabs.has('tab1')) {
+        renderedTabs.add('tab1');
+        await renderDiagram();
+      }
+      return;
+    }
     if (renderedTabs.has(panelId)) return;
     const panel = document.getElementById(panelId);
     const nodes = panel.querySelectorAll('pre.mermaid');

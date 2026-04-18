@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reflexion 三组件架构 vs 工业解耦架构 — 原理·实现·论文</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b0a28 0%, #0f1117 40%, #0a1628 70%, #0a1a12 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--accent); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .personal-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 5px; margin-left: 10px; background: rgba(244,114,182,0.12); color: var(--pink); border: 1px dashed var(--pink); vertical-align: middle; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 56px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--cyan); }
+    blockquote { border-left: 3px solid var(--accent); padding: 10px 16px; background: var(--bg2); margin: 12px 0; font-style: italic; color: var(--text); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 16px 0; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .diagram { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; }
+    .diagram pre { font-family: "Courier New", monospace; font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre; }
+
+    .paper-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 12px 0; }
+    .paper-card .paper-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .paper-card .paper-meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .paper-card .paper-desc { font-size: 13.5px; color: var(--text); line-height: 1.7; }
+    .paper-card .paper-links { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .paper-card .paper-links a { font-size: 12px; padding: 3px 10px; border-radius: 5px; background: var(--bg3); color: var(--blue); }
+    .paper-card .paper-links a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .paper-card .paper-links a.github { color: var(--green); }
+    .paper-card .paper-links a.github:hover { background: rgba(52,211,153,0.15); }
+    .paper-card .paper-relevance { font-size: 12px; color: var(--orange); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+
+    .footer { text-align: center; margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Reflexion 三组件架构 vs 工业解耦架构 <span class="personal-badge">后加</span></h1>
+  <p class="sub">
+    Reflexion (Shinn 2023) 提出了 Actor + Evaluator + Self-Reflection 的三组件串联闭环。
+    现代工业 coding agent（以 Claude Code / free-code 为例）走了另一条路：把反思与验证彻底解耦。
+    本文从原理、实现、优缺点三个维度做系统对比，并附完整的论文索引和原始链接。
+  </p>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#sec-principle">原理</a>
+    <a href="#sec-reflexion">实现A: Reflexion 串联</a>
+    <a href="#sec-decoupled">实现B: 解耦架构</a>
+    <a href="#sec-compare">优缺点对比</a>
+    <a href="#sec-synthesis">综合判断</a>
+    <a href="#sec-papers">论文索引</a>
+    <a href="free-code-vs-reflexion.html">← 调研笔记</a>
+    <a href="../index1.html">← 主导航</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════ 1. Principle ═══════════ -->
+<div class="section" id="sec-principle">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent);">1</div>
+    <h2>原理：Reflexion 的三个组件</h2>
+  </div>
+
+  <p>Reflexion (Shinn et al., 2023) 将 agent 的学习过程拆成三个显式组件，每个组件有独立职责，串联形成闭环：</p>
+
+  <div class="grid-3">
+    <div class="callout callout-red">
+      <div class="callout-title">① Actor（执行器）</div>
+      <p style="margin:0;font-size:13px;">生成 action trajectory —— 接收任务描述 + 历史反思，输出一系列动作。可以是任何 LLM agent 架构：ReAct、CoT、Plan-and-Solve 等。</p>
+      <p style="margin:8px 0 0 0;font-size:12px;color:var(--muted);">输入：task + memory buffer<br>输出：trajectory τ</p>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">② Evaluator（评估器）</div>
+      <p style="margin:0;font-size:13px;">对 trajectory 打分。可以是 binary（pass/fail）或 scalar（0-1 分值）。<strong>必须是外部信号</strong> —— Reflexion 论文自己也不信任 LLM self-eval。</p>
+      <p style="margin:8px 0 0 0;font-size:12px;color:var(--muted);">输入：trajectory τ + ground truth<br>输出：reward r ∈ {0, 1} 或 r ∈ [0, 1]</p>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">③ Self-Reflection（自我反思）</div>
+      <p style="margin:0;font-size:13px;">只在 Evaluator 判 FAIL 时触发。LLM 分析失败轨迹，生成自然语言反思（"我错在哪、下次怎么改"），写入 episodic memory buffer。</p>
+      <p style="margin:8px 0 0 0;font-size:12px;color:var(--muted);">输入：trajectory τ + reward r + task<br>输出：verbal reflection sr → memory</p>
+    </div>
+  </div>
+
+  <h3>串联闭环公式</h3>
+
+  <div class="diagram">
+    <pre>
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                    Reflexion 串联闭环（per-trial）                   │
+  │                                                                     │
+  │   task + memory ──→ <span style="color:var(--red);">Actor</span> ──→ trajectory τ                         │
+  │                                    │                                │
+  │                                    ▼                                │
+  │                              <span style="color:var(--orange);">Evaluator</span>                              │
+  │                              ┌────┴────┐                            │
+  │                         PASS │         │ FAIL                       │
+  │                              ▼         ▼                            │
+  │                           完成    <span style="color:var(--accent);">Self-Reflection</span>                    │
+  │                                        │                            │
+  │                                        ▼                            │
+  │                              episodic memory buffer                 │
+  │                                        │                            │
+  │                               ┌────────┘                            │
+  │                               ▼                                     │
+  │                    下一个 trial（Actor 再次执行）                      │
+  └─────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <p>关键特征：</p>
+  <ul>
+    <li><strong>三组件串联</strong>：Evaluator 的 FAIL 信号是 Self-Reflection 的触发条件</li>
+    <li><strong>per-trial 粒度</strong>：每次 trial 执行完毕后立刻评估 + 反思</li>
+    <li><strong>需要 ground truth</strong>：Evaluator 不是 LLM 猜测，是外部 oracle（unit test / game score / benchmark accuracy）</li>
+    <li><strong>有 trajectory 重试</strong>：同一个任务可以失败后从头再来</li>
+  </ul>
+
+  <h3>Reflexion 论文中的 Evaluator 实例</h3>
+
+  <table>
+    <thead>
+      <tr><th>任务场景</th><th>Evaluator 类型</th><th>Ground Truth 来源</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>HumanEval（代码生成）</td><td>Unit test pass/fail</td><td>任务自带 test cases</td></tr>
+      <tr><td>ALFWorld（家庭任务仿真）</td><td>Task success oracle</td><td>仿真环境判定任务完成</td></tr>
+      <tr><td>HotPotQA（多跳问答）</td><td>Exact match / F1</td><td>标注答案</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">核心洞察</div>
+    Reflexion 看似是 "LLM 自主学习"，但它的学习信号<strong>不来自 LLM 自身</strong>。Evaluator 是外部 oracle。Self-Reflection 只是把外部信号翻译成自然语言存入 memory。没有 oracle，这个闭环就断了。
+  </div>
+</div>
+
+<!-- ═══════════ 2. Implementation A: Reflexion ═══════════ -->
+<div class="section" id="sec-reflexion">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--red);">2</div>
+    <h2>实现 A：Reflexion 串联闭环</h2>
+  </div>
+
+  <h3>架构示意</h3>
+
+  <div class="diagram">
+    <pre>
+  Trial 1:  Actor ──→ τ₁ ──→ Evaluator ──→ FAIL ──→ Self-Reflection ──→ memory
+  Trial 2:  Actor(+memory) ──→ τ₂ ──→ Evaluator ──→ FAIL ──→ Self-Reflection ──→ memory
+  Trial 3:  Actor(+memory) ──→ τ₃ ──→ Evaluator ──→ <span style="color:var(--green);">PASS</span> ──→ 完成
+    </pre>
+  </div>
+
+  <h3>核心实现细节</h3>
+
+  <h4>Actor 层</h4>
+  <ul>
+    <li>Reflexion 原文使用 <strong>ReAct</strong> 作为 Actor（Thought → Action → Observation 循环）</li>
+    <li>Actor 接收 task description + 之前所有 trial 的 self-reflection 作为额外 context</li>
+    <li>Actor 本身<strong>不做反思</strong>，只负责执行</li>
+  </ul>
+
+  <h4>Evaluator 层</h4>
+  <ul>
+    <li>在 HumanEval 上：生成代码 → 跑 unit test → pass/fail（最简单的外部 evaluator）</li>
+    <li>在 ALFWorld 上：提交动作序列 → 仿真器判定任务是否完成</li>
+    <li>Evaluator 的输出是 <strong>binary signal</strong>，不是自然语言</li>
+    <li><strong>Self-Refine (Madaan 2023)</strong> 与此不同：它让 <em>同一个</em> LLM 既生成又评估 —— 本质是 self-evaluation。Reflexion 的 evaluator 是外部的。</li>
+  </ul>
+
+  <h4>Self-Reflection 层</h4>
+  <ul>
+    <li>只在 FAIL 时触发（PASS 不反思 —— 这是 Reflexion 与 Sweet & Sour 等思路的区别）</li>
+    <li>Prompt："Given the failed trajectory and the reward signal, what went wrong and how should the approach be modified?"</li>
+    <li>输出是<strong>自然语言</strong>（verbal reinforcement），写入 sliding window episodic memory</li>
+    <li>Memory 有容量限制（论文中 window size = 3），旧的反思被丢弃</li>
+  </ul>
+
+  <h4>Episodic Memory Buffer</h4>
+  <ul>
+    <li>存储格式：每条 entry = 一段自然语言反思 + 对应的 trial 编号</li>
+    <li>生命周期：within-task（任务结束后丢弃，不跨任务持久化）</li>
+    <li>注入方式：拼接在 Actor 的 prompt 末尾，作为"前人经验"</li>
+  </ul>
+
+  <h3>论文实验结果</h3>
+
+  <table>
+    <thead>
+      <tr><th>任务</th><th>基线 (无反思)</th><th>Reflexion</th><th>提升</th><th>最大 trial 数</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>HumanEval (pass@1)</td><td>80.1%</td><td><strong>91.0%</strong></td><td>+10.9pp</td><td>4</td></tr>
+      <tr><td>ALFWorld (success)</td><td>75%</td><td><strong>97%</strong></td><td>+22pp</td><td>12</td></tr>
+      <tr><td>HotPotQA (EM)</td><td>34%</td><td><strong>51%</strong></td><td>+17pp</td><td>5</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════ 3. Implementation B: Decoupled ═══════════ -->
+<div class="section" id="sec-decoupled">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--green);">3</div>
+    <h2>实现 B：工业解耦架构（free-code / Claude Code）</h2>
+  </div>
+
+  <p>以 free-code（Claude Code 开源 fork）为代表的工业 coding agent，将 Reflexion 的三个组件<strong>解耦成三个独立系统</strong>，各自有不同的触发条件、时间尺度和执行上下文。</p>
+
+  <h3>架构示意</h3>
+
+  <div class="diagram">
+    <pre>
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                     工业解耦架构（free-code 实际实现）                        │
+  │                                                                             │
+  │  ┌─ <span style="color:var(--red);">Actor 系统（主循环）</span> ──────────────────────────────────────────────────┐  │
+  │  │  query.ts 主循环：ReAct 模式                                            │  │
+  │  │  Thought → Tool Call → Observation → ... → 最终回复                     │  │
+  │  │  ⚡ 每个 turn 结束时 fire-and-forget 触发 stopHooks                      │  │
+  │  └──────────────────────────────────────────────────────────────────────────┘  │
+  │       │                                           │                           │
+  │       │ stopHooks (void, 不阻塞)                   │ 主 agent 主动调用         │
+  │       ▼                                           ▼                           │
+  │  ┌─ <span style="color:var(--accent);">反思系统（双层 fork）</span> ───────┐    ┌─ <span style="color:var(--orange);">验证系统（opt-in subagent）</span> ──┐  │
+  │  │                                │    │                                  │  │
+  │  │  <span style="color:var(--cyan);">L1: extractMemories</span>          │    │  <span style="color:var(--red);">verification agent</span>             │  │
+  │  │  · per-turn, forked agent     │    │  · 主 agent 决定是否调用          │  │
+  │  │  · 提取本 session 值得记的事   │    │  · adversarial: try to break it  │  │
+  │  │  · 禁止 verification          │    │  · 只能读/运行,不能改文件         │  │
+  │  │  · maxTurns=5 硬上限          │    │  · 输出 VERDICT: PASS/FAIL       │  │
+  │  │                                │    │  · 必须含 Command run + Output   │  │
+  │  │  <span style="color:var(--blue);">L2: autoDream</span>                │    │  · ant-only A/B (3P default=off) │  │
+  │  │  · per-week (≥24h, ≥5 sess)  │    │                                  │  │
+  │  │  · 跨会话 transcript 归纳     │    │  FAIL → 主 agent 修复 →           │  │
+  │  │  · 合并/淘汰旧 memory         │    │         resume verifier →         │  │
+  │  │  · 排除当前 session           │    │         repeat until PASS         │  │
+  │  │                                │    │                                  │  │
+  │  │  共享: prompt cache           │    │                                  │  │
+  │  │  隔离: canUseTool 权限收窄     │    │                                  │  │
+  │  │  写入: MEMORY.md 文件系统     │    │                                  │  │
+  │  └────────────────────────────────┘    └──────────────────────────────────┘  │
+  │                                                                             │
+  │  ⚠ 反思系统 与 验证系统 <span style="color:var(--yellow);">完全解耦、互不引用</span>                                │
+  └─────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <h3>三大系统详解</h3>
+
+  <h4>Actor 系统：<code>query.ts</code> 主循环</h4>
+  <ul>
+    <li>ReAct 模式的工程化实现 —— Thought → Tool Call → Observation 循环</li>
+    <li>与 Reflexion 的 Actor <strong>几乎完全对齐</strong>，区别是没有 trial 重试（每个 turn 只执行一次）</li>
+    <li>每个 turn 结束后通过 <code>stopHooks.ts</code> 触发反思系统（fire-and-forget，不阻塞主循环）</li>
+    <li>主 agent 也可以自己直接写 memory（L0），如果写了则 extractMemories 跳过</li>
+  </ul>
+
+  <h4>反思系统：extractMemories (L1) + autoDream (L2)</h4>
+
+  <table>
+    <thead>
+      <tr><th></th><th>extractMemories (L1)</th><th>autoDream (L2)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>触发频率</strong></td><td>每个 turn（throttle default = 1）</td><td>≥24h 且 ≥5 个 sessions</td></tr>
+      <tr><td><strong>作用域</strong></td><td>本 session 内最近 N 条消息</td><td>跨多个 sessions 的 transcript</td></tr>
+      <tr><td><strong>执行方式</strong></td><td><code>runForkedAgent</code>，共享 prompt cache</td><td><code>runForkedAgent</code>，共享 prompt cache</td></tr>
+      <tr><td><strong>目标</strong></td><td>从对话中提取值得持久化的信息</td><td>归纳长期模式、合并/淘汰旧 memory</td></tr>
+      <tr><td><strong>是否验证</strong></td><td>❌ 明文禁止："Do not waste any turns attempting to investigate or verify"</td><td>❌ 不验证，只归纳</td></tr>
+      <tr><td><strong>写入目标</strong></td><td colspan="2">MEMORY.md 文件系统（user / feedback / project / reference 四类）</td></tr>
+      <tr><td><strong>成功也反思？</strong></td><td>✅ 是（不依赖 FAIL 信号）</td><td>✅ 是（综合所有 sessions）</td></tr>
+    </tbody>
+  </table>
+
+  <h4>验证系统：verification agent</h4>
+  <ul>
+    <li><strong>触发方式</strong>：主 agent 通过 <code>Agent</code> 工具调用 <code>subagent_type="verification"</code></li>
+    <li><strong>触发条件</strong>：nudge 而非 enforce —— <code>TodoWriteTool</code> / <code>TaskUpdateTool</code> 在关闭 3+ tasks 后加 NOTE 提示；系统 prompt 加 "the contract"</li>
+    <li><strong>核心原则</strong>："reading code is not verification. Run it." + "you cannot self-assign PARTIAL"</li>
+    <li><strong>FAIL 后行为</strong>：主 agent 修复 → resume verifier → repeat until PASS（类似 Reflexion 的重试，但不是整个 trajectory 重试）</li>
+    <li><strong>开放范围</strong>：ant-only A/B（<code>tengu_hive_evidence</code> 3P default = false）</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">解耦的核心设计决策</div>
+    <ul style="margin:6px 0 0 16px;padding:0;">
+      <li><strong>反思不需要 FAIL 信号</strong> —— 成功也反思，因为有价值的不只是"错误经验"，还有"用户偏好"和"项目知识"</li>
+      <li><strong>验证不写 memory</strong> —— verifier 只输出 VERDICT，不存储反思到 memory。修复是主 agent 的事</li>
+      <li><strong>两个系统互不引用</strong> —— extractMemories 和 autoDream 不读 verification 结果；verifier 不读 MEMORY.md</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════ 4. Pros and Cons ═══════════ -->
+<div class="section" id="sec-compare">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--yellow);">4</div>
+    <h2>优缺点对比</h2>
+  </div>
+
+  <h3>维度对比表</h3>
+
+  <table>
+    <thead>
+      <tr><th>维度</th><th>Reflexion 串联闭环</th><th>工业解耦架构</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>任务边界</strong></td>
+        <td>✅ 清晰（benchmark 任务有明确开始/结束）</td>
+        <td>✅ 无需清晰边界（反思按时间窗口触发，不依赖任务完成信号）</td>
+      </tr>
+      <tr>
+        <td><strong>Ground truth 依赖</strong></td>
+        <td>⚠ 强依赖（没有 oracle 则闭环断裂）</td>
+        <td>✅ 弱依赖（反思不需要评估信号；验证用真实命令输出替代 oracle）</td>
+      </tr>
+      <tr>
+        <td><strong>单任务提升速度</strong></td>
+        <td>✅ 快（per-trial 迭代，HumanEval 4 次 trial 内收敛）</td>
+        <td>⚠ 慢（反思按天/周级沉淀，当前 task 不直接受益）</td>
+      </tr>
+      <tr>
+        <td><strong>跨任务泛化</strong></td>
+        <td>❌ 无（episodic memory 任务结束即丢弃）</td>
+        <td>✅ 强（MEMORY.md 持久化，跨 session 沉淀偏好和知识）</td>
+      </tr>
+      <tr>
+        <td><strong>错误反思的风险</strong></td>
+        <td>⚠ 高（论文 §5.2 承认：错误反思使后续 trial 更糟）</td>
+        <td>✅ 低（fork 隔离 + 必须经过"冷启动"才影响下一个 session = 隐式 staleness check）</td>
+      </tr>
+      <tr>
+        <td><strong>Self-eval 风险</strong></td>
+        <td>✅ 低（evaluator 是外部 oracle）</td>
+        <td>✅ 低（verifier 必须跑真实命令，明文禁止 "reading code is not verification"）</td>
+      </tr>
+      <tr>
+        <td><strong>延迟成本</strong></td>
+        <td>⚠ 高（evaluator + reflection 在主循环内，阻塞下一步）</td>
+        <td>✅ 低（反思 fire-and-forget，共享 prompt cache，主循环 0 阻塞）</td>
+      </tr>
+      <tr>
+        <td><strong>Token 成本</strong></td>
+        <td>⚠ 高（每次 trial 重新执行整个 trajectory）</td>
+        <td>✅ 低（fork 共享 prompt cache，增量成本 ≈ 几百 tokens）</td>
+      </tr>
+      <tr>
+        <td><strong>适用场景</strong></td>
+        <td>有 oracle 的封闭任务（benchmark / 编程题 / 仿真环境）</td>
+        <td>无 oracle 的开放任务（真实软件工程、长期协作）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Reflexion 串联闭环的优势</h3>
+
+  <div class="callout callout-green">
+    <div class="callout-title">适合什么</div>
+    <ol>
+      <li><strong>有清晰 ground truth 的单任务迭代</strong> —— benchmark、竞赛编程、自动化测试驱动的代码生成</li>
+      <li><strong>需要快速收敛</strong> —— 4 次 trial 内从 80% → 91%（HumanEval），不需要等"下个 session"</li>
+      <li><strong>任务可重试</strong> —— 失败代价低（benchmark 环境可以随时 reset）</li>
+    </ol>
+  </div>
+
+  <div class="callout callout-red">
+    <div class="callout-title">不适合什么</div>
+    <ol>
+      <li><strong>没有 oracle 的开放任务</strong> —— "改进这段代码的可读性"没有 unit test 可以判 PASS/FAIL</li>
+      <li><strong>失败代价高的场景</strong> —— 真实代码库里"重试整个 trajectory"意味着 revert 大量修改</li>
+      <li><strong>跨任务学习</strong> —— episodic memory 任务结束即丢，下一个完全不相关的任务无法受益</li>
+    </ol>
+  </div>
+
+  <h3>工业解耦架构的优势</h3>
+
+  <div class="callout callout-green">
+    <div class="callout-title">适合什么</div>
+    <ol>
+      <li><strong>真实软件工程</strong> —— 任务边界模糊、没有预定义 test、用户随时改方向</li>
+      <li><strong>长期协作</strong> —— 跨天/周/月的知识沉淀，agent 越用越懂你</li>
+      <li><strong>成本敏感</strong> —— prompt cache 共享让高频反思在商业场景可行</li>
+    </ol>
+  </div>
+
+  <div class="callout callout-red">
+    <div class="callout-title">不适合什么</div>
+    <ol>
+      <li><strong>需要当前 task 内快速迭代</strong> —— 反思按天/周级沉淀，对"这次就要对"的场景无直接帮助</li>
+      <li><strong>有 oracle 但不用</strong> —— 如果项目有完善的 test suite，纯 fork 反思不如 Reflexion 直接拿 test 结果迭代</li>
+      <li><strong>verification agent 还在 A/B 阶段</strong> —— 外部用户 default 没有验证系统，闭环不完整</li>
+    </ol>
+  </div>
+
+  <h3>根本差异图</h3>
+
+  <div class="diagram">
+    <pre>
+  <span style="color:var(--red);">Reflexion:</span>  反思 <span style="color:var(--orange);">←依赖←</span> 评估 <span style="color:var(--orange);">←依赖←</span> 执行     三者<span style="color:var(--yellow);">串联</span>，缺一不可
+
+  <span style="color:var(--green);">解耦架构:</span>  反思 ────────── 执行 ────────── 验证   三者<span style="color:var(--yellow);">独立</span>，各自运行
+                │                │               │
+                │ 不需要         │ 不阻塞        │ opt-in
+                │ FAIL 信号      │ 任何系统       │ 主 agent 决定
+                ▼                ▼               ▼
+             MEMORY.md        用户交互        VERDICT
+    </pre>
+  </div>
+</div>
+
+<!-- ═══════════ 5. Synthesis ═══════════ -->
+<div class="section" id="sec-synthesis">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--cyan);">5</div>
+    <h2>综合判断</h2>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">不是谁优谁劣，是问题不同</div>
+    <p style="margin:0;">Reflexion 解的是<strong>"给定 oracle，如何最快收敛到正确答案"</strong>。工业解耦架构解的是<strong>"没有 oracle，如何在长期使用中持续改善"</strong>。前者是优化问题，后者是适应问题。用 Reflexion 的框架评价 free-code 是 category error；反过来也一样。</p>
+  </div>
+
+  <h3>最佳组合假说</h3>
+
+  <p>两种架构并非互斥。一个理想的 coding agent 可以同时实现两者：</p>
+
+  <ol>
+    <li><strong>有 test suite 的项目</strong>：Reflexion 式闭环 —— 跑测试、反思、重试，直到 pass</li>
+    <li><strong>没有 test 的项目 / 跨任务维度</strong>：工业解耦架构 —— fork 反思沉淀知识、opt-in 验证</li>
+    <li><strong>long horizon</strong>：解耦反思持续运行，Reflexion 闭环在有 oracle 信号时按需激活</li>
+  </ol>
+
+  <p>事实上，free-code 的 verification agent + FAIL → fix → resume 循环<strong>已经是 Reflexion 式闭环的雏形</strong>，只是 evaluator 不是预定义 test 而是 "verifier 自主 figure out how to verify"。如果项目有 test suite，verifier 会自然地跑那些 tests —— 此时它就退化成 Reflexion 的 evaluator。</p>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">真正的创新不是"反思在循环外"，而是"反思与验证的解耦"</div>
+    <ul style="margin:6px 0 0 16px;padding:0;">
+      <li>Reflexion 把"我错在哪"和"结果对不对"捆绑在一起（evaluator FAIL → self-reflection）</li>
+      <li>free-code 把两者分开：反思<strong>不依赖</strong>"我错了"（成功也反思）；验证<strong>不产出</strong>反思（只给 VERDICT）</li>
+      <li>解耦的好处：反思可以高频运行（因为不需要等 FAIL），验证可以 opt-in（因为不需要绑定反思）</li>
+      <li>解耦的代价：当前 task 内的快速迭代不如 Reflexion；需要 verification agent 成熟后才有完整闭环</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════ 6. Papers ═══════════ -->
+<div class="section" id="sec-papers">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--pink);">6</div>
+    <h2>相关论文索引</h2>
+  </div>
+
+  <p>按与本文主题的相关性排序。每篇论文附引用格式、arXiv 链接和代码仓库。</p>
+
+  <h3>核心论文（直接相关）</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Reflexion: Language Agents with Verbal Reinforcement Learning</div>
+    <div class="paper-meta">Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K., & Yao, S. (2023). <em>NeurIPS 2023</em>.</div>
+    <div class="paper-desc">本文的核心对比对象。提出 Actor + Evaluator + Self-Reflection 三组件串联闭环，用自然语言反思替代传统的标量 reward，在 HumanEval (91.0%)、ALFWorld (97%)、HotPotQA (51%) 上取得 SOTA。关键贡献是证明 LLM 可以通过"语言化的失败经验"进行 trial-and-error 学习，而不需要梯度更新。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2303.11366">arXiv:2303.11366</a>
+      <a href="https://github.com/noahshinn/reflexion" class="github">GitHub: noahshinn/reflexion</a>
+    </div>
+    <div class="paper-relevance">本文第 1-2 节的原理和实现 A 部分基于此论文。三组件分析框架直接来自其 §3。</div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-title">ReAct: Synergizing Reasoning and Acting in Language Models</div>
+    <div class="paper-meta">Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y. (2022). <em>ICLR 2023</em>.</div>
+    <div class="paper-desc">提出 Thought → Action → Observation 交替循环，是 Reflexion Actor 层的默认实现，也是 free-code 主循环的核心架构。ReAct 本身不含反思机制 —— 它只管当前 trajectory 内的推理-行动交替，不跨 trial 学习。Reflexion 在 ReAct 之上加了 Evaluator + Self-Reflection 形成闭环。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2210.03629">arXiv:2210.03629</a>
+      <a href="https://github.com/ysymyth/ReAct" class="github">GitHub: ysymyth/ReAct</a>
+    </div>
+    <div class="paper-relevance">free-code 主循环 = ReAct 工程化实现。是两种架构共享的 Actor 层基础。</div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-title">Self-Refine: Iterative Refinement with Self-Feedback</div>
+    <div class="paper-meta">Madaan, A., Tandon, N., Gupta, P., Hallinan, S., Gao, L., Wiegreffe, S., ... & Clark, P. (2023). <em>NeurIPS 2023</em>.</div>
+    <div class="paper-desc">与 Reflexion 常被混淆但本质不同。Self-Refine 让<strong>同一个 LLM</strong> 既生成又评估（"self-feedback"），是 self-evaluation。Reflexion 显式要求外部 evaluator。区分这两者是理解 Reflexion 设计哲学的关键：Reflexion 不信任 self-eval，free-code 也不信任 —— 它的 verifier prompt 明文说 "reading code is not verification"。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2303.17651">arXiv:2303.17651</a>
+      <a href="https://github.com/madaan/self-refine" class="github">GitHub: madaan/self-refine</a>
+    </div>
+    <div class="paper-relevance">作为对比论文：Self-Refine 是 self-eval 路线，Reflexion 和 free-code 都拒绝了 self-eval。帮助理解"为什么需要外部 evaluator"。</div>
+  </div>
+
+  <h3>Actor 层相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</div>
+    <div class="paper-meta">Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., ... & Zhou, D. (2022). <em>NeurIPS 2022</em>.</div>
+    <div class="paper-desc">CoT 是所有推理链方法的奠基。ReAct 的 "Thought" 步骤直接继承自 CoT。Reflexion 的 Actor 在 trajectory 内使用 CoT-style 推理。free-code 的主循环隐式包含 CoT（LLM 在选择工具前的思考过程）。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2201.11903">arXiv:2201.11903</a>
+    </div>
+    <div class="paper-relevance">纯 prompting 方法，无代码。是 ReAct/Reflexion/free-code 共享的推理基础。</div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-title">Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models</div>
+    <div class="paper-meta">Wang, L., Xu, W., Lan, Y., Hu, Z., Lan, Y., Lee, R. K.-W., & Lim, E.-P. (2023). <em>ACL 2023</em>.</div>
+    <div class="paper-desc">"先规划再求解"范式。Reflexion 的 Actor 可以使用 Plan-and-Solve 风格的 prompt。free-code 是否显式使用 Plan-and-Solve 是待验证项（P2）。它的 <code>ULTRAPLAN</code> feature flag 可能是 Plan-and-Solve 的工程化变体。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2305.04091">arXiv:2305.04091</a>
+      <a href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" class="github">GitHub: AGI-Edgerunners/Plan-and-Solve-Prompting</a>
+    </div>
+    <div class="paper-relevance">Actor 层的规划策略之一。与 Reflexion 的 trajectory 生成策略相关。</div>
+  </div>
+
+  <h3>Evaluator 与验证相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Inner Monologue: Embodied Reasoning through Planning with Language Models</div>
+    <div class="paper-meta">Huang, W., Xia, F., Xiao, T., Chan, H., Liang, J., Florence, P., ... & Hausman, K. (2022).</div>
+    <div class="paper-desc">具身闭环控制，用自然语言作统一接口。关键相关性：Inner Monologue 的 "success detection" 模块是一种 evaluator，通过自然语言描述环境状态来判断任务是否完成。这种"语言化的验证"与 free-code 的 verification agent（用自然语言报告 VERDICT）有结构相似性。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2207.05608">arXiv:2207.05608</a>
+    </div>
+    <div class="paper-relevance">仅项目主页，无公开代码。"语言化验证"的思路与 free-code verification agent 相关。</div>
+  </div>
+
+  <h3>搜索与重试策略相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Tree of Thoughts: Deliberate Problem Solving with Large Language Models</div>
+    <div class="paper-meta">Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T. L., Cao, Y., & Narasimhan, K. (2023). <em>NeurIPS 2023</em>.</div>
+    <div class="paper-desc">将单链推理扩展为树状搜索（BFS/DFS）。与 Reflexion 的关系：Reflexion 是 trial-level 重试（同一任务多次 trajectory），ToT 是 step-level 分支（同一 trajectory 内多条路径）。free-code 两者都不做 —— 它是单条 trajectory、不重试。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2305.10601">arXiv:2305.10601</a>
+      <a href="https://github.com/princeton-nlp/tree-of-thought-llm" class="github">GitHub: princeton-nlp/tree-of-thought-llm</a>
+    </div>
+    <div class="paper-relevance">替代 Reflexion 的另一种"对抗单次失败"策略，free-code 未采用。</div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-title">Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models</div>
+    <div class="paper-meta">Zhou, A., Yan, K., Shlapentokh-Rothman, M., Wang, H., & Wang, Y.-X. (2023).</div>
+    <div class="paper-desc">MCTS + ReAct + ToT + Reflexion 的集大成。用 Monte Carlo Tree Search 统一推理、行动和规划，在 HumanEval 达到 94.4%（超过 Reflexion 的 91.0%）。与本文对比：LATS 证明了把评估和搜索结合在循环内可以超越 Reflexion，但其 MCTS 搜索的 token 成本极高 —— 这正是工业 coding agent 不采用的原因。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2310.04406">arXiv:2310.04406</a>
+      <a href="https://github.com/lapisrocks/LanguageAgentTreeSearch" class="github">GitHub: lapisrocks/LanguageAgentTreeSearch</a>
+    </div>
+    <div class="paper-relevance">学术上的"终极版 Reflexion"。但高 token 成本阻止了工业采用，印证了 free-code 选择解耦架构的成本考量。</div>
+  </div>
+
+  <h3>记忆与知识沉淀相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Generative Agents: Interactive Simulacra of Human Behavior</div>
+    <div class="paper-meta">Park, J. S., O'Brien, J. C., Cai, C. J., Morris, M. R., Liang, P., & Bernstein, M. S. (2023). <em>UIST 2023</em>.</div>
+    <div class="paper-desc">斯坦福小镇 —— 本研究项目的核心论文。其 Memory Stream（recency + importance + relevance 三维检索）和 Reflection（重要性阈值触发的高阶洞察生成）是 free-code 记忆系统的思想源头。关键区别：Generative Agents 的反思是<strong>主动触发</strong>（importance 累积到阈值）且在主循环内，free-code 的反思是<strong>定时触发</strong>（24h + 5 sessions）且在 fork 里。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2304.03442">arXiv:2304.03442</a>
+      <a href="https://github.com/joonspk-research/generative_agents" class="github">GitHub: joonspk-research/generative_agents</a>
+    </div>
+    <div class="paper-relevance">free-code 的 MEMORY.md 系统（四类 memory + MEMORY.md 索引）可以看作 Generative Agents Memory Stream 的工程化简化版。</div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-title">Voyager: An Open-Ended Embodied Agent with Large Language Models</div>
+    <div class="paper-meta">Wang, G., Xie, Y., Jiang, Y., Mandlekar, A., Xiao, C., Zhu, Y., ... & Anandkumar, A. (2023).</div>
+    <div class="paper-desc">Minecraft 中的自动课程 + 技能库系统。Voyager 的 skill library（可执行代码 + 嵌入检索）是一种跨任务持久化记忆。与 free-code 的 MEMORY.md（自然语言 + 文件系统检索）是同一问题的两种解法。关键区别：Voyager 存的是<strong>可执行技能</strong>（代码），free-code 存的是<strong>自然语言知识</strong>（偏好、上下文、反馈）。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2305.16291">arXiv:2305.16291</a>
+      <a href="https://github.com/MineDojo/Voyager" class="github">GitHub: MineDojo/Voyager</a>
+    </div>
+    <div class="paper-relevance">跨任务知识持久化的另一种范式。free-code 的 MEMORY.md ≈ Voyager skill library 的自然语言版。</div>
+  </div>
+
+  <h3>学习信号与人类反馈相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">Training Language Models to Follow Instructions with Human Feedback</div>
+    <div class="paper-meta">Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., Mishkin, P., ... & Lowe, R. (2022). <em>NeurIPS 2022</em>.</div>
+    <div class="paper-desc">InstructGPT / RLHF 奠基论文。本文第 6 节论点的核心类比对象：free-code 的 autoDream 本质上是 <strong>RLHF 的轻量化在线版本</strong> —— human feedback 隐式编码在多轮交互里（用户的"不对"/"继续"就是 reward signal），autoDream 通过观察 5 个 session 的轨迹把这些隐式反馈提炼成 memory。区别是 RLHF 更新模型权重，autoDream 更新文本记忆。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2203.02155">arXiv:2203.02155</a>
+    </div>
+    <div class="paper-relevance">"用户即 evaluator"的理论基础。free-code 的反思系统 ≈ 无梯度的 RLHF。</div>
+  </div>
+
+  <h3>多 Agent 协作相关论文</h3>
+
+  <div class="paper-card">
+    <div class="paper-title">CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society</div>
+    <div class="paper-meta">Li, G., Hammoud, H. A. A. K., Itani, H., Khizbullin, D., & Ghanem, B. (2023).</div>
+    <div class="paper-desc">角色扮演多 Agent 协作框架。与 free-code 的关系：free-code 的 verification agent 是一种极简的双 Agent 协作 —— 主 agent（implementer）和 verifier（adversarial reviewer）形成对抗性合作。CAMEL 的角色指派（instructor + assistant）和 free-code 的 "you cannot self-assign PARTIAL, only the verifier assigns a verdict" 是同一种思路。</div>
+    <div class="paper-links">
+      <a href="https://arxiv.org/abs/2303.17760">arXiv:2303.17760</a>
+      <a href="https://github.com/camel-ai/camel" class="github">GitHub: camel-ai/camel</a>
+    </div>
+    <div class="paper-relevance">主 agent + verification agent 的角色分工可以用 CAMEL 框架理解：implementer = assistant, verifier = instructor (adversarial)。</div>
+  </div>
+
+  <h3>引用格式汇总</h3>
+
+  <div class="callout callout-insight" style="font-size:12.5px;line-height:2;">
+    <div class="callout-title">BibTeX-style 引用列表</div>
+    <code>[1]</code> Shinn et al. "Reflexion: Language Agents with Verbal Reinforcement Learning." <em>NeurIPS</em>, 2023. <a href="https://arxiv.org/abs/2303.11366">arXiv:2303.11366</a><br>
+    <code>[2]</code> Yao et al. "ReAct: Synergizing Reasoning and Acting in Language Models." <em>ICLR</em>, 2023. <a href="https://arxiv.org/abs/2210.03629">arXiv:2210.03629</a><br>
+    <code>[3]</code> Madaan et al. "Self-Refine: Iterative Refinement with Self-Feedback." <em>NeurIPS</em>, 2023. <a href="https://arxiv.org/abs/2303.17651">arXiv:2303.17651</a><br>
+    <code>[4]</code> Wei et al. "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models." <em>NeurIPS</em>, 2022. <a href="https://arxiv.org/abs/2201.11903">arXiv:2201.11903</a><br>
+    <code>[5]</code> Wang et al. "Plan-and-Solve Prompting." <em>ACL</em>, 2023. <a href="https://arxiv.org/abs/2305.04091">arXiv:2305.04091</a><br>
+    <code>[6]</code> Huang et al. "Inner Monologue: Embodied Reasoning through Planning with Language Models." 2022. <a href="https://arxiv.org/abs/2207.05608">arXiv:2207.05608</a><br>
+    <code>[7]</code> Yao et al. "Tree of Thoughts: Deliberate Problem Solving with Large Language Models." <em>NeurIPS</em>, 2023. <a href="https://arxiv.org/abs/2305.10601">arXiv:2305.10601</a><br>
+    <code>[8]</code> Zhou et al. "Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models." 2023. <a href="https://arxiv.org/abs/2310.04406">arXiv:2310.04406</a><br>
+    <code>[9]</code> Park et al. "Generative Agents: Interactive Simulacra of Human Behavior." <em>UIST</em>, 2023. <a href="https://arxiv.org/abs/2304.03442">arXiv:2304.03442</a><br>
+    <code>[10]</code> Wang et al. "Voyager: An Open-Ended Embodied Agent with Large Language Models." 2023. <a href="https://arxiv.org/abs/2305.16291">arXiv:2305.16291</a><br>
+    <code>[11]</code> Ouyang et al. "Training Language Models to Follow Instructions with Human Feedback." <em>NeurIPS</em>, 2022. <a href="https://arxiv.org/abs/2203.02155">arXiv:2203.02155</a><br>
+    <code>[12]</code> Li et al. "CAMEL: Communicative Agents for 'Mind' Exploration of Large Language Model Society." 2023. <a href="https://arxiv.org/abs/2303.17760">arXiv:2303.17760</a>
+  </div>
+</div>
+
+<div class="footer">
+  本文是 <a href="free-code-vs-reflexion.html">free-code vs Reflexion 调研笔记</a> 的独立对比文档。<br>
+  分析基于 Reflexion 原文 (arXiv:2303.11366) + free-code 源码阅读 (2026-04-08 ~ 2026-04-10)。<br>
+  <a href="../index1.html">← 返回主导航</a>
+</div>
+
+</div><!-- /container -->
+
+</body>
+</html>

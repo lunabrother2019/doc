@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读08：ReAct — 推理与行动交替的Agent基础范式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>ReAct — 推理与行动交替的 Agent 基础范式 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：将 LLM 的推理能力（Reasoning）与环境交互能力（Acting）融合为 Thought-Action-Observation 循环，奠定现代 Agent 框架的核心架构</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2210.03629" target="_blank">arXiv 2210.03629</a> &middot; Yao, Zhao, Yu, Du, Shafran, Narasimhan, Cao &middot; 2022</div>
+    <div class="paper-ref">ICLR 2023</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/ysymyth/ReAct" target="_blank" style="color:inherit;">💻 GitHub: ysymyth/ReAct</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 核心机制</a>
+    <a href="#sec3">3. 关键实验</a>
+    <a href="#sec4">4. ReAct vs CoT vs Acting</a>
+    <a href="#sec5">5. Agent框架影响</a>
+    <a href="#sec6">6. 小镇关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="07-chain-of-thought.html">07-CoT</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">1</div>
+      <h2>论文概述：让 LLM 既能思考又能行动</h2>
+    </div>
+
+    <p>2022 年末，普林斯顿大学和 Google Brain 的 Shunyu Yao 等人提出了 ReAct（<strong>Re</strong>asoning + <strong>Act</strong>ing），解决了一个关键问题：<span class="hl">如何让 LLM 在推理的同时与外部环境交互</span>。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心洞见</div>
+      人类在解决问题时，推理和行动是交替进行的 -- 我们思考要搜索什么（Thought），然后去搜索（Action），看到结果后（Observation）再思考下一步。ReAct 将这一自然模式形式化为 LLM 的提示范式：Thought &rarr; Action &rarr; Observation 循环，直到任务完成。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">3</div>
+        <div class="stat-label">核心组件（Thought / Action / Observation）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">+6%</div>
+        <div class="stat-label">HotpotQA 超越纯 CoT</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">+34%</div>
+        <div class="stat-label">ALFWorld 超越模仿学习</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">+10%</div>
+        <div class="stat-label">WebShop 超越 RL 基线</div>
+      </div>
+    </div>
+
+    <p>ReAct 的影响远超论文本身。它成为了几乎所有现代 Agent 框架（LangChain、AutoGen、CrewAI 等）的核心循环模式。可以说，<span class="hl">ReAct 定义了"什么是 LLM Agent"</span> -- 一个能推理并与环境交互的系统。</p>
+
+    <div class="sv-link">
+      斯坦福小镇的 Agent 循环（感知 &rarr; 规划 &rarr; 行动 &rarr; 反思）与 ReAct 的 Thought-Action-Observation 循环有着深层的结构对应。两者都让 LLM 在思考和行动之间交替。区别在于小镇是"预先规划型"（proactive），ReAct 是"实时反应型"（reactive）。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>核心机制：Thought-Action-Observation 循环</h2>
+    </div>
+
+    <p>ReAct 的核心是一个简洁而强大的三步循环：</p>
+
+    <div class="formula">
+      <span class="label">ReAct 循环</span>
+      Thought(t) &rarr; Action(t) &rarr; Observation(t) &rarr; Thought(t+1) &rarr; Action(t+1) &rarr; ...
+    </div>
+
+    <h3>Thought（思维链推理）</h3>
+
+    <div class="tool-card t1" style="margin-bottom:16px;">
+      <div class="tool-name" style="color:var(--orange);">推理与计划生成</div>
+      <div class="tool-desc">LLM 在自然语言空间中进行推理，分析当前状态、制定下一步行动计划。Thought 不会被发送到环境，而是作为模型的"内心思考"。例如："我需要查找 X 的出生年份，然后再查找 Y 的出生年份，最后比较两者。"</div>
+    </div>
+
+    <h3>Action（环境交互）</h3>
+
+    <div class="tool-card t2" style="margin-bottom:16px;">
+      <div class="tool-name" style="color:var(--yellow);">执行具体操作</div>
+      <div class="tool-desc">基于 Thought 的推理结果，模型生成一个具体的、可执行的动作。动作类型取决于环境：在知识问答中是 Search[query] / Lookup[term]；在游戏中是 go to[location] / pick up[object]；在网页中是 click[element] / type[text]。</div>
+    </div>
+
+    <h3>Observation（环境反馈）</h3>
+
+    <div class="tool-card t3" style="margin-bottom:16px;">
+      <div class="tool-name" style="color:var(--green);">接收执行结果</div>
+      <div class="tool-desc">环境返回 Action 的执行结果。这是 ReAct 与纯 CoT 的根本区别 -- CoT 只在模型内部推理，而 ReAct 能获取真实的外部信息。Observation 为下一轮 Thought 提供新的事实基础，确保推理基于真实数据而非模型的"想象"。</div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键创新：推理与行动的协同增强</div>
+      ReAct 的核心创新不是"推理"或"行动"本身（CoT 已经实现了推理，传统 Agent 已经实现了行动），而是<strong>将两者在同一个 prompt 中交替进行</strong>。Thought 为 Action 提供计划和方向，Observation 为 Thought 提供事实基础，两者形成正反馈循环。
+    </div>
+
+    <h3>完整示例：HotpotQA 多跳问答</h3>
+
+    <div class="card">
+      <h4>问题："Colorado Orogeny 山脉的东部区域延伸到了哪个地区？"</h4>
+      <ul>
+        <li><strong>Thought 1:</strong> 我需要搜索 Colorado Orogeny，找到其东部区域延伸到的地区。</li>
+        <li><strong>Action 1:</strong> Search[Colorado Orogeny]</li>
+        <li><strong>Observation 1:</strong> The Colorado Orogeny was an episode of mountain building... The eastern sector extends into the High Plains...</li>
+        <li><strong>Thought 2:</strong> 搜索结果提到东部区域延伸到了 High Plains。但我需要确认这是否是最终答案。</li>
+        <li><strong>Action 2:</strong> Lookup[eastern sector]</li>
+        <li><strong>Observation 2:</strong> The eastern sector extends into the High Plains of New Mexico and Colorado.</li>
+        <li><strong>Thought 3:</strong> 东部区域延伸到了 High Plains。答案是 High Plains。</li>
+        <li><strong>Action 3:</strong> Finish[High Plains]</li>
+      </ul>
+    </div>
+
+    <p>注意每一步 Thought 如何消化前一步的 Observation，并为下一步 Action 提供指导。这种"闭环推理"是 ReAct 的精髓。</p>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">3</div>
+      <h2>关键实验：知识推理 + 决策任务</h2>
+    </div>
+
+    <p>Yao et al. 在三个具有代表性的基准上验证了 ReAct，涵盖知识密集型推理和交互式决策两大类别。</p>
+
+    <h3>HotpotQA：多跳知识问答</h3>
+
+    <div class="card">
+      <h4>任务：需要整合多个维基百科页面信息的问答</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>方法</th><th>EM (Exact Match)</th><th>F1</th><th>特点</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>标准 Prompting</strong></td>
+              <td>25.7%</td>
+              <td>32.6%</td>
+              <td>无推理，无搜索</td>
+            </tr>
+            <tr>
+              <td><strong>CoT Prompting</strong></td>
+              <td>29.4%</td>
+              <td>37.1%</td>
+              <td>有推理，但可能幻觉</td>
+            </tr>
+            <tr style="background:rgba(34,211,238,0.05);">
+              <td><strong style="color:var(--cyan);">ReAct</strong></td>
+              <td style="color:var(--green);">35.1%</td>
+              <td style="color:var(--green);">40.8%</td>
+              <td>有推理 + 真实搜索</td>
+            </tr>
+            <tr style="background:rgba(52,211,153,0.05);">
+              <td><strong style="color:var(--green);">ReAct + CoT-SC</strong></td>
+              <td style="color:var(--green);">39.5%</td>
+              <td style="color:var(--green);">46.7%</td>
+              <td>融合两者优势</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>ReAct 超越纯 CoT 的关键原因：<span class="hl">通过实际搜索获取事实，避免了 CoT 的幻觉问题</span>。CoT 在推理正确但事实错误时会"自信地给出错误答案"，而 ReAct 通过查证来纠正这一问题。</p>
+    </div>
+
+    <h3>ALFWorld：交互式文本游戏</h3>
+
+    <div class="card">
+      <h4>任务：在虚拟家庭环境中完成日常任务（如"在台灯下检查物品"）</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>方法</th><th>成功率</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BUTLER (模仿学习)</strong></td>
+              <td>37%</td>
+              <td>从专家示范中学习策略</td>
+            </tr>
+            <tr style="background:rgba(34,211,238,0.05);">
+              <td><strong style="color:var(--cyan);">ReAct (1-shot)</strong></td>
+              <td style="color:var(--green);">71%</td>
+              <td>仅用1个示例，超越模仿学习 +34%</td>
+            </tr>
+            <tr style="background:rgba(52,211,153,0.05);">
+              <td><strong style="color:var(--green);">ReAct (3-shot + 反思)</strong></td>
+              <td style="color:var(--green);">78%</td>
+              <td>加入失败后自我反思机制</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>ALFWorld 的结果尤其令人印象深刻：仅用 1 个示例就超越了需要大量训练数据的模仿学习方法。这证明了 ReAct 范式的<strong>样本效率</strong>极高。</p>
+    </div>
+
+    <h3>WebShop：网页购物任务</h3>
+
+    <div class="card">
+      <h4>任务：在模拟电商网站上根据需求购买商品</h4>
+      <p>ReAct 超越了强化学习（RL）基线约 10%，展示了在复杂网页交互场景下推理与行动结合的优势。模型需要理解商品描述、对比选项、做出购买决策 -- 这正是 Thought-Action-Observation 循环的天然应用场景。</p>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">三个基准的共同结论</div>
+      在所有需要"从外部获取信息"或"与环境交互"的任务上，ReAct 都显著优于纯推理（CoT）方法。核心优势在于 Observation 提供了真实的外部信号，打破了 LLM 的"封闭推理"局限。
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>ReAct vs 纯 CoT vs 纯 Acting：三种范式对比</h2>
+    </div>
+
+    <p>理解 ReAct 的最佳方式是将它与两个"退化版本"进行对比：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">纯 CoT（Reasoning Only）</div>
+        <div class="tool-desc">
+          <strong>优势：</strong>强大的内部推理能力，能进行复杂的逻辑推演<br>
+          <strong>劣势：</strong>封闭在模型内部，容易产生幻觉；无法获取最新信息；无法验证推理中的事实假设<br>
+          <strong>类比：</strong>闭着眼睛思考的人
+        </div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">纯 Acting（Acting Only）</div>
+        <div class="tool-desc">
+          <strong>优势：</strong>能与环境交互，获取真实信息<br>
+          <strong>劣势：</strong>缺乏高层规划，行动是"反射式"的；无法进行长期推理；容易陷入无效的行动循环<br>
+          <strong>类比：</strong>不经思考就行动的人
+        </div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">ReAct（Reasoning + Acting）</div>
+        <div class="tool-desc">
+          <strong>优势：</strong>推理指导行动方向，观察校正推理偏差；减少幻觉，提高决策质量<br>
+          <strong>劣势：</strong>更多 token 消耗，更高延迟；依赖良好的环境接口设计<br>
+          <strong>类比：</strong>边想边做、边做边调整的人
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">CoT 的幻觉问题 vs ReAct 的解决方案</div>
+      Yao et al. 发现，在 HotpotQA 上，<strong>纯 CoT 的错误中有 33% 是事实幻觉</strong> -- 模型"编造"了看起来合理但实际不存在的事实。而 ReAct 通过 Search 动作查证事实，将幻觉率降至几乎为零。这是 ReAct 最具实际意义的贡献之一。
+    </div>
+
+    <h3>融合策略：ReAct + CoT-SC</h3>
+
+    <div class="card">
+      <p>Yao et al. 进一步提出了<strong>ReAct + CoT Self-Consistency</strong>的融合策略：</p>
+      <ol>
+        <li>先用 ReAct 尝试解决问题</li>
+        <li>如果 ReAct 的搜索结果不充分，切换到 CoT 进行内部推理</li>
+        <li>综合两者的答案，用多数投票选出最终结果</li>
+      </ol>
+      <p>这种融合策略在 HotpotQA 上达到了最佳性能（EM 39.5%），证明了推理和行动的互补性。</p>
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">5</div>
+      <h2>对 Agent 框架的深远影响</h2>
+    </div>
+
+    <p>ReAct 的影响远远超出了论文本身。它定义了现代 LLM Agent 的基本架构模式，几乎所有主流 Agent 框架都以 ReAct 循环为核心。</p>
+
+    <h3>框架生态系统</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>ReAct 循环实现</th>
+            <th>扩展特性</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--green);">LangChain</strong></td>
+            <td>AgentExecutor 类直接实现 Thought-Action-Observation 循环</td>
+            <td>工具注册、记忆、链式组合</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--cyan);">AutoGen</strong></td>
+            <td>多 Agent 对话中的推理-行动模式</td>
+            <td>多 Agent 协作、代码执行</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--yellow);">CrewAI</strong></td>
+            <td>Agent 的 Task 执行遵循 ReAct 模式</td>
+            <td>角色定义、任务委托</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--accent);">OpenAI Function Calling</strong></td>
+            <td>ReAct 的结构化变体：推理 &rarr; 函数调用 &rarr; 结果处理</td>
+            <td>原生 API 支持、JSON Schema</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--orange);">Anthropic Tool Use</strong></td>
+            <td>与 Function Calling 类似的 ReAct 变体</td>
+            <td>XML 格式、流式调用</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">从学术论文到工业标准</div>
+      ReAct 是少数直接从学术论文转化为工业标准的 AI 研究成果之一。当开发者说"我要构建一个 Agent"时，他们通常指的就是实现一个 ReAct 循环：让 LLM 推理要做什么、调用工具执行、获取结果、再推理下一步。这种模式已经如此普遍，以至于很多人使用它而不知道其学术源头。
+    </div>
+
+    <h3>ReAct 的演进方向</h3>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">Reflexion (2023)</div>
+        <div class="tool-desc">在 ReAct 基础上加入自我反思机制。当任务失败时，Agent 生成反思总结并在下一次尝试中利用。将 ReAct 的单次循环扩展为多次尝试的学习过程。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">LATS (2023)</div>
+        <div class="tool-desc">将蒙特卡洛树搜索与 ReAct 结合。在 Thought 阶段不是只生成一条推理路径，而是搜索多条可能的路径，选择最优的 Action。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">Plan-and-Execute (2023)</div>
+        <div class="tool-desc">将 ReAct 分为两阶段：先用 LLM 生成完整计划，再逐步执行。解决了 ReAct 在长链任务上容易"迷失方向"的问题。</div>
+      </div>
+      <div class="tool-card t4">
+        <div class="tool-name" style="color:var(--cyan);">Multi-Agent ReAct (2023+)</div>
+        <div class="tool-desc">多个 Agent 各自运行 ReAct 循环，通过消息传递协作。MetaGPT、ChatDev 等系统的核心模式。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">6</div>
+      <h2>与斯坦福小镇的关联：两种 Agent 循环的对比</h2>
+    </div>
+
+    <p>斯坦福小镇和 ReAct 都是 2022-2023 年间定义"LLM Agent"概念的关键工作，两者从不同角度切入了同一个问题。</p>
+
+    <h3>结构对应</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ReAct</th>
+            <th>斯坦福小镇</th>
+            <th>对应关系</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Thought</strong></td>
+            <td><strong>Planning + Reflection</strong></td>
+            <td>内部推理过程</td>
+          </tr>
+          <tr>
+            <td><strong>Action</strong></td>
+            <td><strong>Action (行动执行)</strong></td>
+            <td>与环境的交互</td>
+          </tr>
+          <tr>
+            <td><strong>Observation</strong></td>
+            <td><strong>Perception (感知)</strong></td>
+            <td>从环境获取反馈</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>关键差异：Reactive vs Proactive</h3>
+
+    <div class="card">
+      <h4>ReAct：实时反应型（Reactive）</h4>
+      <p>ReAct Agent 在每一步都根据当前 Observation 决定下一步行动。它没有长期计划，每一步的推理都是"短视的" -- 只考虑如何推进当前任务的下一步。这种模式适合明确的、有终止条件的任务（回答一个问题、完成一次购物）。</p>
+
+      <h4>斯坦福小镇：预先规划型（Proactive）</h4>
+      <p>小镇 Agent 先生成整天的日程计划，然后按计划行动。当遇到意外（如其他 Agent 的对话邀请）时才做反应式调整。这种模式适合需要长期一致性的场景（模拟一个人的日常生活）。</p>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">互补而非竞争</div>
+      ReAct 和斯坦福小镇的 Agent 循环不是竞争关系，而是互补关系。一个完整的 Agent 系统可能需要两者的结合：
+      <ul>
+        <li><strong>高层规划</strong>用小镇的 Proactive 模式（先规划日程/任务列表）</li>
+        <li><strong>任务执行</strong>用 ReAct 的 Reactive 模式（逐步推理并与环境交互完成每个子任务）</li>
+      </ul>
+      事实上，这正是 Plan-and-Execute 等后续工作所探索的方向。
+    </div>
+
+    <div class="sv-link">
+      小镇的规划 &rarr; 行动 &rarr; 感知循环本质上是 ReAct 的具象化。区别在于小镇是预先规划（proactive），ReAct 是实时反应（reactive）。两者互补：小镇的 Agent 在"按计划行动"时近似于 Acting-only，在"遇到意外重新规划"时近似于 ReAct。一个理想的 Agent 系统应该兼具两种模式 -- 有长远规划，也能在执行中根据环境反馈实时调整。ReAct 论文为这种"闭环执行"提供了形式化的理论基础。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读08 &middot; ReAct: Synergizing Reasoning and Acting in Language Models &middot; Yao et al. 2022<br>
+  arXiv:2210.03629 &middot; ICLR 2023 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

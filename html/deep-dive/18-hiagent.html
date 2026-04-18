@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读18：HiAgent — 分层工作记忆管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 14px; color: var(--cyan); letter-spacing: 0.3px; white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; letter-spacing: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>HiAgent — 分层工作记忆管理 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：用"子目标 + 观察摘要"把扁平记忆流切成分层结构，解决长程任务中上下文爆炸问题 —— 比原版 ReAct 式记忆管理成功率翻倍、步数降低 3.8 步</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2408.09559" target="_blank">arXiv 2408.09559</a> &middot; Mengkang Hu, Tianxing Chen, Qiguang Chen, Yao Mu, Wenqi Shao, Ping Luo (HKU / Shanghai AI Lab) &middot; 2024.08</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/HiAgent2024/HiAgent" target="_blank" style="color:inherit;">💻 GitHub: HiAgent2024/HiAgent（基于 AgentBoard）</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 问题与动机</a>
+    <a href="#sec2">2. 核心机制</a>
+    <a href="#sec3">3. 算法流程</a>
+    <a href="#sec4">4. 实验结果</a>
+    <a href="#sec5">5. 与相关工作</a>
+    <a href="#sec6">6. 小镇关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="../architecture-study.html">架构研究</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>问题与动机：长程任务的上下文爆炸</h2>
+    </div>
+
+    <p>ReAct 式 Agent 的经典范式是把 <code>Thought → Action → Observation</code> 的完整历史线性堆进上下文。对于 5–10 步的短任务这没问题；但是当任务要 30、50、100 步时，问题立刻暴露：</p>
+
+    <ul>
+      <li><strong>上下文线性膨胀</strong>：每一步都把之前所有步骤再读一遍，token 成本 O(N²)</li>
+      <li><strong>信息稀释</strong>：关键早期线索被海量无关观察淹没，LLM 注意力被拖垮</li>
+      <li><strong>缺乏任务分解感</strong>：模型看到的是流水账，没有"当前阶段"和"已完成阶段"的层级概念</li>
+    </ul>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">HiAgent 的核心观察</div>
+      人类解决长程任务时，<span class="hl">不会记住每一个动作细节</span>，而是把任务切成子目标（subgoal），每完成一个就把过程压成结论（"我已经把木头砍够了"），只留下对后续有用的信息。HiAgent 把这个模式形式化为 LLM Agent 的工作记忆管理策略。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">≈2x</div>
+        <div class="stat-label">成功率提升（vs 基线）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">-3.8</div>
+        <div class="stat-label">平均步数减少</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">5</div>
+        <div class="stat-label">长程基准任务</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">AgentBoard</div>
+        <div class="stat-label">评测框架基底</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>核心机制：双层工作记忆</h2>
+    </div>
+
+    <p>HiAgent 把 Agent 的工作记忆明确切成<strong>两层</strong>，这是它与 ReAct / Reflexion 最根本的结构差异。</p>
+
+    <h3>高层：Subgoal Stack（子目标栈）</h3>
+
+    <div class="card">
+      <h4>作用：全局导航</h4>
+      <ul>
+        <li>任务开始时，LLM 被 prompt 要求先<span class="hl">生成一个初始子目标</span>（而不是直接决定第一个 action）</li>
+        <li>每次 LLM 推理都先看到"当前子目标 = X"作为锚点</li>
+        <li>完成后的子目标会被"封存"成一行摘要，留作历史记录</li>
+        <li>Agent 可以随时决定 <strong>replace subgoal</strong>：发现当前子目标做完了或不合适，就切到下一个</li>
+      </ul>
+    </div>
+
+    <h3>底层：Action-Observation Window（行动-观察窗口）</h3>
+
+    <div class="card">
+      <h4>作用：局部细节</h4>
+      <ul>
+        <li>只保留<span class="hl">与当前子目标相关</span>的 (action, observation) 对</li>
+        <li>子目标切换时，上一个子目标下的所有原始观察被<strong>丢弃或压缩成一句摘要</strong>，不再占用上下文</li>
+        <li>这让 LLM 的"工作记忆"始终聚焦在当下阶段，避免被 50 步前的无关操作干扰</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键动词：proactive replacement</div>
+      HiAgent 让 LLM <strong>主动决定何时"结案"一个子目标</strong>。这不是外部触发器，而是融进 prompt 的一个 action 选项 —— 模型每一步都可以选择"继续执行当前子目标"或"更新子目标"。这是把记忆管理权交给 Agent 自己的关键设计。
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>算法流程：一步一步看</h2>
+    </div>
+
+    <div class="formula"><span class="label">HiAgent 主循环（简化）</span>
+state ← task_description
+subgoals ← []                        # 已封存子目标摘要
+current_sg ← LLM.propose_subgoal(task)
+window ← []                          # (action, obs) pairs
+
+while not done:
+    prompt = format(task, subgoals, current_sg, window)
+    decision = LLM(prompt)
+
+    if decision.type == "update_subgoal":
+        subgoals.append(summarize(current_sg, window))
+        current_sg = decision.new_subgoal
+        window = []                  # 丢弃旧窗口
+    else:
+        action = decision.action
+        obs = env.step(action)
+        window.append((action, obs))
+</div>
+
+    <p>注意两点设计精巧:</p>
+    <ol>
+      <li><strong>subgoals 是摘要列表而非原始日志</strong> —— 高层只存"结论"，空间常数级增长</li>
+      <li><strong>window 每次切子目标就清空</strong> —— 底层不随任务长度增长而膨胀</li>
+    </ol>
+
+    <p>这两点联合保证了：<span class="hl">无论任务多长，LLM 每次看到的 prompt 长度都近似常数</span>。这就是 HiAgent "解决上下文爆炸"的全部秘密。</p>
+
+    <h3>Prompt 结构示意</h3>
+
+    <div class="card">
+      <pre style="font-family:'Courier New',monospace;font-size:13px;line-height:1.6;color:#c9d1d9;white-space:pre-wrap;">
+# Task
+{task_description}
+
+# Completed Subgoals (摘要)
+[SG1] 找到厨房的钥匙 ✓ (从客厅抽屉里拿到)
+[SG2] 打开厨房门 ✓
+
+# Current Subgoal
+[SG3] 在冰箱里找到牛奶
+
+# Recent Actions (仅当前子目标)
+> open fridge
+  obs: You see milk, eggs, butter.
+
+# Your next step (action / update_subgoal):
+</pre>
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>实验结果：长程任务的全面碾压</h2>
+    </div>
+
+    <p>论文在 <a href="https://github.com/hkust-nlp/AgentBoard" target="_blank">AgentBoard</a> 基础上评测了 5 个<strong>长程任务</strong>基准，相对于线性记忆的 ReAct 类基线：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>基线（ReAct 式线性记忆）</th>
+            <th>HiAgent</th>
+            <th>变化</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>平均成功率</strong></td>
+            <td>低</td>
+            <td>约 2x</td>
+            <td style="color:var(--green);">↑ 翻倍</td>
+          </tr>
+          <tr>
+            <td><strong>平均步数</strong></td>
+            <td>—</td>
+            <td>—</td>
+            <td style="color:var(--green);">↓ -3.8 步</td>
+          </tr>
+          <tr>
+            <td><strong>上下文长度</strong></td>
+            <td>随步数线性增长</td>
+            <td>近似常数</td>
+            <td style="color:var(--green);">O(N) → O(1)</td>
+          </tr>
+          <tr>
+            <td><strong>任务类型</strong></td>
+            <td colspan="3">长程具身任务 + 交互式文字环境（基于 AgentBoard，常见于 ALFWorld / ScienceWorld / PDDL 这类长时决策场景）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">论文抽象披露的原始数字</div>
+      <p>arXiv 2408.09559 abstract 原文：<em>"HiAgent achieves a twofold increase in success rate and reduces the average number of steps required by 3.8 across five long-horizon tasks."</em></p>
+      <p>具体每个任务的精确数字需查 paper full PDF 或 GitHub 仓库的实验脚本。本页以抽象披露为准，避免编造。</p>
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>与相关工作：记忆管理的分层系谱</h2>
+    </div>
+
+    <p>HiAgent 坐落在 "LLM Agent 记忆结构演进" 这条主线上，与多篇工作形成对照：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>记忆结构</th>
+            <th>压缩策略</th>
+            <th>驱动者</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct</a></td>
+            <td>扁平日志</td>
+            <td>无（全量拼接）</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents</a></td>
+            <td>扁平 Memory Stream + 反思</td>
+            <td>反思生成高阶洞察（但原始日志仍在）</td>
+            <td>重要度阈值触发</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion</a></td>
+            <td>主日志 + 反思 buffer</td>
+            <td>失败后生成教训，附加到下次试验前</td>
+            <td>回合结束触发</td>
+          </tr>
+          <tr>
+            <td style="color:var(--pink);"><strong>HiAgent</strong></td>
+            <td style="color:var(--pink);">双层（子目标栈 + 窗口）</td>
+            <td style="color:var(--pink);">子目标切换时丢弃/摘要底层窗口</td>
+            <td style="color:var(--pink);">LLM 自主触发 replace</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM</a></td>
+            <td>Zettelkasten 网络</td>
+            <td>语义关联，检索沿边扩展</td>
+            <td>写入时建边</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS</a></td>
+            <td>三级（短期/中期/长期）</td>
+            <td>类 OS 分页淘汰</td>
+            <td>系统级调度</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">HiAgent 在演进线上的位置</div>
+      HiAgent 是 <span class="hl">"结构化压缩"</span> 的最简可行方案 —— 没有引入图结构、也没有复杂的淘汰策略，只用一个"子目标栈 + 当前窗口"就把长程任务的上下文成本压到常数。它的贡献不在复杂度而在<strong>把记忆管理权显式交给 LLM 自身</strong>，这个思路后来被 A-MEM / MemoryOS 等复杂化方案继承。
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>Smallville 的 Memory Stream 是<strong>扁平</strong>的 —— 所有记忆按时间戳排队，通过 recency × importance × relevance 三元打分检索。这套机制在 25 个 Agent 的小镇里工作得很好，但有两个未显式暴露的前提假设：</p>
+
+    <ul>
+      <li>单个 Agent 的生命周期不长（仿真天数有限）</li>
+      <li>Reflection 机制会把老记忆压缩成高阶洞察，缓解膨胀</li>
+    </ul>
+
+    <p>HiAgent 相当于把小镇隐式依赖的这个"压缩通道"<span class="hl">显式化并放大</span>：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>Smallville Memory Stream</th>
+            <th>HiAgent 双层记忆</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>结构</strong></td>
+            <td>扁平时间序列</td>
+            <td>显式双层（子目标栈 / 当前窗口）</td>
+          </tr>
+          <tr>
+            <td><strong>压缩触发</strong></td>
+            <td>重要度阈值驱动 Reflection</td>
+            <td>子目标完成驱动 summarize</td>
+          </tr>
+          <tr>
+            <td><strong>压缩粒度</strong></td>
+            <td>高阶洞察（语义抽象）</td>
+            <td>阶段结论（任务导向）</td>
+          </tr>
+          <tr>
+            <td><strong>上下文占用</strong></td>
+            <td>检索后 top-k 拼接，仍有膨胀压力</td>
+            <td>近似常数</td>
+          </tr>
+          <tr>
+            <td><strong>适用场景</strong></td>
+            <td>开放式社交仿真</td>
+            <td>目标导向长程任务</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      HiAgent 可以看作 Memory Stream 的<strong>任务版</strong>：小镇处理"过去一天我做了什么"，HiAgent 处理"为了达成目标我做了什么"。两者的核心洞察一致 —— 记忆必须分层、必须压缩、必须让 Agent 自己决定何时压缩。如果把 HiAgent 的子目标栈替换成"日程表"，它的结构就几乎重合于小镇 Agent 的 daily plan + recent actions 组合。这也是为什么在 <a href="../architecture-study.html">architecture-study.html</a> 里我们把 HiAgent 列为 Claude Code 三层自愈记忆的理论先驱之一。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读18 &middot; HiAgent: Hierarchical Working Memory Management for Solving Long-Horizon Agent Tasks &middot; Hu et al. (HKU/Shanghai AI Lab) 2024<br>
+  arXiv:2408.09559 &middot; GitHub: HiAgent2024/HiAgent &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+</body>
+</html>

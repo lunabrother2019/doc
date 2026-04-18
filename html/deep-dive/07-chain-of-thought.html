@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读07：Chain-of-Thought Prompting — LLM 推理的基础范式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Chain-of-Thought Prompting — LLM 推理的基础范式 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：通过在提示中加入中间推理步骤，让大语言模型从"直觉回答"升级为"逐步推理"，GPT-3 在 GSM8K 上从 18% 跃升至 74%</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2201.11903" target="_blank">arXiv 2201.11903</a> &middot; Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le, Zhou &middot; 2022</div>
+    <div class="paper-ref">NeurIPS 2022</div>
+    <div class="paper-ref" style="background:rgba(148,163,184,0.1);border-color:rgba(148,163,184,0.25);color:#94a3b8;">📄 纯 Prompting · 无官方代码（社区实现遍地）</div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 核心机制</a>
+    <a href="#sec3">3. 关键实验</a>
+    <a href="#sec4">4. 为什么有效</a>
+    <a href="#sec5">5. 局限性</a>
+    <a href="#sec6">6. 小镇关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">1</div>
+      <h2>论文概述：让 LLM 学会"想清楚再说"</h2>
+    </div>
+
+    <p>2022 年初，Google Brain 的 Jason Wei 等人提出了一个看似简单却影响深远的想法：<span class="hl">在 few-shot 示例中加入中间推理步骤，就能显著提升大语言模型的推理能力</span>。这就是 Chain-of-Thought (CoT) Prompting。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心思想</div>
+      传统 few-shot prompting 只给出"问题 &rarr; 答案"的示例。CoT prompting 在中间加入推理链："问题 &rarr; 推理步骤1 &rarr; 推理步骤2 &rarr; ... &rarr; 答案"。这种看似微小的改变，让 GPT-3 (540B) 在 GSM8K 数学推理基准上从 18% 飙升到 74%。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">18% &rarr; 74%</div>
+        <div class="stat-label">GPT-3 GSM8K 准确率提升</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">0</div>
+        <div class="stat-label">额外训练 / 微调需求</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">3种</div>
+        <div class="stat-label">CoT 变体（Few-shot / Zero-shot / Auto）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">100B+</div>
+        <div class="stat-label">生效的最小模型参数量</div>
+      </div>
+    </div>
+
+    <p>CoT 的革命性在于：它不需要修改模型权重、不需要额外训练，仅通过改变提示格式就释放了 LLM 的潜在推理能力。这表明大模型在预训练过程中已经隐式地学到了推理能力，CoT 只是提供了一个"表达通道"让这些能力显现出来。</p>
+
+    <div class="sv-link">
+      CoT 是 Generative Agents 中所有高级认知能力的技术基础。没有 CoT，Agent 就无法进行多步推理 -- 无论是规划日程、反思记忆还是生成对话。斯坦福小镇论文虽未显式引用 CoT，但其 Agent 的每一个"想清楚再做"的行为本质上都依赖于 LLM 的 CoT 能力。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>核心机制：三种 CoT 变体</h2>
+    </div>
+
+    <p>CoT prompting 发展出三种主要变体，适用于不同场景和需求：</p>
+
+    <h3>变体一：Few-shot CoT（原始版本）</h3>
+
+    <div class="card">
+      <h4>在示例中嵌入推理链</h4>
+      <p>最初由 Wei et al. 提出的版本。在 few-shot 示例中，不仅给出问答对，还展示完整的推理过程：</p>
+      <ul>
+        <li><strong>标准 few-shot：</strong>"Roger 有5个网球，又买了2罐，每罐3个。问共有几个？答案：11"</li>
+        <li><strong>CoT few-shot：</strong>"Roger 有5个网球，又买了2罐，每罐3个。<span class="hl">他买了 2 x 3 = 6 个网球。所以他现在有 5 + 6 = 11 个。</span>答案：11"</li>
+      </ul>
+      <p>推理链的加入让模型"学会"在回答前先展开推理。关键在于：推理链不需要特别精确或格式化，只要展示出逐步思考的模式即可。</p>
+    </div>
+
+    <h3>变体二：Zero-shot CoT（"Let's think step by step"）</h3>
+
+    <div class="card">
+      <h4>一句魔法指令</h4>
+      <p>Kojima et al. (2022) 发现，仅在问题后追加<span class="hl">"Let's think step by step"</span>这一简单指令，就能在零样本设置下激发 LLM 的 CoT 能力。无需提供任何推理示例。</p>
+      <p>这一发现的意义在于：CoT 能力不是从示例中"学来"的，而是模型内在具备的 -- 只需要一个触发信号。Zero-shot CoT 在实际应用中极为方便，因为不需要为每个任务精心设计推理示例。</p>
+    </div>
+
+    <h3>变体三：Auto-CoT（自动化推理链）</h3>
+
+    <div class="card">
+      <h4>自动生成推理示例</h4>
+      <p>Zhang et al. (2022) 提出 Auto-CoT，通过聚类和自动生成来构建 CoT 示例，避免了人工编写推理链的成本：</p>
+      <ol>
+        <li>将测试问题按相似度聚类</li>
+        <li>从每个簇中选取代表性问题</li>
+        <li>用 Zero-shot CoT 自动为这些问题生成推理链</li>
+        <li>将生成的"问题+推理链"作为 few-shot 示例</li>
+      </ol>
+      <p>Auto-CoT 的准确率接近人工 CoT，但完全自动化，适合大规模部署。</p>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">三种变体的权衡</div>
+      <ul>
+        <li><strong>Few-shot CoT</strong>：质量最高，但需要人工设计示例，不同任务需要不同示例</li>
+        <li><strong>Zero-shot CoT</strong>：最简便，一句话即可，但在复杂任务上质量稍逊</li>
+        <li><strong>Auto-CoT</strong>：平衡自动化与质量，适合工业级应用</li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <span class="label">CoT Prompting 的统一范式</span>
+      Input &rarr; [Trigger: examples / instruction] &rarr; Step-by-step Reasoning &rarr; Final Answer
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">3</div>
+      <h2>关键实验：三大推理类别</h2>
+    </div>
+
+    <p>Wei et al. 在三大类推理任务上全面验证了 CoT 的有效性，涵盖算术推理、常识推理和符号推理。</p>
+
+    <h3>算术推理（Arithmetic Reasoning）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>基准</th>
+            <th>标准 Prompting</th>
+            <th>CoT Prompting</th>
+            <th>提升</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GSM8K</strong>（小学数学题）</td>
+            <td>18%</td>
+            <td style="color:var(--green);">74%</td>
+            <td style="color:var(--green);">+56pp</td>
+          </tr>
+          <tr>
+            <td><strong>SVAMP</strong>（数学文字题）</td>
+            <td>63%</td>
+            <td style="color:var(--green);">80%</td>
+            <td style="color:var(--green);">+17pp</td>
+          </tr>
+          <tr>
+            <td><strong>MAWPS</strong>（多步算术）</td>
+            <td>79%</td>
+            <td style="color:var(--green);">93%</td>
+            <td style="color:var(--green);">+14pp</td>
+          </tr>
+          <tr>
+            <td><strong>AQuA</strong>（代数文字题）</td>
+            <td>33%</td>
+            <td style="color:var(--green);">52%</td>
+            <td style="color:var(--green);">+19pp</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>算术推理是 CoT 收益最大的领域。GSM8K 的 56 个百分点提升尤其惊人 -- 这些都是需要多步计算的小学数学题，标准 prompting 下模型几乎无法处理，而 CoT 使其能力接近人类水平。</p>
+
+    <h3>常识推理（Commonsense Reasoning）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>基准</th>
+            <th>标准 Prompting</th>
+            <th>CoT Prompting</th>
+            <th>提升</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>CommonsenseQA</strong></td>
+            <td>73%</td>
+            <td style="color:var(--cyan);">80%</td>
+            <td style="color:var(--cyan);">+7pp</td>
+          </tr>
+          <tr>
+            <td><strong>StrategyQA</strong></td>
+            <td>65%</td>
+            <td style="color:var(--cyan);">73%</td>
+            <td style="color:var(--cyan);">+8pp</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>常识推理的提升相对温和，因为这类问题更依赖世界知识而非多步计算。但 CoT 仍能通过让模型"说出"推理过程来减少错误。</p>
+
+    <h3>符号推理（Symbolic Reasoning）</h3>
+
+    <div class="card">
+      <h4>Last Letter Concatenation（末字母拼接）</h4>
+      <p>任务：给定一组名字，拼接每个名字的最后一个字母。例如 "Amy Brown" &rarr; "yn"</p>
+      <p>CoT 在域内测试（2个词）上接近 100%，且能泛化到域外（4个词），而标准 prompting 在域外完全失败。</p>
+
+      <h4>Coin Flip（硬币翻转）</h4>
+      <p>任务：追踪一系列翻转/不翻转操作后硬币的正反面状态。</p>
+      <p>CoT 让模型能逐步追踪状态变化，而非试图"直觉猜测"最终结果。</p>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">实验的核心发现</div>
+      CoT 在需要多步推理的任务上效果最为显著。任务越复杂（步骤越多），CoT 相对于标准 prompting 的优势越大。这是因为标准 prompting 要求模型在单次生成中"跳跃式"得出答案，而 CoT 允许模型逐步展开推理，每一步都降低了出错概率。
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>为什么有效：CoT 的三个解释</h2>
+    </div>
+
+    <h3>解释一：问题分解</h3>
+
+    <div class="card">
+      <p>CoT 将一个复杂问题分解为多个简单的子步骤。每个子步骤对 LLM 来说都是"容易"的，模型只需要在每一步做出局部正确的推理，而非一步到位地解决整个问题。</p>
+      <p>类比：人类解决复杂数学题时也不会"直觉"给出答案，而是列出演算步骤。CoT 本质上是让 LLM 模仿这种行为。</p>
+    </div>
+
+    <h3>解释二：暴露中间过程</h3>
+
+    <div class="card">
+      <p>推理链的每一步都可以被检查和验证，这使得：</p>
+      <ul>
+        <li><strong>可调试性</strong>：当答案错误时，可以精确定位推理链中出错的步骤</li>
+        <li><strong>可验证性</strong>：人类可以审查推理过程，判断答案是否可信</li>
+        <li><strong>可改进性</strong>：通过修正错误步骤的示例，可以针对性地提升特定推理能力</li>
+      </ul>
+    </div>
+
+    <h3>解释三：模型规模效应（Emergent Ability）</h3>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">关键发现：仅在大模型上有效</div>
+      CoT 仅在参数量超过约 100B 的模型上显现显著效果。在小模型（如 1B-10B）上，CoT 不仅没有帮助，有时反而会降低性能。这表明 CoT 能力是一种<strong>涌现特性（emergent ability）</strong> -- 需要足够的模型容量才能支撑多步推理。
+    </div>
+
+    <div class="formula">
+      <span class="label">CoT 效果与模型规模的关系</span>
+      模型 &lt; 10B: CoT &asymp; 标准 prompting（甚至更差）&nbsp;&nbsp;|&nbsp;&nbsp;模型 &gt; 100B: CoT &gt;&gt; 标准 prompting
+    </div>
+
+    <p>这一发现具有深远的理论意义：它暗示存在某种"推理能力阈值"，只有当模型参数量超过这一阈值时，才具备支撑 CoT 推理的内在能力。这与近年来关于 LLM 涌现能力的研究形成了重要呼应。</p>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">5</div>
+      <h2>局限性：CoT 并非万能</h2>
+    </div>
+
+    <h3>局限一：小模型无效</h3>
+    <div class="card">
+      <p>如前所述，CoT 在小模型上不仅无效，甚至可能有害。小模型倾向于生成不连贯或错误的推理链，导致最终答案偏离正确答案。这限制了 CoT 在资源受限场景下的适用性。</p>
+    </div>
+
+    <h3>局限二：推理链的忠实性问题（Faithfulness）</h3>
+    <div class="card">
+      <p>模型生成的推理链可能<span class="hl">并不忠实地反映其内部的实际推理过程</span>。研究表明：</p>
+      <ul>
+        <li>模型可能先"决定"答案，再生成看似合理的推理链来"合理化"该答案</li>
+        <li>修改推理链中的关键步骤，有时并不改变最终答案 -- 说明模型可能绕过了推理链</li>
+        <li>推理链的"可解释性"可能只是表面上的，并非模型真正的决策依据</li>
+      </ul>
+    </div>
+
+    <h3>局限三：推理成本增加</h3>
+    <div class="card">
+      <p>CoT 要求模型生成更长的输出（推理链 + 答案），这意味着：</p>
+      <ul>
+        <li><strong>Token 消耗增加</strong>：推理链通常比直接答案长 5-10 倍</li>
+        <li><strong>延迟增加</strong>：更多 token = 更长的生成时间</li>
+        <li><strong>成本增加</strong>：在按 token 计费的 API 中，CoT 的费用显著更高</li>
+      </ul>
+    </div>
+
+    <h3>局限四：错误传播</h3>
+    <div class="card">
+      <p>推理链中早期步骤的错误会传播到后续步骤，导致<strong>级联错误</strong>。一旦推理链在某一步出错，后续所有步骤都基于错误的前提进行推理。这也是 Self-Consistency (Wang et al., 2022) 等后续工作试图解决的问题 -- 通过采样多条推理链并投票来缓解单链错误。</p>
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">不适用场景</div>
+      CoT 在以下场景表现不佳：（1）纯知识检索题（不需要推理的事实问答）；（2）创意生成任务（诗歌、小说等）；（3）小模型部署环境；（4）对延迟极度敏感的实时应用。Agent 设计者需要根据具体场景决定是否启用 CoT。
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">6</div>
+      <h2>与斯坦福小镇的关联：CoT 是 Agent 推理的隐形基石</h2>
+    </div>
+
+    <p>Chain-of-Thought 虽然不是 Generative Agents 论文中显式引用的技术，但它是整个 Agent 系统运作的<strong>隐形基础设施</strong>。</p>
+
+    <h3>规划模块中的 CoT</h3>
+    <div class="card">
+      <p>斯坦福小镇的 Agent 每天早晨生成日程计划时，实际上在执行一种隐式的 CoT：</p>
+      <ul>
+        <li>"我是 John Lin，一名药房店员" &rarr; 思考角色身份</li>
+        <li>"今天是工作日" &rarr; 推断需要上班</li>
+        <li>"我通常8点起床" &rarr; 结合习惯</li>
+        <li>"所以今天的计划是：7:00起床, 8:00出门, 9:00到药房..." &rarr; 逐步生成计划</li>
+      </ul>
+      <p>这种"先推理背景，再生成行动"的模式正是 CoT 的具象化。</p>
+    </div>
+
+    <h3>反思模块中的 CoT</h3>
+    <div class="card">
+      <p>当 Agent 进行 Reflection 时，需要从多条记忆中归纳出高层洞见。这个过程本质上是一个多步推理：</p>
+      <ul>
+        <li>检索相关记忆片段 &rarr; 识别共同主题 &rarr; 抽象为更高层次的理解 &rarr; 生成反思语句</li>
+      </ul>
+      <p>没有 CoT 能力，模型无法完成这种递进式的归纳推理。</p>
+    </div>
+
+    <h3>对话生成中的 CoT</h3>
+    <div class="card">
+      <p>当两个 Agent 对话时，模型需要考虑：对方是谁、我和对方的关系、当前情境、我的性格特点... 然后才生成回复。这种多维度的上下文整合也依赖 CoT 能力。</p>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">CoT 是 Agent 能力的下限</div>
+      可以说，<span class="hl">LLM 的 CoT 能力决定了基于 LLM 的 Agent 系统的推理能力上限</span>。CoT 越强，Agent 的规划、反思、对话能力就越强。这也解释了为什么斯坦福小镇选择 GPT-3.5/4 这样的大模型 -- 只有足够大的模型才具备支撑 Agent 复杂行为的 CoT 能力。
+    </div>
+
+    <div class="sv-link">
+      CoT 是 Generative Agents 中规划（Planning）和反思（Reflection）模块的推理基础。Agent 的"想清楚再做"本质上就是 CoT。规划模块生成日程时的逐步分解、反思模块总结记忆时的递进推理都依赖 CoT 能力。如果将小镇 Agent 的底层模型替换为一个没有 CoT 能力的小模型，整个系统的行为质量将急剧下降 -- 这正是 CoT 作为"隐形基石"的角色所在。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读07 &middot; Chain-of-Thought Prompting Elicits Reasoning in Large Language Models &middot; Wei et al. 2022<br>
+  arXiv:2201.11903 &middot; NeurIPS 2022 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

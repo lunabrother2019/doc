@@ -153,6 +153,9 @@
     .paper-body .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 4px; border-radius: 3px; }
     .deep-dive-link { display: inline-block; margin-top: 8px; font-size: 12px; padding: 3px 12px; border-radius: 6px; background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.25); color: #22d3ee; text-decoration: none; font-weight: 600; transition: all .15s; }
     .deep-dive-link:hover { background: rgba(34,211,238,0.18); text-decoration: none; }
+    .code-link { display: inline-block; margin-top: 8px; margin-left: 6px; font-size: 12px; padding: 3px 12px; border-radius: 6px; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); color: #34d399; text-decoration: none; font-weight: 600; transition: all .15s; }
+    .code-link:hover { background: rgba(52,211,153,0.18); text-decoration: none; }
+    .code-link.no-code { color: #94a3b8; background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.2); }
     .paper-body ul { margin: 4px 0 8px 20px; }
     .paper-body li { margin-bottom: 3px; }
 
@@ -506,8 +509,8 @@
     <div class="paper-top">
       <span class="paper-num">1</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents: Interactive Simulacra of Human Behavior <span class="ext-icon">&#8599;</span></a></div>
-        <div class="paper-venue"><span class="year">2023</span> &middot; UIST &middot; Park, O'Brien, Cai, Morris, Liang, Bernstein (Stanford)</div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents: Interactive Simulacra of Human Behavior <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/19-generative-agents.html" style="font-size:12px;">深度解读 →</a></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; UIST Best Paper &middot; Park, O'Brien, Cai, Morris, Liang, Bernstein (Stanford) &middot; <a href="https://github.com/joonspk-research/generative_agents" target="_blank">GitHub</a></div>
         <div class="concepts">
           <span class="concept concept-key">Memory Stream</span>
           <span class="concept concept-key">Reflection</span>
@@ -542,8 +545,8 @@
     <div class="paper-top">
       <span class="paper-num">2</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM: Agentic Memory for LLM Agents <span class="ext-icon">&#8599;</span></a></div>
-        <div class="paper-venue"><span class="year">2025</span> &middot; arXiv &middot; Xu et al.</div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM: Agentic Memory for LLM Agents <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/20-a-mem.html" style="font-size:12px;">深度解读 →</a></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; NeurIPS 2025 &middot; Xu et al. &middot; <a href="https://github.com/WujiangXu/A-mem" target="_blank">GitHub</a></div>
         <div class="concepts">
           <span class="concept concept-key">Associative Memory Network</span>
           <span class="concept concept-key">Zettelkasten</span>
@@ -563,8 +566,8 @@
     <div class="paper-top">
       <span class="paper-num">3</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent: Hierarchical Working Memory Management for Long-Horizon Agent Tasks <span class="ext-icon">&#8599;</span></a></div>
-        <div class="paper-venue"><span class="year">2024</span> &middot; arXiv &middot; Li et al.</div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent: Hierarchical Working Memory Management for Long-Horizon Agent Tasks <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/18-hiagent.html" style="font-size:12px;">深度解读 →</a></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; arXiv &middot; Hu et al. (HKU / Shanghai AI Lab) &middot; <a href="https://github.com/HiAgent2024/HiAgent" target="_blank">GitHub</a></div>
         <div class="concepts">
           <span class="concept concept-key">Hierarchical Memory</span>
           <span class="concept concept-key">Sub-goal Decomposition</span>
@@ -676,7 +679,7 @@
     <div class="paper-top">
       <span class="paper-num">65</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey <span class="ext-icon">&#8599;</span></a></div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/24-memory-survey.html" style="font-size:12px;">深度解读 →</a></div>
         <div class="paper-venue"><span class="year">2025.12</span> &middot; arXiv &middot; Yuyang Hu, Shichun Liu et al.</div>
         <div class="concepts">
           <span class="concept concept-key">Factual / Experiential / Working Memory</span>
@@ -697,8 +700,8 @@
     <div class="paper-top">
       <span class="paper-num">66</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent <span class="ext-icon">&#8599;</span></a></div>
-        <div class="paper-venue"><span class="year">2025</span> &middot; EMNLP 2025 Oral &middot; Kang, Ji, Zhao, Bai</div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/21-memory-os.html" style="font-size:12px;">深度解读 →</a></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; EMNLP 2025 Oral &middot; Kang, Ji, Zhao, Bai (BAI-LAB) &middot; <a href="https://github.com/BAI-LAB/MemoryOS" target="_blank">GitHub</a></div>
         <div class="concepts">
           <span class="concept concept-key">Memory Operating System</span>
           <span class="concept concept-key">Three-Level Storage</span>
@@ -954,6 +957,7 @@
     <div class="paper-body">
       <p>提出 <span class="hl">Reasoning 和 Acting 交替进行</span>的范式：Agent 先推理（想清楚下一步该做什么），再行动（调用工具/API），再根据结果继续推理。这个模式成为了几乎所有现代 Agent 框架（LangChain、AutoGen 等）的基础。</p>
       <p>与 Smallville 的规划模块相比，ReAct 强调的是<span class="hl">实时推理-行动交替</span>，而非提前生成完整日程。它让 Agent 从"按计划执行"变为"边想边做"，是 <span class="hl">Agentic AI 的范式基础</span>。</p>
+      <a class="deep-dive-link" href="deep-dive/08-react.html">深度解读08 · ReAct →</a><a class="code-link" href="https://github.com/ysymyth/ReAct" target="_blank">💻 GitHub</a>
     </div>
   </div>
 </section>
@@ -972,8 +976,8 @@
     <div class="paper-top">
       <span class="paper-num">17</span>
       <div class="paper-meta">
-        <div class="paper-title"><a href="https://arxiv.org/abs/2307.07924" target="_blank">Communicative Agents for Software Development (ChatDev) <span class="ext-icon">&#8599;</span></a></div>
-        <div class="paper-venue"><span class="year">2024</span> &middot; ACL &middot; Qian et al.</div>
+        <div class="paper-title"><a href="https://arxiv.org/abs/2307.07924" target="_blank">Communicative Agents for Software Development (ChatDev) <span class="ext-icon">&#8599;</span></a> &middot; <a href="deep-dive/23-chatdev.html" style="font-size:12px;">深度解读 →</a></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; ACL &middot; Qian et al. &middot; <a href="https://github.com/OpenBMB/ChatDev" target="_blank">GitHub</a></div>
         <div class="concepts">
           <span class="concept concept-key">Role-Playing Agents</span>
           <span class="concept concept-key">Task Decomposition</span>
@@ -2147,7 +2151,7 @@
     <span class="cat-badge">个人补充</span>
     <h2>跨领域方法论启发</h2>
     <span class="personal-badge">后加 · 待讨论</span>
-    <span class="count">7 篇</span>
+    <span class="count">18 篇</span>
   </div>
 
   <div class="paper" data-search="alcs automatic laplace collapsed sampling bayesian latent variable marginalization cambridge 自动折叠采样 贝叶斯 潜变量 记忆压缩">
@@ -2286,6 +2290,227 @@
     </div>
   </div>
 
+  <div class="paper" data-search="chain-of-thought prompting reasoning intermediate steps cot 思维链 推理 中间步骤">
+    <div class="paper-top">
+      <span class="paper-num">85</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2022</span> &middot; NeurIPS &middot; Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le, Zhou</div>
+        <div class="concepts">
+          <span class="concept concept-key">Chain-of-Thought</span>
+          <span class="concept concept-key">Few-Shot Reasoning</span>
+          <span class="concept concept-normal">Intermediate Steps</span>
+          <span class="concept concept-normal">Emergent Ability</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>CoT 的奠基论文。让 LLM 在回答前生成中间推理步骤，GPT-3 在 GSM8K 上准确率从 <span class="hl">18% 跳到 74%</span>。仅在 >100B 参数模型上有效，是一种涌现能力。是所有 Agent 推理/规划/反思模块的基础技术。</p>
+      <a class="deep-dive-link" href="deep-dive/07-chain-of-thought.html">深度解读07 · Chain-of-Thought →</a><a class="code-link no-code">📄 纯Prompting</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="inner monologue embodied reasoning planning language models robot closed-loop 内心独白 具身推理 机器人">
+    <div class="paper-top">
+      <span class="paper-num">86</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2207.05608" target="_blank">Inner Monologue: Embodied Reasoning through Planning with Language Models <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2022</span> &middot; CoRL &middot; Huang, Xia, Xiao, Chan, Liang, Florence et al.</div>
+        <div class="concepts">
+          <span class="concept concept-key">Inner Monologue</span>
+          <span class="concept concept-key">Closed-Loop Feedback</span>
+          <span class="concept concept-normal">Embodied Agent</span>
+          <span class="concept concept-normal">Language as Interface</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将 LLM 推理用于机器人规划：Agent 用自然语言描述环境、生成计划、接收反馈后重规划。自然语言成为所有模块间的<span class="hl">统一通信接口</span>。证明了闭环 CoT 推理在物理世界中也能工作。</p>
+      <a class="deep-dive-link" href="deep-dive/09-inner-monologue.html">深度解读09 · Inner Monologue →</a><a class="code-link no-code" href="https://innermonologue.github.io/" target="_blank">🌐 仅项目页</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="reflexion verbal reinforcement learning self-reflection episodic memory 反思 语言强化学习 情景记忆">
+    <div class="paper-top">
+      <span class="paper-num">87</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion: Language Agents with Verbal Reinforcement Learning <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; NeurIPS &middot; Shinn, Cassano, Berman, Gopinath, Narasimhan, Yao</div>
+        <div class="concepts">
+          <span class="concept concept-key">Verbal Reinforcement Learning</span>
+          <span class="concept concept-key">Self-Reflection</span>
+          <span class="concept concept-key">Episodic Memory</span>
+          <span class="concept concept-normal">Task-Oriented Learning</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>用自然语言反思替代标量 reward。Agent 任务失败后生成反思文本存入 episodic memory，下次检索复用。HumanEval <span class="hl">91%</span>（+22%），HotPotQA <span class="hl">+20%</span>。是 Generative Agents Reflection 模块的直接进化——从"总结记忆"升级为"从失败中学习"。</p>
+      <a class="deep-dive-link" href="deep-dive/10-reflexion.html">深度解读10 · Reflexion →</a><a class="code-link" href="https://github.com/noahshinn/reflexion" target="_blank">💻 GitHub</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="tree of thoughts deliberate problem solving search backtracking bfs dfs 思维树 搜索 回溯">
+    <div class="paper-top">
+      <span class="paper-num">88</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2305.10601" target="_blank">Tree of Thoughts: Deliberate Problem Solving with Large Language Models <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; NeurIPS &middot; Yao, Yu, Zhao, Shafran, Griffiths, Cao, Narasimhan</div>
+        <div class="concepts">
+          <span class="concept concept-key">Tree of Thoughts</span>
+          <span class="concept concept-key">Deliberate Search</span>
+          <span class="concept concept-normal">BFS / DFS</span>
+          <span class="concept concept-normal">State Evaluation</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将 CoT 从单一线性链扩展为<span class="hl">思维树</span>：每步生成多个候选，LLM 评估各分支前景，支持 BFS/DFS 搜索和回溯。Game of 24 准确率从 <span class="hl">4% 跳到 74%</span>。Agent 规划模块的天然升级——模拟多个方案选最优路径。</p>
+      <a class="deep-dive-link" href="deep-dive/11-tree-of-thoughts.html">深度解读11 · Tree of Thoughts →</a><a class="code-link" href="https://github.com/princeton-nlp/tree-of-thought-llm" target="_blank">💻 GitHub</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="plan-and-solve zero-shot prompting planning reasoning 先规划再求解 零样本">
+    <div class="paper-top">
+      <span class="paper-num">89</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2305.04091" target="_blank">Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; ACL &middot; Wang, Xu, Lan, Hu, Lan, Lee, Lim</div>
+        <div class="concepts">
+          <span class="concept concept-key">Plan-and-Solve</span>
+          <span class="concept concept-key">Zero-Shot CoT</span>
+          <span class="concept concept-normal">Missing-Step Fix</span>
+          <span class="concept concept-normal">Variable Extraction</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>用"先制定计划再按计划执行"替代简单的"let's think step by step"。修复了 Zero-shot CoT 的<span class="hl">漏步问题</span>。GPT-3.5 上算术推理平均 +4.3pp，接近 few-shot CoT 但无需示例。小镇的 daily plan 就是 Plan-and-Solve 的具象化。</p>
+      <a class="deep-dive-link" href="deep-dive/12-plan-and-solve.html">深度解读12 · Plan-and-Solve →</a><a class="code-link" href="https://github.com/AGI-Edgerunners/Plan-and-Solve-Prompting" target="_blank">💻 GitHub</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="lats language agent tree search mcts reasoning acting planning 蒙特卡洛树搜索 统一框架">
+    <div class="paper-top">
+      <span class="paper-num">90</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2310.04406" target="_blank">Language Agent Tree Search Unifies Reasoning, Acting, and Planning <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; arXiv &middot; Zhou, Yan, Shlapentokh-Rothman, Wang, Wang</div>
+        <div class="concepts">
+          <span class="concept concept-key">MCTS + LLM</span>
+          <span class="concept concept-key">Unified Framework</span>
+          <span class="concept concept-normal">ReAct + ToT + Reflexion</span>
+          <span class="concept concept-normal">Value Function</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将 MCTS 与 LLM 推理统一：ReAct 提供 thought-action 循环，ToT 提供树搜索，Reflexion 提供失败学习。WebShop <span class="hl">75.9%</span> (SOTA)，HumanEval <span class="hl">94.4%</span>。统一了 Agent 的推理/行动/规划三模块到单一搜索框架。</p>
+      <a class="deep-dive-link" href="deep-dive/13-lats.html">深度解读13 · LATS →</a><a class="code-link" href="https://github.com/lapisrocks/LanguageAgentTreeSearch" target="_blank">💻 GitHub</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="voyager open-ended embodied agent minecraft skill library curriculum 开放世界 具身 技能库">
+    <div class="paper-top">
+      <span class="paper-num">91</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager: An Open-Ended Embodied Agent with Large Language Models <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; arXiv &middot; Wang, Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar</div>
+        <div class="concepts">
+          <span class="concept concept-key">Skill Library</span>
+          <span class="concept concept-key">Automatic Curriculum</span>
+          <span class="concept concept-normal">Iterative Prompting</span>
+          <span class="concept concept-normal">Lifelong Learning</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>Minecraft 中的 LLM Agent：自动课程生成探索目标，成功行为存为可复用技能库（长期记忆），迭代反馈改进代码。获取独特物品数 <span class="hl">3.3x AutoGPT</span>，技术树进度 <span class="hl">15.3x ReAct</span>。技能库 ≈ 小镇记忆流的可执行版本。</p>
+      <a class="deep-dive-link" href="deep-dive/14-voyager.html">深度解读14 · Voyager →</a><a class="code-link" href="https://github.com/MineDojo/Voyager" target="_blank">💻 GitHub ⭐</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="camel communicative agents role-playing mind exploration inception prompting 角色扮演 多智能体协作">
+    <div class="paper-top">
+      <span class="paper-num">92</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2023</span> &middot; NeurIPS &middot; Li, Hammoud, Itani, Khizbullin, Ghanem</div>
+        <div class="concepts">
+          <span class="concept concept-key">Role-Playing Framework</span>
+          <span class="concept concept-key">Inception Prompting</span>
+          <span class="concept concept-normal">AI User + AI Assistant</span>
+          <span class="concept concept-normal">250K Dialogues</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>通过角色扮演让两个 LLM Agent 自主协作完成复杂任务。发布 25 万条多 Agent 对话覆盖 50 个领域。发现 LLM Agent 在角色扮演中涌现类人社会行为（领导力、群体思维）。是分析小镇 Agent 社交动态的理论框架。</p>
+      <a class="deep-dive-link" href="deep-dive/15-camel.html">深度解读15 · CAMEL →</a><a class="code-link" href="https://github.com/camel-ai/camel" target="_blank">💻 GitHub ⭐</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="multi-agent tree-of-thought validator reasoning verification parallel 多智能体 推理验证 并行">
+    <div class="paper-top">
+      <span class="paper-num">93</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2409.11527" target="_blank">Improving LLM Reasoning with Multi-Agent Tree-of-Thought Validator Agent <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; arXiv</div>
+        <div class="concepts">
+          <span class="concept concept-key">Multi-Agent ToT</span>
+          <span class="concept concept-key">Thought Validator</span>
+          <span class="concept concept-normal">Parallel Reasoning</span>
+          <span class="concept concept-normal">Logical Verification</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>多个 Reasoner Agent 并行探索推理路径，Validator Agent 检查逻辑正确性。引入多样性克服单一 LLM 偏见，外部验证替代自我评估的确认性偏差。将集体智慧形式化为可控推理框架。</p>
+      <a class="deep-dive-link" href="deep-dive/16-multi-agent-tot-validator.html">深度解读16 · Multi-Agent ToT →</a><a class="code-link" href="https://github.com/SecureAIAutonomyLab/MA-ToT" target="_blank">💻 GitHub</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="agentsociety large-scale simulation generative agents 10000 agents tsinghua 万人仿真 大规模">
+    <div class="paper-top">
+      <span class="paper-num">94</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2025</span> &middot; arXiv &middot; Tsinghua University</div>
+        <div class="concepts">
+          <span class="concept concept-key">10,000+ Agents</span>
+          <span class="concept concept-key">5M+ Interactions</span>
+          <span class="concept concept-normal">Hierarchical Memory</span>
+          <span class="concept concept-normal">Async Scheduling</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将小镇 25 Agent 扩展到 <span class="hl">10,000+</span>，产生 500 万+交互。分层记忆 + 异步调度 + CoT 推理集成。涌现出社区形成、信息传播等宏观社会现象。是小镇从概念验证到实际应用的关键一步。</p>
+      <a class="deep-dive-link" href="deep-dive/17-agent-society.html">深度解读17 · AgentSociety →</a><a class="code-link" href="https://github.com/tsinghua-fib-lab/AgentSociety" target="_blank">💻 GitHub ⭐</a>
+    </div>
+  </div>
+
+  <div class="paper" data-search="metagpt meta programming multi-agent software company sop standard operating procedure iclr 2024 hong deepwisdom 标准作业流程 软件公司">
+    <div class="paper-top">
+      <span class="paper-num">95</span>
+      <div class="paper-meta">
+        <div class="paper-title"><a href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework <span class="ext-icon">&#8599;</span></a> <span class="personal-badge">后加</span></div>
+        <div class="paper-venue"><span class="year">2024</span> &middot; ICLR Oral &middot; Hong et al. (DeepWisdom)</div>
+        <div class="concepts">
+          <span class="concept concept-key">SOP as Prompt</span>
+          <span class="concept concept-key">Structured Artifacts</span>
+          <span class="concept concept-normal">Pub-Sub Message Pool</span>
+          <span class="concept concept-normal">Role Specialization</span>
+          <span class="concept concept-normal">Software Company</span>
+        </div>
+      </div>
+    </div>
+    <div class="paper-body">
+      <p>将软件公司的<span class="hl">标准作业流程（SOP）编码成 prompt</span>，PM/架构师/项目经理/工程师/QA 五个角色通过<span class="hl">结构化 artifact</span>（不是自由对话）按流水线协作。相比 ChatDev 自由对话，MetaGPT 选择工程化约束换取稳定性。HumanEval pass@1 <span class="hl">85.9%</span>，SoftwareDev benchmark SOTA。</p>
+      <a class="deep-dive-link" href="deep-dive/22-metagpt.html">深度解读22 · MetaGPT →</a><a class="code-link" href="https://github.com/geekan/MetaGPT" target="_blank">💻 GitHub ⭐40k+</a>
+    </div>
+  </div>
+
 </section>
 
 </div><!-- .container -->
@@ -2311,7 +2536,7 @@
     <tr class="section-row"><td colspan="4">原始论文</td></tr>
     <tr data-search="generative agents interactive simulacra human behavior park smallville memory stream reflection planning emergent">
       <td><span class="t-cat tc-origin">原始论文</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents: Interactive Simulacra of Human Behavior</a><div class="t-meta">Park et al. · Stanford · UIST 2023</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2304.03442" target="_blank">Generative Agents: Interactive Simulacra of Human Behavior</a><div class="t-meta">Park et al. · Stanford · UIST 2023 · <a href="deep-dive/19-generative-agents.html">深度解读</a></div></td>
       <td class="t-abstract">提出将 LLM 与记忆流、反思、规划机制结合的 Generative Agents 架构。25 个 AI 智能体在沙盒小镇 Smallville 中模拟人类社会行为，展现了无指令自发涌现的群体协作。</td>
       <td><div class="t-tags"><span class="t-tag tt-origin">Memory Stream</span><span class="t-tag tt-origin">Reflection</span><span class="t-tag tt-origin">Planning</span><span class="t-tag tt-origin">Emergent Behavior</span><span class="t-tag tt-origin">Recency·Importance·Relevance</span></div></td>
     </tr>
@@ -2320,13 +2545,13 @@
     <tr class="section-row"><td colspan="4">记忆系统</td></tr>
     <tr data-search="a-mem agentic memory zettelkasten associative semantic linking">
       <td><span class="t-cat tc-memory">记忆系统</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM: Agentic Memory for LLM Agents</a><div class="t-meta">Xu et al. · arXiv 2025</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2502.12110" target="_blank">A-MEM: Agentic Memory for LLM Agents</a><div class="t-meta">Xu et al. · NeurIPS 2025 · <a href="deep-dive/20-a-mem.html">深度解读</a></div></td>
       <td class="t-abstract">受 Zettelkasten 卡片笔记启发，每条记忆带关键词与标签，动态建立语义链接，将线性记忆流升级为知识图谱式关联网络。</td>
       <td><div class="t-tags"><span class="t-tag tt-memory">Associative Memory Network</span><span class="t-tag tt-memory">Zettelkasten</span><span class="t-tag tt-memory">Semantic Linking</span></div></td>
     </tr>
     <tr data-search="hiagent hierarchical working memory sub-goal decomposition">
       <td><span class="t-cat tc-memory">记忆系统</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent: Hierarchical Working Memory Management</a><div class="t-meta">Li et al. · arXiv 2024</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2408.09559" target="_blank">HiAgent: Hierarchical Working Memory Management</a><div class="t-meta">Hu et al. · arXiv 2024.08 · <a href="deep-dive/18-hiagent.html">深度解读</a></div></td>
       <td class="t-abstract">以子目标为单位切分记忆，完成后压缩为摘要并保留层级结构，大幅减少长程任务中上下文消耗。</td>
       <td><div class="t-tags"><span class="t-tag tt-memory">Hierarchical Memory</span><span class="t-tag tt-memory">Sub-goal Decomposition</span><span class="t-tag tt-memory">Memory Compression</span></div></td>
     </tr>
@@ -2362,13 +2587,13 @@
     </tr>
     <tr data-search="memory age ai agents survey factual experiential working taxonomy">
       <td><span class="t-cat tc-memory">记忆系统</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey</a><div class="t-meta">Yuyang Hu et al. · arXiv 2025.12</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2512.13564" target="_blank">Memory in the Age of AI Agents: A Survey</a><div class="t-meta">Yuyang Hu et al. · arXiv 2025.12 · <a href="deep-dive/24-memory-survey.html">深度解读</a></div></td>
       <td class="t-abstract">最全面的 Agent 记忆综述。区分事实/经验/工作记忆，编制基准和框架目录。</td>
       <td><div class="t-tags"><span class="t-tag tt-memory">Memory Taxonomy</span><span class="t-tag tt-memory">Factual/Experiential/Working</span><span class="t-tag tt-memory">Benchmark Compilation</span></div></td>
     </tr>
     <tr data-search="memoryos memory os operating system three-level storage fifo">
       <td><span class="t-cat tc-memory">记忆系统</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent</a><div class="t-meta">Kang et al. · EMNLP 2025 Oral</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2506.06326" target="_blank">MemoryOS: Memory OS of AI Agent</a><div class="t-meta">Kang et al. · EMNLP 2025 Oral · <a href="deep-dive/21-memory-os.html">深度解读</a></div></td>
       <td class="t-abstract">借鉴 OS 内存管理，设计三级记忆架构（短/中/长期），LoCoMo 基准 F1 提升 49.11%。</td>
       <td><div class="t-tags"><span class="t-tag tt-memory">Memory Operating System</span><span class="t-tag tt-memory">Three-Level Storage</span><span class="t-tag tt-memory">FIFO + Segmented Paging</span></div></td>
     </tr>
@@ -2449,9 +2674,15 @@
     <tr class="section-row"><td colspan="4">多智能体协作</td></tr>
     <tr data-search="chatdev communicative agents software development role-playing">
       <td><span class="t-cat tc-multi">多智能体</span></td>
-      <td><a class="paper-link" href="https://arxiv.org/abs/2307.07924" target="_blank">Communicative Agents for Software Development (ChatDev)</a><div class="t-meta">Qian et al. · ACL 2024</div></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2307.07924" target="_blank">Communicative Agents for Software Development (ChatDev)</a><div class="t-meta">Qian et al. · ACL 2024 · <a href="deep-dive/23-chatdev.html">深度解读</a></div></td>
       <td class="t-abstract">多 Agent 扮演 PM/架构师/程序员/测试员，通过结构化对话协作完成软件开发。</td>
       <td><div class="t-tags"><span class="t-tag tt-multi">Role-Playing Agents</span><span class="t-tag tt-multi">Task Decomposition</span></div></td>
+    </tr>
+    <tr data-search="metagpt meta programming multi-agent software company sop iclr 2024 hong deepwisdom">
+      <td><span class="t-cat tc-multi">多智能体</span></td>
+      <td><a class="paper-link" href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework</a><div class="t-meta">Hong et al. · ICLR 2024 Oral · <a href="deep-dive/22-metagpt.html">深度解读</a></div></td>
+      <td class="t-abstract">SOP 编码为 prompt，五角色通过结构化 artifact 协作完成软件开发。与 ChatDev 代表两种路线：结构化流水线 vs 自由对话。</td>
+      <td><div class="t-tags"><span class="t-tag tt-multi">SOP as Prompt</span><span class="t-tag tt-multi">Structured Artifacts</span><span class="t-tag tt-multi">Pub-Sub</span></div></td>
     </tr>
     <tr data-search="megaagent large-scale autonomous auto generation 590 agents">
       <td><span class="t-cat tc-multi">多智能体</span></td>
@@ -2855,7 +3086,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2304.03442" target="_blank">
       Generative Agents: Interactive Simulacra of Human Behavior
     </a>
-    <div class="rl-venue">Park, O'Brien, Cai, Morris, Liang, Bernstein · Stanford</div>
+    <div class="rl-venue">Park, O'Brien, Cai, Morris, Liang, Bernstein · Stanford · <a href="deep-dive/19-generative-agents.html">深度解读 →</a> · <a href="https://github.com/joonspk-research/generative_agents" target="_blank">GitHub</a></div>
     <div class="rl-abstract">整个方向的奠基之作。提出将 LLM 与记忆流（Memory Stream）、反思（Reflection）、规划（Planning）结合的架构。25 个 AI 智能体在沙盒小镇 Smallville 中模拟人类社会行为，无指令自发涌现群体协作（如自发组织情人节派对）。</div>
     <div class="rl-company-row">
       <span class="rl-co rl-co-inworld">Inworld AI</span>
@@ -2882,7 +3113,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2502.12110" target="_blank">
       A-MEM: Agentic Memory System for LLM Agents
     </a>
-    <div class="rl-venue">Xu et al.</div>
+    <div class="rl-venue">Xu et al. · NeurIPS 2025 · <a href="deep-dive/20-a-mem.html">深度解读 →</a> · <a href="https://github.com/WujiangXu/A-mem" target="_blank">GitHub</a></div>
     <div class="rl-abstract">受 Zettelkasten 卡片笔记启发，每条记忆带关键词与标签，并与相关记忆动态建立语义链接，将线性记忆流升级为知识图谱式关联网络，提升跨事件的推理与回忆能力。</div>
     <div class="rl-company-row">
       <span class="rl-co rl-co-inworld">Inworld AI</span>
@@ -2904,7 +3135,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2408.09559" target="_blank">
       HiAgent: Hierarchical Working Memory Management for Solving Long-Horizon Agent Tasks
     </a>
-    <div class="rl-venue">Li et al.</div>
+    <div class="rl-venue">Hu et al. (HKU / Shanghai AI Lab) · <a href="deep-dive/18-hiagent.html">深度解读 →</a> · <a href="https://github.com/HiAgent2024/HiAgent" target="_blank">GitHub</a></div>
     <div class="rl-abstract">以子目标为单位切分记忆，子目标完成后压缩为摘要并保留层级结构。在长程任务中大幅降低上下文消耗，同时保留任务关键信息，是 Generative Agents 平面记忆流的分层演进。</div>
     <div class="rl-company-row">
       <span class="rl-co rl-co-inworld">Inworld AI</span>
@@ -2978,7 +3209,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2506.06326" target="_blank">
       MemoryOS: Memory OS of AI Agent
     </a>
-    <div class="rl-venue">Kang, Ji, Zhao, Bai · EMNLP 2025 Oral</div>
+    <div class="rl-venue">Kang, Ji, Zhao, Bai · EMNLP 2025 Oral · <a href="deep-dive/21-memory-os.html">深度解读 →</a> · <a href="https://github.com/BAI-LAB/MemoryOS" target="_blank">GitHub</a></div>
     <div class="rl-abstract">借鉴操作系统内存管理思想，设计三级记忆架构（短期/中期/长期），FIFO + 分段页式管理，LoCoMo 基准 F1 提升 49.11%。</div>
     <div class="rl-tags">
       <span class="rl-tag">Memory Operating System</span>
@@ -2995,7 +3226,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2512.13564" target="_blank">
       Memory in the Age of AI Agents: A Survey
     </a>
-    <div class="rl-venue">Yuyang Hu, Shichun Liu et al. · arXiv 2025</div>
+    <div class="rl-venue">Yuyang Hu, Shichun Liu et al. · arXiv 2025 · <a href="deep-dive/24-memory-survey.html">深度解读 →</a></div>
     <div class="rl-abstract">最全面的 Agent 记忆综述。区分事实记忆/经验记忆/工作记忆三种类型，编制基准和框架完整目录。</div>
     <div class="rl-tags">
       <span class="rl-tag">Memory Taxonomy</span>
@@ -3209,7 +3440,7 @@
     <a class="rl-title" href="https://arxiv.org/abs/2307.07924" target="_blank">
       Communicative Agents for Software Development (ChatDev)
     </a>
-    <div class="rl-venue">Qian et al. · ACL 2024</div>
+    <div class="rl-venue">Qian et al. · ACL 2024 · <a href="deep-dive/23-chatdev.html">深度解读 →</a> · <a href="https://github.com/OpenBMB/ChatDev" target="_blank">GitHub</a></div>
     <div class="rl-abstract">多 Agent 分角色协作完成软件开发：产品经理、程序员、测试员各司其职，通过结构化流程编排自动完成完整项目。展示了角色专业化对复杂任务的提升效果，是 Inworld Director Layer 的学术对应。</div>
     <div class="rl-company-row">
       <span class="rl-co rl-co-inworld">Inworld AI</span>
@@ -4151,11 +4382,132 @@
     <div class="rl-tags"><span class="rl-tag">Semantic Triples</span><span class="rl-tag">Persistent Memory</span><span class="rl-tag">FAISS + BM25</span><span class="rl-tag">67% Token Reduction</span></div>
   </div>
 
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">NeurIPS 2022</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Wei, Wang, Schuurmans et al. · Google Brain</div>
+    <div class="rl-abstract">CoT奠基论文。让LLM生成中间推理步骤，GSM8K准确率从18%→74%。仅在>100B参数时有效。Agent推理/规划/反思的基础技术。</div>
+    <div class="rl-tags"><span class="rl-tag">Chain-of-Thought</span><span class="rl-tag">Few-Shot Reasoning</span><span class="rl-tag">Emergent Ability</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">CoRL 2022</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2207.05608" target="_blank">Inner Monologue: Embodied Reasoning through Planning with Language Models</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Huang, Xia, Xiao et al. · Google</div>
+    <div class="rl-abstract">机器人用自然语言"内心独白"做闭环规划：描述环境→生成计划→执行→语言反馈→重规划。自然语言作为Agent模块间统一接口的先驱。</div>
+    <div class="rl-tags"><span class="rl-tag">Inner Monologue</span><span class="rl-tag">Closed-Loop</span><span class="rl-tag">Language as Interface</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">NeurIPS 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion: Language Agents with Verbal Reinforcement Learning</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Shinn, Cassano, Berman, Gopinath, Narasimhan, Yao</div>
+    <div class="rl-abstract">用自然语言反思替代标量reward。失败→反思→存入episodic memory→下次检索复用。HumanEval 91%(+22%), HotPotQA +20%。Generative Agents Reflection的直接进化。</div>
+    <div class="rl-tags"><span class="rl-tag">Verbal RL</span><span class="rl-tag">Self-Reflection</span><span class="rl-tag">Episodic Memory</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">NeurIPS 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2305.10601" target="_blank">Tree of Thoughts: Deliberate Problem Solving with Large Language Models</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Yao, Yu, Zhao, Shafran, Griffiths, Cao, Narasimhan</div>
+    <div class="rl-abstract">CoT从单一链→思维树：多候选+评估+BFS/DFS搜索+回溯。Game of 24: 4%→74%。Agent规划的天然升级——模拟多个方案选最优。</div>
+    <div class="rl-tags"><span class="rl-tag">Tree of Thoughts</span><span class="rl-tag">BFS/DFS</span><span class="rl-tag">State Evaluation</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">ACL 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2305.04091" target="_blank">Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Wang, Xu, Lan, Hu, Lan, Lee, Lim</div>
+    <div class="rl-abstract">"先规划再执行"替代"let's think step by step"，修复CoT漏步问题。GPT-3.5算术推理+4.3pp，接近few-shot无需示例。小镇daily plan的理论验证。</div>
+    <div class="rl-tags"><span class="rl-tag">Plan-and-Solve</span><span class="rl-tag">Zero-Shot CoT</span><span class="rl-tag">Missing-Step Fix</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2310.04406" target="_blank">Language Agent Tree Search Unifies Reasoning, Acting, and Planning</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Zhou, Yan, Shlapentokh-Rothman, Wang, Wang</div>
+    <div class="rl-abstract">MCTS + LLM统一ReAct/ToT/Reflexion三大范式。WebShop 75.9% SOTA, HumanEval 94.4%。Agent推理/行动/规划的大一统搜索框架。</div>
+    <div class="rl-tags"><span class="rl-tag">MCTS + LLM</span><span class="rl-tag">Unified Framework</span><span class="rl-tag">ReAct+ToT+Reflexion</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2305.16291" target="_blank">Voyager: An Open-Ended Embodied Agent with Large Language Models</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Wang, Xie, Jiang et al. · NVIDIA</div>
+    <div class="rl-abstract">Minecraft中的LLM Agent：自动课程+技能库(长期记忆)+迭代反馈。独特物品3.3x AutoGPT，技术树15.3x ReAct。技能库≈可执行版记忆流。</div>
+    <div class="rl-tags"><span class="rl-tag">Skill Library</span><span class="rl-tag">Auto Curriculum</span><span class="rl-tag">Lifelong Learning</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">NeurIPS 2023</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2303.17760" target="_blank">CAMEL: Communicative Agents for "Mind" Exploration of LLM Society</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Li, Hammoud, Itani, Khizbullin, Ghanem · KAUST</div>
+    <div class="rl-abstract">角色扮演框架：AI User + AI Assistant自主协作。发布25万条对话覆盖50领域。涌现类人社会行为(领导力/群体思维)。分析小镇Agent社交的理论框架。</div>
+    <div class="rl-tags"><span class="rl-tag">Role-Playing</span><span class="rl-tag">Inception Prompting</span><span class="rl-tag">250K Dialogues</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2024</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2409.11527" target="_blank">Improving LLM Reasoning with Multi-Agent Tree-of-Thought Validator Agent</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">arXiv 2024</div>
+    <div class="rl-abstract">多Reasoner并行探索+Validator验证逻辑正确性。多Agent多样性克服单LLM偏见，外部验证替代自我评估确认性偏差。集体智慧形式化为可控推理框架。</div>
+    <div class="rl-tags"><span class="rl-tag">Multi-Agent ToT</span><span class="rl-tag">Thought Validator</span><span class="rl-tag">Parallel Reasoning</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">arXiv 2025</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2502.08691" target="_blank">AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Tsinghua University · 2025</div>
+    <div class="rl-abstract">小镇25Agent→10,000+，500万+交互。分层记忆+异步调度+CoT推理集成。涌现社区形成、信息传播等宏观现象。从概念验证到实际应用的关键一步。</div>
+    <div class="rl-tags"><span class="rl-tag">10K+ Agents</span><span class="rl-tag">5M+ Interactions</span><span class="rl-tag">Hierarchical Memory</span></div>
+  </div>
+
+  <div class="rl-card" data-cat="personal">
+    <div class="rl-card-head">
+      <span class="rl-cat-badge rl-c-personal">个人补充</span>
+      <span class="rl-year">ICLR 2024 Oral</span>
+    </div>
+    <a class="rl-title" href="https://arxiv.org/abs/2308.00352" target="_blank">MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework</a> <span class="rl-personal-badge">后加</span>
+    <div class="rl-venue">Hong et al. (DeepWisdom) · ICLR 2024 · <a href="deep-dive/22-metagpt.html">深度解读 →</a> · <a href="https://github.com/geekan/MetaGPT" target="_blank">GitHub ⭐40k+</a></div>
+    <div class="rl-abstract">SOP 编码成 prompt，PM/架构师/项目经理/工程师/QA 五角色通过结构化 artifact 协作。与 ChatDev 自由对话路线形成对照：工程化约束换取稳定性，HumanEval 85.9%、SoftwareDev SOTA。</div>
+    <div class="rl-tags"><span class="rl-tag">SOP as Prompt</span><span class="rl-tag">Structured Artifacts</span><span class="rl-tag">Pub-Sub Message Pool</span><span class="rl-tag">Role Specialization</span></div>
+  </div>
+
 </div><!-- end grid -->
 </div>
 
 <div class="footer">
-  共收录 84 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
+  共收录 95 篇论文 / 资料，覆盖 17 个方向 | 分类手册 · 卡片浏览 · 表格视图<br>
   基于 2026-04 研讨会话的完整记录
 </div>
 

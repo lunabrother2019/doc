@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>free-code Agent Loop vs Reflexion 系列论文 — 待调研</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2d0a0a 0%, #0f1117 40%, #0a1628 70%, #1b0a28 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--red); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .wip-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-left: 10px; background: rgba(251,146,60,0.15); color: var(--orange); border: 1px dashed var(--orange); vertical-align: middle; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 56px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .file-ref { background: var(--bg3); border-radius: 6px; padding: 8px 12px; font-family: "Courier New", monospace; font-size: 12.5px; color: var(--cyan); margin: 8px 0; display: inline-block; }
+
+    .todo-list { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 10px; padding: 18px 22px; margin: 16px 0 24px; }
+    .todo-list h4 { color: var(--orange); margin-top: 0; }
+    .todo-list ul { padding-left: 20px; }
+    .todo-list li { font-size: 13.5px; }
+    .todo-list .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+    .tag-p1 { background: rgba(248,113,113,.15); color: var(--red); }
+    .tag-p2 { background: rgba(251,146,60,.15); color: var(--orange); }
+    .tag-p3 { background: rgba(148,163,184,.15); color: #94a3b8; }
+
+    .back-link { display: inline-block; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+    .back-link:hover { color: var(--text); }
+
+    .footer { text-align: center; margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>free-code Agent Loop vs Reflexion 系列论文 <span class="wip-badge">⚠ 待续调研</span></h1>
+  <p class="sub">
+    free-code 是 Claude Code 的开源 fork（剥离遥测、解锁 88 个 feature flag）。本文初步对比其 agent loop 与 Reflexion 系列论文（Reflexion / ReAct / ToT / LATS / Voyager）的架构关系，<strong>是后续深入调研的起点</strong>。
+  </p>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#sec-summary">核心结论</a>
+    <a href="#sec-arch">free-code 架构发现</a>
+    <a href="#sec-vs-reflexion">vs Reflexion</a>
+    <a href="#sec-vs-react">vs ReAct</a>
+    <a href="#sec-vs-others">vs ToT/LATS/Voyager</a>
+    <a href="#sec-position">谱系定位</a>
+    <a href="#sec-philosophy">P1 设计哲学解答</a>
+    <a href="#sec-code-deep">P1 代码阅读发现</a>
+    <a href="#sec-verifier">VERIFICATION_AGENT 调研</a>
+    <a href="#sec-todo">待调研问题</a>
+    <a href="../index1.html">← 返回导航</a>
+  </div>
+</div>
+
+<div class="container">
+
+<a class="back-link" href="open-problems.html">← 返回 Challenge 列表</a>
+
+<!-- ═══════════ Summary ═══════════ -->
+<div class="section" id="sec-summary">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--accent);">★</div>
+    <h2>核心结论（一句话）</h2>
+  </div>
+
+  <div class="callout callout-key">
+    <p><strong>free-code = ReAct 的工程化实现 + Sweet&Sour 风格的 batch reflection（autoDream）+ 工程化记忆管理；它实现了 Reflexion 思想的约 1/3，但放弃了 Reflexion 最关键的"自主评估 + 循环内闭环学习"。</strong></p>
+  </div>
+
+  <p>调研对象：<code>/opt/workspace/myclaude/free-code45</code> — Claude Code 在 2026-03-31 npm source map 暴露后的开源 fork。</p>
+  <p>对比对象：<a href="../deep-dive/10-reflexion.html">Reflexion (10)</a>、<a href="../deep-dive/08-react.html">ReAct (08)</a>、<a href="../deep-dive/11-tree-of-thoughts.html">ToT (11)</a>、<a href="../deep-dive/12-plan-and-solve.html">Plan-and-Solve (12)</a>、<a href="../deep-dive/13-lats.html">LATS (13)</a>、<a href="../deep-dive/14-voyager.html">Voyager (14)</a></p>
+</div>
+
+<!-- ═══════════ free-code Architecture Findings ═══════════ -->
+<div class="section" id="sec-arch">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--blue);">1</div>
+    <h2>free-code 架构关键发现</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>组件</th>
+          <th>实现位置</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>主循环</strong></td>
+          <td><code>src/query.ts:219-1729</code></td>
+          <td>生成器状态机，<code>while(true)</code> + State struct，repeat Thought→Tool→Obs 直到 <code>Terminal</code></td>
+        </tr>
+        <tr>
+          <td><strong>反思机制</strong></td>
+          <td><code>src/services/autoDream/autoDream.ts</code></td>
+          <td>⚠ <strong>不在循环内</strong>，是 turn 结束后的 stop hook，触发条件 24h + 5+ 会话</td>
+        </tr>
+        <tr>
+          <td><strong>记忆提取</strong></td>
+          <td><code>src/services/extractMemories/extractMemories.ts</code></td>
+          <td>turn 结束后的另一个 stop hook</td>
+        </tr>
+        <tr>
+          <td><strong>持久化记忆</strong></td>
+          <td><code>src/memdir/</code> + <code>MEMORY.md</code></td>
+          <td>静态 scratch pad（200行/25KB硬上限），<strong>不是</strong> Reflexion 的 trajectory buffer</td>
+        </tr>
+        <tr>
+          <td><strong>Evaluator</strong></td>
+          <td><code>src/Task.ts:15-28</code></td>
+          <td>❌ <strong>没有自主评估器</strong>，仅 user-driven 状态机（pending/running/completed/failed）</td>
+        </tr>
+        <tr>
+          <td><strong>失败处理</strong></td>
+          <td><code>query.ts:1376-1398</code></td>
+          <td>工具失败 → <code>is_error: true</code> 注入下一轮，模型隐式自我纠正，无显式重试</td>
+        </tr>
+        <tr>
+          <td><strong>长上下文</strong></td>
+          <td><code>query.ts:1119-1165</code> autoCompact</td>
+          <td>反应式 + 主动式压缩（Reflexion 没解决这个）</td>
+        </tr>
+        <tr>
+          <td><strong>Stop hooks</strong></td>
+          <td><code>src/query/stopHooks.ts:65-155</code></td>
+          <td>autoDream + extractMemories 的调用点</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">关键发现</div>
+    <p>free-code 的"反思"<strong>移到了循环外</strong>——是 turn 结束后的异步 stop hook，而不是 Reflexion 那样嵌入到任务执行流中。这是架构上的根本差异。</p>
+  </div>
+</div>
+
+<!-- ═══════════ vs Reflexion ═══════════ -->
+<div class="section" id="sec-vs-reflexion">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--red);">2</div>
+    <h2>vs <a href="../deep-dive/10-reflexion.html">Reflexion</a> — 最直接对比</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>Reflexion (2023)</th>
+          <th>free-code (2026)</th>
+          <th>评价</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Actor 循环</strong></td>
+          <td>内层步骤 + 外层 trajectory 重放</td>
+          <td>单层生成器状态机，无重放</td>
+          <td>⚠ 缺少 trajectory 重试</td>
+        </tr>
+        <tr>
+          <td><strong>Self-Reflection 步骤</strong></td>
+          <td>✅ 失败后显式生成自然语言反思</td>
+          <td>❌ 循环内无反思，autoDream 是 turn 后异步触发</td>
+          <td><span class="hl-red">架构差异巨大</span></td>
+        </tr>
+        <tr>
+          <td><strong>Evaluator</strong></td>
+          <td>✅ 自主判断成功/失败</td>
+          <td>❌ 完全 user-driven</td>
+          <td><span class="hl-red">关键缺失</span></td>
+        </tr>
+        <tr>
+          <td><strong>Episodic Memory</strong></td>
+          <td>scored trajectories（含 reward）</td>
+          <td>静态 MEMORY.md（人类可编辑）</td>
+          <td>⚠ 性质不同</td>
+        </tr>
+        <tr>
+          <td><strong>学习方式</strong></td>
+          <td>任务级 closed-loop 自改进</td>
+          <td>跨会话 batch consolidation</td>
+          <td>⚠ 不同时间尺度</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-red">
+    <div class="callout-title">核心结论</div>
+    <p>free-code <strong>不是</strong> Reflexion 的实现。它缺少 Reflexion 三大核心组件中的 2 个（Evaluator + 循环内 Self-Reflection）。autoDream 借鉴了 Reflexion "自然语言反思存入记忆"的思想，但<strong>移到了循环外</strong>。</p>
+  </div>
+</div>
+
+<!-- ═══════════ vs ReAct ═══════════ -->
+<div class="section" id="sec-vs-react">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--green);">3</div>
+    <h2>vs <a href="../deep-dive/08-react.html">ReAct</a> — 高度相似</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>ReAct (2022)</th>
+          <th>free-code</th>
+          <th>评价</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Thought→Action→Obs 循环</td>
+          <td>✅ 核心范式</td>
+          <td>✅ <code>query.ts:307</code> while loop</td>
+          <td><span class="hl-green">完全对应</span></td>
+        </tr>
+        <tr>
+          <td>工具调用</td>
+          <td>✅</td>
+          <td>✅ Tool.ts</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>终止判断</td>
+          <td>LLM 输出 final answer</td>
+          <td>API stop_reason + token budget + Terminal</td>
+          <td>⚠ free-code 终止条件更工程化</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-green">
+    <p><strong>结论</strong>：free-code = <strong>ReAct 的工程化实现</strong>，但 ReAct 本身不带反思层。</p>
+  </div>
+</div>
+
+<!-- ═══════════ vs ToT/LATS/Voyager ═══════════ -->
+<div class="section" id="sec-vs-others">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--orange);">4</div>
+    <h2>vs ToT / LATS / Plan-and-Solve / Voyager</h2>
+  </div>
+
+  <h3>vs <a href="../deep-dive/12-plan-and-solve.html">Plan-and-Solve (12)</a></h3>
+  <p>free-code <strong>没有显式 plan-then-solve 阶段</strong>。它的"规划"依赖 LLM 自己在 Thought 中输出（隐式 CoT）。<code>Task.ts</code> 的任务管理更像状态追踪，不是 PS 论文的"先制定完整计划再执行"。</p>
+  <p>⚠ <strong>缺失</strong>：没有 "先 plan → 再 solve" 的两阶段提示模板。</p>
+
+  <h3>vs <a href="../deep-dive/13-lats.html">LATS (13)</a></h3>
+  <p>LATS = ReAct + ToT + Reflexion + MCTS。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>LATS</th>
+          <th>free-code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>ReAct 循环</td><td>✅</td><td>✅</td></tr>
+        <tr><td>树搜索/回溯</td><td>✅ MCTS</td><td>❌ 纯线性循环</td></tr>
+        <tr><td>Reflexion 反思</td><td>✅ 嵌入循环</td><td>❌ 仅 stop hook</td></tr>
+        <tr><td>Value function</td><td>✅ LLM 评估状态</td><td>❌</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>结论</strong>：free-code <strong>远没有 LATS 复杂</strong>。它是"线性 ReAct + 异步 batch 反思"，而 LATS 是"树状 ReAct + 嵌入式反思"。</p>
+
+  <h3>vs <a href="../deep-dive/14-voyager.html">Voyager (14)</a> — 技能库对比</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>Voyager</th>
+          <th>free-code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>技能库存储</td><td>可执行代码 + 嵌入索引</td><td>MEMORY.md 自然语言</td></tr>
+        <tr><td>自动课程</td><td>✅</td><td>❌</td></tr>
+        <tr><td>迭代改进</td><td>✅ 代码自我修正</td><td>⚠ 仅 turn 内隐式</td></tr>
+        <tr><td>跨任务复用</td><td>✅ 检索相关技能</td><td>✅ MEMORY.md 加载到 system prompt</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>结论</strong>：MEMORY.md ≈ Voyager 技能库的<strong>轻量自然语言版</strong>，但缺少 Voyager 的"自动生成可执行代码 + 嵌入检索"。</p>
+</div>
+
+<!-- ═══════════ Position in Spectrum ═══════════ -->
+<div class="section" id="sec-position">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--pink);">5</div>
+    <h2>free-code 在 Reflexion 谱系中的位置</h2>
+  </div>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;font-family:'Courier New',monospace;font-size:13px;line-height:1.9;color:var(--text);overflow-x:auto;">
+<span style="color:var(--blue);">ReAct</span> (循环结构)
+    ↓ <span style="color:var(--green);">100% 实现</span>
+free-code 主循环 (query.ts)
+    +
+<span style="color:var(--red);">Reflexion</span> (反思 → 记忆) ← <span style="color:var(--yellow);">部分借鉴</span>
+    ↓ <span style="color:var(--orange);">移到循环外</span>
+autoDream + extractMemories (stop hooks)
+    +
+<span style="color:var(--cyan);">Sweet & Sour</span> (成功也反思)
+    ↓ 体现在
+MEMORY.md feedback 类条目（同时记成功+失败）
+    +
+<span style="color:var(--accent);">工程化约束</span>（200行/25KB硬上限 + 24h冷却 + 后台异步）</pre>
+
+  <h3>关键差异总结</h3>
+  <ol>
+    <li><strong>缺 Evaluator</strong> — 这是最大差异。Reflexion 靠自主评估器闭环，free-code 完全靠用户判断</li>
+    <li><strong>反思在循环外</strong> — Reflexion 的反思嵌入任务执行流；free-code 的反思是 turn 后异步</li>
+    <li><strong>无 trajectory 重放</strong> — Reflexion 失败可重试整条 trajectory；free-code 单次执行</li>
+    <li><strong>MEMORY.md ≠ episodic buffer</strong> — 前者是人类可编辑的 scratch pad，后者是 agent 自主写入的失败经验库</li>
+    <li><strong>多了 autoCompact</strong> — free-code 解决了 Reflexion 没考虑的长上下文工程问题</li>
+  </ol>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">如果要让 free-code 真正成为 Reflexion 实现，需要补充</div>
+    <ul>
+      <li>一个自主的 <strong>Evaluator</strong>（判断当前任务是否完成、质量如何）</li>
+      <li>循环内的 <strong>Self-Reflection 步骤</strong>（不是 turn 后才反思）</li>
+      <li><strong>Trajectory 级的重试机制</strong></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════ P1 Design Philosophy Answer ═══════════ -->
+<div class="section" id="sec-philosophy">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--red);">6</div>
+    <h2>P1 设计哲学解答：为什么 Anthropic 把反思放在循环外？</h2>
+  </div>
+
+  <p style="color:var(--muted);font-size:13px;">补充于 2026-04-10。基于对 <code>autoDream.ts</code> / <code>consolidationPrompt.ts</code> 的完整阅读，回答待调研章节中两个 P1 设计思辨题。</p>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话回答</div>
+    Anthropic 不是把 Reflexion 的"反思"挪到了循环外，而是把"反思"<strong>重新定义</strong>成了跨会话的知识沉淀。Reflexion 解的是"单任务内的快速试错"，autoDream 解的是"长期使用中的偏好对齐"。它们解的是<strong>不同的问题</strong>，所以不存在"为什么放在循环外"——循环外是因为它根本不是同一个东西。
+  </div>
+
+  <h3>一、Reflexion 的三个隐含前提，在 coding agent 里全都不成立</h3>
+
+  <p>Reflexion 的循环内反思隐含三个前提，这三个前提在 HumanEval / ALFWorld / 24-game 这类 benchmark 里都成立，但在 Claude Code 的真实使用场景里全都不成立：</p>
+
+  <table>
+    <thead>
+      <tr><th>Reflexion 假设</th><th>Claude Code 现实</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>任务有明确边界</strong><br><span style="color:var(--muted);font-size:12px;">trial 跑完 = 任务结束</span></td>
+        <td>turn 结束 ≠ 任务结束 —— 用户下一句可能就改方向、回滚、加约束</td>
+      </tr>
+      <tr>
+        <td><strong>有 ground truth 信号</strong><br><span style="color:var(--muted);font-size:12px;">unit test pass/fail、game score、benchmark accuracy</span></td>
+        <td>没人知道这次 edit 是不是"对的"，可能要等下次部署 / 测试 / code review，反馈延迟从秒级变成天级</td>
+      </tr>
+      <tr>
+        <td><strong>失败可以重试</strong><br><span style="color:var(--muted);font-size:12px;">同一任务再来一次</span></td>
+        <td>用户的代码已经被改了，"重试"意味着 revert，副作用极高</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>二、代码里的设计哲学是显式的</h3>
+
+  <p><code>autoDream.ts</code> 的几个关键数字直接告诉你 Anthropic 怎么定义"反思"：</p>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--text);overflow-x:auto;"><span style="color:var(--muted);">// autoDream.ts:63-66</span>
+const DEFAULTS: AutoDreamConfig = {
+  minHours: 24,      <span style="color:var(--yellow);">// 至少 24 小时</span>
+  minSessions: 5,    <span style="color:var(--yellow);">// 至少 5 个会话</span>
+}
+
+<span style="color:var(--muted);">// autoDream.ts:165 —— 而且明确排除当前 session</span>
+sessionIds = sessionIds.filter(id => id !== currentSession)</pre>
+
+  <div class="callout callout-key">
+    <div class="callout-title">关键洞察</div>
+    autoDream 的最小反思单位<strong>不是 turn，不是 task，而是"5 个会话 + 24 小时"</strong>。这是一个数量级的转变 —— Reflexion 是 per-trial（秒级），autoDream 是 per-week（天级）。
+  </div>
+
+  <p>再看 <code>consolidationPrompt.ts:15</code> prompt 自己怎么说：</p>
+
+  <blockquote style="border-left:3px solid var(--blue);padding:10px 16px;background:var(--bg2);margin:12px 0;font-style:italic;color:var(--text);">
+    "Synthesize what you've learned recently into <strong>durable, well-organized memories</strong> so that <strong>future sessions can orient quickly</strong>."
+  </blockquote>
+
+  <p>关键词是 <strong>durable</strong> 和 <strong>future sessions</strong>。这不是"从这次失败学习"，是"把跨会话的稳定模式沉淀下来"。Reflexion 的 episodic buffer 是 within-trial scratch，autoDream 写的是 cross-session knowledge base。</p>
+
+  <h3>三、Anthropic 实际做的三个权衡</h3>
+
+  <div class="grid-2">
+    <div class="callout callout-info">
+      <div class="callout-title">① 反思对象：从"轨迹"换成"会话集合"</div>
+      <ul style="margin:6px 0 0 16px;padding:0;">
+        <li>Reflexion 反思一条 trajectory</li>
+        <li>autoDream 反思 N 条 session 的聚合</li>
+      </ul>
+      <p style="margin:8px 0 0 0;font-size:12.5px;color:var(--muted);"><strong>原因</strong>：单条轨迹在没有 evaluator 时反思就是幻觉。聚合多条才有统计信号。</p>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-title">② 反思上下文：fork 出去而不是注入主循环</div>
+      <p style="margin:0;font-size:12.5px;"><code>runForkedAgent({ querySource: 'auto_dream', skipTranscript: true })</code> —— 完全独立的 context。反思结果只能通过修改 <code>MEMORY.md</code> 文件影响下一次会话，<strong>不能污染当前 turn 的推理链</strong>。</p>
+      <p style="margin:8px 0 0 0;font-size:12.5px;color:var(--muted);"><strong>原因</strong>：避免 Reflexion 论文 §5.2 自己承认的隐患 —— 错误的反思会让后续 trial 更糟。fork + 文件持久化 = 反思必须经过"下次冷启动"这道关，相当于一道隐式 staleness check。</p>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-title">③ 评估器：从"自主评估"换成"用户即评估器"</div>
+      <ul style="margin:6px 0 0 16px;padding:0;">
+        <li>没有 Evaluator <strong>不是 bug，是把评估外包给了人</strong></li>
+        <li>用户的下一条 prompt（"不对，应该……" / "好的继续"）就是 reward signal</li>
+        <li>autoDream 通过观察 5 个 session 的轨迹，<strong>事后</strong>学到"用户在 X 类任务上倾向 Y 风格"</li>
+      </ul>
+      <p style="margin:8px 0 0 0;font-size:12.5px;color:var(--muted);"><strong>本质</strong>：这是 RLHF 的极简版 —— human feedback 隐式编码在多轮交互里，autoDream 把它提炼成 memory。</p>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">④ 推论：与 Reflexion 不可直接比较</div>
+      <p style="margin:0;font-size:12.5px;">本文早期"实现 Reflexion 思想的 1/3"的措辞需要修订。更准确的表述是：</p>
+      <p style="margin:8px 0 0 0;font-size:12.5px;color:var(--text);">
+        <strong>free-code 没有"实现 Reflexion 的子集"，它实现了一个正交的反思系统</strong>。把它和 Reflexion 对齐打分是 <em>category error</em> —— 应该和 <strong>RLHF 的轻量化在线版本</strong>对比才公平。
+      </p>
+    </div>
+  </div>
+
+  <h3>四、回答两个 P1 设计思辨题</h3>
+
+  <div class="callout callout-key">
+    <div class="callout-title">Q1: 为什么把反思放在循环外？是工程权衡还是认知判断？</div>
+    <strong>都不是</strong>。是问题定义的差异。循环内反思要求"任务边界 + 客观评估 + 可重试"三者同时存在；coding agent 三者都没有。Anthropic 没有"放弃循环内反思"，而是判断"循环内反思在这类任务上无 well-defined 信号可学"，于是把反思的时间尺度从"秒"扩展到"天"，让<strong>统计聚合</strong>替代<strong>单次评估</strong>。这是一个范式选择，不是工程取舍。
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">Q2: "无 Evaluator"是 bug 还是 feature？</div>
+    <strong>是 feature，但理由不是"用户作为评估器"那么简单</strong>。深层原因是：在没有 ground truth 的领域里，自主 evaluator 等于让 LLM 自己给自己打分，结果是 reward hacking 和置信度膨胀。Reflexion 在 HumanEval 上能 work 是因为 unit test 是<strong>外部</strong> evaluator —— 这恰恰证明 Reflexion 也不信任 self-evaluation。Anthropic 的选择是诚实的：既然没有外部 evaluator，那就<strong>根本不做单点评估</strong>，转而依赖跨会话的统计聚合 + 用户的隐式反馈。
+  </div>
+
+  <h3>五、对后续调研的影响</h3>
+
+  <ul>
+    <li>P2 的 "Aider/Cline/Cursor 对比" 仍然有意义 —— 但比较维度应该是<strong>"它们如何处理无 evaluator 的反馈"</strong>，而不是"它们是否实现了循环内反思"</li>
+    <li>P3 的 "给 free-code 加 Evaluator 插件" 仍然有意义 —— 但前提是有<strong>外部</strong>信号源（lint / test / type-check），不是 LLM self-evaluation</li>
+    <li>P3 的 "Agent Loop 设计空间分类法"，新增一个维度：<strong>反思的时间尺度（per-turn / per-task / per-session-cluster）</strong></li>
+  </ul>
+</div>
+
+<!-- ═══════════ P1 Code Deep Read ═══════════ -->
+<div class="section" id="sec-code-deep">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--cyan);">7</div>
+    <h2>P1 代码阅读发现：双层反思系统 + 历史考古</h2>
+  </div>
+
+  <p style="color:var(--muted);font-size:13px;">补充于 2026-04-10。本节是对 <code>extractMemories.ts</code> / <code>extractMemories/prompts.ts</code> / <code>stopHooks.ts</code> / <code>FEATURES.md</code> 的完整阅读。第 6 节给出哲学回答，本节给出代码证据。</p>
+
+  <h3>一、free-code 的反思是<strong>双层架构</strong>，不是单层</h3>
+
+  <p>之前的分析把 autoDream 当作"反思"的全部，这是不完整的。完整图景是：</p>
+
+  <table>
+    <thead>
+      <tr><th>层</th><th>组件</th><th>触发频率</th><th>作用域</th><th>目标</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>L0</strong></td>
+        <td>主 agent 自己写 memory</td>
+        <td>每个 turn，按需</td>
+        <td>当前 turn 上下文</td>
+        <td>用户明确要求记住的事</td>
+      </tr>
+      <tr>
+        <td><strong>L1</strong></td>
+        <td><code>extractMemories</code> (forked)</td>
+        <td>每个 turn（throttle default = 1）</td>
+        <td>session 内最近 N 条消息</td>
+        <td>从对话中提取本 session 内值得持久化的事</td>
+      </tr>
+      <tr>
+        <td><strong>L2</strong></td>
+        <td><code>autoDream</code> (forked)</td>
+        <td>≥24h 且 ≥5 sessions</td>
+        <td>跨多个 sessions 的 transcript</td>
+        <td>归纳长期模式、合并/淘汰旧 memory</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-key">
+    <div class="callout-title">L0 与 L1 是互斥的</div>
+    <code>extractMemories.ts:121-148</code> 的 <code>hasMemoryWritesSince()</code> 检查：如果主 agent 在最近一段 turn 里已经写过 memory 文件，extractMemories 这次 fire 就<strong>跳过</strong>，并把 cursor 推到主 agent 写过的位置之后。这是聪明的设计 —— 让主 agent 在有明确反思时自己写，让 fork 兜底无明确反思的 turn。
+  </div>
+
+  <h3>二、extractMemories 的 prompt 里有"反 Reflexion"明文</h3>
+
+  <p><code>extractMemories/prompts.ts:41-43</code>：</p>
+
+  <blockquote style="border-left:3px solid var(--red);padding:10px 16px;background:var(--bg2);margin:12px 0;font-style:italic;color:var(--text);">
+    "You MUST only use content from the last ~N messages to update your persistent memories. <strong>Do not waste any turns attempting to investigate or verify that content further</strong> — no grepping source files, no reading code to confirm a pattern exists, no git commands."
+  </blockquote>
+
+  <p>再加 <code>extractMemories.ts:425-427</code>：</p>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--text);overflow-x:auto;"><span style="color:var(--muted);">// Well-behaved extractions complete in 2-4 turns (read → write).</span>
+<span style="color:var(--muted);">// A hard cap prevents verification rabbit-holes from burning turns.</span>
+maxTurns: 5,</pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">这是显式拒绝 self-evaluation</div>
+    Reflexion 的反思阶段会让 agent 检查自己之前的轨迹是否正确、verify 假设、retry 失败步骤。free-code 的 extractMemories <strong>明文禁止</strong>这种行为，并加硬上限防止它发生。这进一步证实第 6 节的论点：Anthropic 不是"漏掉"了 evaluator，是<strong>显式拒绝</strong>了 self-eval 这条路径。
+  </div>
+
+  <h3>三、工程秘诀：prompt cache 共享让 fork 反思变得几乎免费</h3>
+
+  <p>extractMemories 和 autoDream 都用 <code>runForkedAgent({ ... cacheSafeParams })</code>，注释里说："a perfect fork of the main conversation that shares the parent's prompt cache"。这意味着：</p>
+
+  <ul>
+    <li>fork 的 system prompt + tool list 必须和主 agent <strong>完全一致</strong>（否则 cache key 不匹配）</li>
+    <li>所以 <code>extractMemories.ts:171-222</code> 的 <code>createAutoMemCanUseTool()</code> 是用 <code>canUseTool</code> hook 在工具调用层做权限收窄，<strong>而不是修改 tool list</strong></li>
+    <li>结果：每次 fork 反思的实际 input cost ≈ 几百 tokens（只有新增的 user prompt），不需要重新付主 agent 的 system prompt 成本</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">为什么循环外反思可以"几乎免费"</div>
+    Reflexion 的反思在循环内 = 主 trajectory 必须等反思完成 → 延迟敏感。free-code 的反思在 fork 里 + 共享 cache + fire-and-forget → <strong>主循环 0 阻塞、增量 token 成本极低</strong>。这让"高频反思"在工业场景可行。Reflexion 论文没考虑这种工程优化，因为它的 benchmark 任务太短，cache 收益也有限。
+  </div>
+
+  <h3>四、stopHooks.ts 触发流确认</h3>
+
+  <p><code>stopHooks.ts:141-156</code> 是关键代码块：</p>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;color:var(--text);overflow-x:auto;">if (!isBareMode()) {
+  void executePromptSuggestion(stopHookContext)            <span style="color:var(--muted);">// L1: 提示建议</span>
+  if (feature('EXTRACT_MEMORIES') && !toolUseContext.agentId && isExtractModeActive()) {
+    void extractMemoriesModule!.executeExtractMemories(...) <span style="color:var(--muted);">// L1: 反思上层</span>
+  }
+  if (!toolUseContext.agentId) {
+    void executeAutoDream(stopHookContext, ...)             <span style="color:var(--muted);">// L2: 反思下层</span>
+  }
+}</pre>
+
+  <ul>
+    <li>三者都是 <code>void</code> fire-and-forget —— 不阻塞主循环</li>
+    <li>都有 <code>!toolUseContext.agentId</code> 检查 —— <strong>subagent 不触发反思</strong>（避免递归）</li>
+    <li><code>--bare</code> / <code>-p</code> scripted 模式跳过 —— 脚本调用不需要 agent 自我成长</li>
+  </ul>
+
+  <h3>五、隐式 Evaluator 调研：结论是没有</h3>
+
+  <table>
+    <thead>
+      <tr><th>候选</th><th>是不是 evaluator？</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>checkTokenBudget()</code></td>
+        <td>❌</td>
+        <td>是预算管理，不是质量评估。FEATURES.md 中 <code>TOKEN_BUDGET</code> flag 描述："token budget tracking, prompt triggers, and token warning UI"</td>
+      </tr>
+      <tr>
+        <td>用户配置的 stop hooks</td>
+        <td>⚠ 半</td>
+        <td>用户可以在 <code>settings.json</code> 里配命令作为 stop hook（比如跑 lint），但 free-code 自己不<strong>内置</strong>任何 evaluator hook，且 hook 结果是注入主 agent 的 message stream 而不是反思系统</td>
+      </tr>
+      <tr>
+        <td>autoDream 的 minSessions=5</td>
+        <td>❌</td>
+        <td>是统计阈值，不是质量信号</td>
+      </tr>
+      <tr>
+        <td>extractMemories 的 throttle</td>
+        <td>❌</td>
+        <td>是节流，不是评估</td>
+      </tr>
+      <tr>
+        <td><strong><code>VERIFICATION_AGENT</code> flag</strong></td>
+        <td>⚠ <strong>新线索</strong></td>
+        <td><strong>FEATURES.md 描述</strong>："Enables verification-agent guidance in prompts and task/todo tooling"。这是 free-code 中唯一接近 Reflexion-style evaluator 的东西，且<strong>已启用</strong>。需要后续 grep 看具体实现。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>六、历史考古：被剥离的更野心反思系统</h3>
+
+  <p>FEATURES.md 透露 free-code 当前版本是从更复杂的系统裁剪出来的：</p>
+
+  <div class="grid-2">
+    <div class="callout callout-warn">
+      <div class="callout-title">🪦 KAIROS_DREAM (broken)</div>
+      <p style="margin:4px 0;font-size:12.5px;">"Missing <code>src/dream.js</code> and related dream-task behavior"</p>
+      <p style="margin:4px 0;font-size:12.5px;color:var(--muted);">autoDream.ts 顶部注释明确说："Extracted from dream.ts so auto-dream ships independently of KAIROS feature flags"。<strong>autoDream 是 dream.js 的轻量化剥离版</strong>，原版有更复杂的 dream-task 行为。</p>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🪦 PROACTIVE (broken)</div>
+      <p style="margin:4px 0;font-size:12.5px;">"Missing <code>src/proactive/index.js</code> and the proactive task/tool stack"</p>
+      <p style="margin:4px 0;font-size:12.5px;color:var(--muted);">暗示曾经有一个 proactive agent 子系统 —— 让 agent 主动提建议或反思。在外部 fork 中不存在。</p>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🪦 KAIROS (broken)</div>
+      <p style="margin:4px 0;font-size:12.5px;">"Missing <code>src/assistant/index.js</code> and much of the assistant stack"</p>
+      <p style="margin:4px 0;font-size:12.5px;color:var(--muted);">KAIROS 是更大的"assistant stack"，dream 和 brief 都是它的子系统。这暗示 Anthropic 内部有一个完整的"主动 assistant"实验路径，外部 fork 看不到。</p>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-title">🔍 推论</div>
+      <p style="margin:4px 0;font-size:12.5px;">外部 fork 看到的是<strong>被裁剪后的保守版本</strong>。Anthropic 内部可能在测试更激进的反思机制（KAIROS_DREAM、PROACTIVE），但<strong>没有进入 default build</strong>。这本身是一个信号：他们试过更野心的设计，却选择了保守的双层 fork 方案作为出货版本。</p>
+    </div>
+  </div>
+
+  <h3>七、本轮调研对第 6 节论点的影响</h3>
+
+  <ul>
+    <li>✅ <strong>"反思在循环外"得到更强证据</strong> —— extractMemories prompt 里明文禁止 verification</li>
+    <li>✅ <strong>"无 Evaluator 是 feature"得到更强证据</strong> —— maxTurns=5 是显式防 verification rabbit hole 的硬上限</li>
+    <li>🆕 <strong>反思不是单层而是双层</strong>：第 6 节只讲了 autoDream（L2），漏掉了 extractMemories（L1）。L1 是 per-turn 的高频反思，L2 是 per-week 的低频归纳。两者都在 fork 里，都共享 cache。</li>
+    <li>🆕 <strong>"几乎免费的 fork 反思"是工程秘诀</strong>：prompt cache 共享 + fire-and-forget + canUseTool 权限收窄（而非修改 tool list）。这解释了为什么 Anthropic 敢于<strong>每个 turn 都跑反思</strong>。</li>
+    <li>🆕 <strong>VERIFICATION_AGENT 是新线索</strong>：可能是隐藏的 evaluator 路径，需要后续 grep 看实际实现</li>
+    <li>🆕 <strong>历史考古值得做</strong>：KAIROS_DREAM / PROACTIVE 的剥离过程可能透露 Anthropic 在反思设计上的真实判断历程</li>
+  </ul>
+</div>
+
+<!-- ═══════════ VERIFICATION_AGENT investigation ═══════════ -->
+<div class="section" id="sec-verifier">
+  <div class="sec-head">
+    <div class="sec-num" style="background:#dc2626;">8</div>
+    <h2>VERIFICATION_AGENT 调研：第 6 节论点的精细化（不是推翻）</h2>
+  </div>
+
+  <p style="color:var(--muted);font-size:13px;">补充于 2026-04-10。第 7 节末尾发现 <code>VERIFICATION_AGENT</code> feature flag 已启用，是 free-code 中唯一接近 Reflexion-style evaluator 的东西。本节是对它的完整调研。<strong>结论：第 6 节论点核心成立，但"没有 Evaluator"的措辞需要修订为"有一个非常审慎设计的、opt-in 的、外部命令驱动的 verifier subagent"。</strong></p>
+
+  <h3>一、它是什么</h3>
+
+  <p><code>src/tools/AgentTool/built-in/verificationAgent.ts</code> 定义了一个 <strong>built-in subagent</strong>，主 agent 通过 <code>Agent</code> 工具用 <code>subagent_type="verification"</code> 调用。它<strong>不是循环内的步骤</strong>，是一个独立的 fork。</p>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--text);overflow-x:auto;">export const VERIFICATION_AGENT: BuiltInAgentDefinition = {
+  agentType: 'verification',
+  color: 'red',
+  background: true,                <span style="color:var(--muted);">// fork 出去跑</span>
+  disallowedTools: [
+    AGENT_TOOL_NAME,               <span style="color:var(--muted);">// 不能再 spawn 子 agent</span>
+    EXIT_PLAN_MODE_TOOL_NAME,
+    FILE_EDIT_TOOL_NAME,           <span style="color:var(--muted);">// 不能改文件</span>
+    FILE_WRITE_TOOL_NAME,
+    NOTEBOOK_EDIT_TOOL_NAME,
+  ],
+  ...
+}</pre>
+
+  <h3>二、它的 prompt 是 adversarial 的</h3>
+
+  <p><code>verificationAgent.ts:10</code> 开头第一句：</p>
+
+  <blockquote style="border-left:3px solid var(--red);padding:10px 16px;background:var(--bg2);margin:12px 0;font-style:italic;color:var(--text);">
+    "You are a verification specialist. Your job is <strong>not to confirm the implementation works — it's to try to break it</strong>."
+  </blockquote>
+
+  <p>然后明确警告两个失败模式：</p>
+
+  <ol>
+    <li><strong>verification avoidance</strong>: 找借口不跑检查，"read code, narrate what you would test, write 'PASS,' and move on"</li>
+    <li><strong>seduced by the first 80%</strong>: 看到 polished UI 或 passing tests 就放过，没注意"half the buttons do nothing, the state vanishes on refresh, or the backend crashes on bad input"</li>
+  </ol>
+
+  <p>更进一步，整个 prompt 反复强调一个原则：<strong>reading code is not verification. Run it.</strong></p>
+
+  <ul>
+    <li>"The code looks correct based on my reading" —— 不行，run it</li>
+    <li>"The implementer's tests already pass" —— 不行，verify independently</li>
+    <li>"Let me start the server and check the code" —— 不行，hit the endpoint</li>
+    <li>每个 PASS 必须有 <code>Command run</code> + <code>Output observed</code>，否则 caller 拒绝</li>
+    <li>每个 PASS 必须包含至少一个 adversarial probe（concurrency / boundary / idempotency / orphan op）</li>
+  </ul>
+
+  <h3>三、触发机制：nudge 而不是 enforce</h3>
+
+  <p>三个调用点都<strong>不强制</strong>，只是在工具结果里加 NOTE 或在系统 prompt 里加 contract，由主 agent 自主决定是否 spawn：</p>
+
+  <table>
+    <thead>
+      <tr><th>调用点</th><th>触发条件</th><th>强制度</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>TodoWriteTool.ts:78-107</code></td>
+        <td>主 agent 关闭 3+ tasks 且都不是 verification step</td>
+        <td>在工具结果里加 NOTE 提示</td>
+      </tr>
+      <tr>
+        <td><code>TaskUpdateTool.ts:335-397</code></td>
+        <td>同上</td>
+        <td>同上</td>
+      </tr>
+      <tr>
+        <td><code>constants/prompts.ts:390-394</code></td>
+        <td>系统 prompt 里加 "the contract"</td>
+        <td>语言上要求"必须"，但模型可以无视</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><code>prompts.ts:394</code> 的 "contract" 全文非常关键，里面有第 6 节论点的<strong>最强证据</strong>：</p>
+
+  <blockquote style="border-left:3px solid var(--orange);padding:10px 16px;background:var(--bg2);margin:12px 0;font-style:italic;color:var(--text);font-size:13px;">
+    "When non-trivial implementation happens on your turn, independent adversarial verification must happen before you report completion... <strong>Your own checks, caveats, and a fork's self-checks do NOT substitute — only the verifier assigns a verdict; you cannot self-assign PARTIAL.</strong>"
+  </blockquote>
+
+  <h3>四、它是 ant-only A/B 测试</h3>
+
+  <p><code>prompts.ts:391-393</code>：</p>
+
+  <pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;color:var(--text);overflow-x:auto;">hasAgentTool &&
+feature('VERIFICATION_AGENT') &&
+<span style="color:var(--muted);">// 3P default: false — verification agent is ant-only A/B</span>
+getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false)</pre>
+
+  <ul>
+    <li><code>feature('VERIFICATION_AGENT')</code> 编译时启用 ✓</li>
+    <li>但 GrowthBook flag <code>tengu_hive_evidence</code> default = false</li>
+    <li>注释明文说 "<strong>3P default: false — verification agent is ant-only A/B</strong>"</li>
+    <li><strong>3P</strong> = third-party，外部用户 default 看不到</li>
+  </ul>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">关键解读</div>
+    Anthropic 内部正在 A/B 测试 verification agent，但<strong>不默认开放给外部用户</strong>。这本身就是一个信号：他们认为这种设计还不够成熟到默认启用，或者这种验证流的成本/价值比对一般用户不划算。
+  </div>
+
+  <h3>五、对第 6 节论点的修订</h3>
+
+  <div class="grid-2">
+    <div class="callout callout-warn">
+      <div class="callout-title">❌ 旧表述（第 6 节原文）</div>
+      <p style="margin:0;font-size:12.5px;">"既然没有外部 evaluator，那就根本不做单点评估。Anthropic 故意不做自主评估，因为编程任务的 ground truth 应来自用户/测试。"</p>
+      <p style="margin:8px 0 0 0;font-size:12px;color:var(--muted);">这个表述把 verification agent 漏掉了 —— 它确实存在，且确实是评估器。</p>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">✅ 修订后表述</div>
+      <p style="margin:0;font-size:12.5px;">free-code 有一个 evaluator (verification agent)，但它的设计是：</p>
+      <ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;">
+        <li>不在主循环里（subagent，主 agent 主动调用）</li>
+        <li>opt-in 而非强制（nudge via NOTE + contract，可以被无视）</li>
+        <li>必须依赖<strong>真实外部命令的输出</strong>而非 self-eval（reading code is not verification）</li>
+        <li>还在 ant-only A/B 阶段（3P default = false）</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>六、为什么核心论点反而被强化了</h3>
+
+  <p>第 6 节的深层论点是 "Anthropic 显式拒绝 self-evaluation"。VERIFICATION_AGENT 不是反例，而是<strong>更精细的证据</strong>：</p>
+
+  <ul>
+    <li><strong>"reading code is not verification"</strong> —— 显式拒绝 LLM 自我推理作为评估</li>
+    <li><strong>"you cannot self-assign PARTIAL"</strong> —— 主 agent 不能给自己打分</li>
+    <li><strong>"a fork's self-checks do NOT substitute"</strong> —— 连 fork 出去的子 agent 自检都不算数</li>
+    <li><strong>每个 PASS 必须有 Command run + Output observed</strong> —— ground truth 锚定在外部命令的真实输出</li>
+    <li><strong>必须含 adversarial probe</strong> —— 不能只测 happy path</li>
+  </ul>
+
+  <p>这正是 Reflexion 的同源哲学：Reflexion 在 HumanEval 上靠 <strong>unit test</strong> 作 evaluator —— 它也不信任 LLM self-eval，它信任的是<strong>外部测试代码的真实运行结果</strong>。</p>
+
+  <div class="callout callout-key">
+    <div class="callout-title">最精确的对比</div>
+    <table style="margin:6px 0 0 0;">
+      <thead><tr><th></th><th>Reflexion</th><th>free-code verification agent</th></tr></thead>
+      <tbody>
+        <tr><td>Evaluator 在哪</td><td>循环内的固定步骤</td><td>主 agent opt-in 调用的子 agent</td></tr>
+        <tr><td>Ground truth 来源</td><td>预定义 unit test</td><td>verifier 自主 figure out（运行 build/test/lint/curl/etc）</td></tr>
+        <tr><td>是否拒绝 self-eval</td><td>✅ 是</td><td>✅ 是（明文）</td></tr>
+        <tr><td>失败后行为</td><td>反思 → 下次 trial 改进</td><td>主 agent 修复 → resume verifier → repeat until PASS</td></tr>
+        <tr><td>触发频率</td><td>每个 trial 自动</td><td>每次完成 non-trivial 实现，由主 agent 决定</td></tr>
+        <tr><td>开放给谁</td><td>论文 reader / benchmark</td><td>ant-only A/B（外部 default 关闭）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>结论</strong>：free-code 的 verification agent 不是 Reflexion 的反例，而是 Reflexion 同一原则在<strong>没有预定义 test 的开放任务</strong>上的工程化版本。Reflexion 假设 evaluator 是 oracle（任务自带），free-code 让 evaluator 自己当 detective（自主发现怎么验证）。两者都拒绝 self-eval，都把 ground truth 锚定在外部命令的真实输出上。</p>
+
+  <h3>七、对整个调研的影响</h3>
+
+  <ul>
+    <li>第 6 节"无 Evaluator 是 feature"需要改成"<strong>Anthropic 拒绝 self-evaluation 是 feature</strong>"。前者错，后者对。</li>
+    <li>第 7 节"隐式 Evaluator 调研结论是没有"也需要修订 —— verification agent 是显式 evaluator，只是 opt-in 且 ant-only。</li>
+    <li>有了 verification agent，free-code 实际上比之前评估的更接近 Reflexion 谱系。但仍然<strong>不是 Reflexion</strong>，因为：(1) 不在主循环内 (2) 主 agent 自主决定调用 (3) 失败后是主 agent 修复而不是反思后重试整个 trajectory。</li>
+    <li>"反思 vs 验证"是两件事：autoDream/extractMemories 是 <strong>反思</strong>（写 memory），verification agent 是 <strong>验证</strong>（PASS/FAIL）。free-code 的设计是把它们彻底分离 —— Reflexion 把它们捏在一起。这个分离本身可能是 Anthropic 的关键判断。</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">最终一句话</div>
+    free-code 不是没有 evaluator —— 它有一个比 Reflexion 设计得更审慎的 evaluator：opt-in、独立 subagent、必须外部命令、adversarial、ant-only A/B。它和 autoDream/extractMemories（反思）是<strong>解耦</strong>的两个系统。Reflexion 把反思和评估捏在一起；free-code 把它们拆开 —— 这才是真正的设计差异。
+  </div>
+</div>
+
+<!-- ═══════════ TODO: Future Research ═══════════ -->
+<div class="section" id="sec-todo">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--orange);">⚠</div>
+    <h2>待调研问题</h2>
+  </div>
+
+  <p>本文是初步分析的快照，以下问题需要后续深入：</p>
+
+  <div class="todo-list">
+    <h4>P1 — 高优先级</h4>
+    <ul>
+      <li><span class="tag tag-p1">实证</span><strong>autoDream 实际效果如何？</strong> 需要跑实验对比 autoDream on/off 时 Agent 在跨会话任务上的表现差异。autoDream 的 minHours=24 阈值是否合理？</li>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1">代码</span><strong>extractMemories 提取的内容是什么质量？</strong> 阅读 <code>extractMemories.ts</code> 的完整 prompt 模板，对比 Reflexion 论文的反思 prompt。 <span style="text-decoration:none;color:var(--green);">✓ 已读 → <a href="#sec-code-deep" style="color:var(--green);">第 7 节</a>（prompt 明文禁止 verification）</span></li>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1">架构</span><strong>free-code 是否真的没有任何隐式 Evaluator？</strong> 检查 <code>checkTokenBudget()</code>、stop hooks 是否构成"事实上的评估器"。 <span style="text-decoration:none;color:var(--green);">✓ 已查 → <a href="#sec-code-deep" style="color:var(--green);">第 7 节第五部分</a>（结论：没有，但发现 VERIFICATION_AGENT flag 新线索）</span></li>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1">对照</span><strong>解锁的 88 个 feature flags 中是否有"实验性反思机制"？</strong> 阅读 <code>FEATURES.md</code>，看是否有未启用的 Reflexion-style 组件。 <span style="text-decoration:none;color:var(--green);">✓ 已读 → <a href="#sec-code-deep" style="color:var(--green);">第 7 节第六部分</a>（KAIROS_DREAM/PROACTIVE 已剥离，VERIFICATION_AGENT 待挖）</span></li>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1" style="background:#dc2626;">新</span><strong>VERIFICATION_AGENT flag 启用了什么？</strong> 由本轮 FEATURES.md 调研发现。grep <code>feature('VERIFICATION_AGENT')</code> 找所有调用点，看它是不是隐藏的 Reflexion-style evaluator。如果是，第 6 节论点需要修订。 <span style="text-decoration:none;color:var(--green);">✓ 2026-04-10 完成 → <a href="#sec-verifier" style="color:var(--green);">第 8 节</a>（结论：是 evaluator 但非循环内、opt-in、ant-only A/B；第 6 节论点核心成立但措辞修订为"拒绝 self-eval"）</span></li>
+      <li><span class="tag tag-p1" style="background:#dc2626;">新</span><strong>extractMemories 实际产出质量</strong> —— 它每个 turn 都跑（throttle default = 1），但因为 cache 共享几乎免费。问题是：这种"无 verification 的高频提取"产出的 memory 真的有价值吗，还是噪音？需要收集真实样本。</li>
+    </ul>
+  </div>
+
+  <div class="todo-list" style="border-left-color:var(--red);">
+    <h4 style="color:var(--red);">P1 — 设计思辨</h4>
+    <ul>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1">设计</span><strong>为什么 Anthropic 选择把反思放在循环外？</strong> 是工程权衡（latency / cost），还是认为 LLM 已经足够强不需要循环内反思？这是关键设计哲学问题。 <span style="text-decoration:none;color:var(--green);">✓ 已回答 → <a href="#sec-philosophy" style="color:var(--green);">第 6 节</a></span></li>
+      <li style="text-decoration:line-through;opacity:0.6;"><span class="tag tag-p1">设计</span><strong>"无 Evaluator"是 bug 还是 feature？</strong> 假设：Anthropic 故意不做自主评估，因为编程任务的 ground truth 应来自用户/测试。对比 Reflexion 在 HumanEval 上靠 unit test 作为 evaluator 的做法。 <span style="text-decoration:none;color:var(--green);">✓ 已回答 → <a href="#sec-philosophy" style="color:var(--green);">第 6 节</a></span></li>
+    </ul>
+  </div>
+
+  <div class="todo-list" style="border-left-color:var(--orange);">
+    <h4>P2 — 中优先级</h4>
+    <ul>
+      <li><span class="tag tag-p2">对比</span><strong>对比 Aider / Cline / Cursor 的 agent loop</strong>，看其他 coding agent 是否实现了循环内反思，验证"反思在循环外"是不是行业普遍选择</li>
+      <li><span class="tag tag-p2">实证</span><strong>MEMORY.md 的 200行/25KB 硬上限是否足够？</strong> 实际使用中是否经常被截断？autoDream 的 Prune 阶段如何选择保留哪些条目？</li>
+      <li><span class="tag tag-p2">代码</span><strong>autoCompact 的策略与 ReAct 论文中 trajectory 长度限制的关系</strong>。autoCompact 是不是变相的"trajectory 切片"？</li>
+      <li><span class="tag tag-p2">对照</span><strong>free-code 是否实现了 Plan-and-Solve？</strong> 检查 prompt template 是否有 "first devise a plan" 之类的措辞。</li>
+    </ul>
+  </div>
+
+  <div class="todo-list" style="border-left-color:#94a3b8;">
+    <h4 style="color:#94a3b8;">P3 — 低优先级 / 长期方向</h4>
+    <ul>
+      <li><span class="tag tag-p3">扩展</span><strong>能否给 free-code 加一个 Evaluator 插件？</strong>（比如自动跑 lint/test 作为评估信号），看效果是否接近 Reflexion 闭环</li>
+      <li><span class="tag tag-p3">扩展</span><strong>能否实现 LATS-style 的树搜索版 free-code？</strong> 在高难度任务上对比单线性 ReAct vs 树搜索</li>
+      <li><span class="tag tag-p3">理论</span><strong>构建一个"Agent Loop 设计空间"分类法</strong>：循环内反思 vs 循环外反思 / 自主评估 vs 用户评估 / 单 trajectory vs 重放，把现有所有 coding agent 放到这个空间里</li>
+      <li><span class="tag tag-p3">数据</span><strong>收集 free-code 真实使用的 MEMORY.md 样本</strong>，分析 autoDream 实际产出的"反思"质量</li>
+    </ul>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">下一步行动建议</div>
+    <ol>
+      <li style="text-decoration:line-through;opacity:0.6;">先做 P1 设计思辨题（不需要写代码） — 想清楚 Anthropic 的设计哲学 <span style="text-decoration:none;color:var(--green);">✓ 2026-04-10 完成 → 第 6 节</span></li>
+      <li style="text-decoration:line-through;opacity:0.6;">P1 代码阅读 — 读 <code>extractMemories.ts</code> + <code>stopHooks.ts</code> + <code>FEATURES.md</code> <span style="text-decoration:none;color:var(--green);">✓ 2026-04-10 完成 → 第 7 节</span></li>
+      <li style="text-decoration:line-through;opacity:0.6;">grep <code>VERIFICATION_AGENT</code>，验证它是不是隐藏的 evaluator <span style="text-decoration:none;color:var(--green);">✓ 2026-04-10 完成 → 第 8 节</span></li>
+      <li><strong>下一步</strong>：P2 横向对比 Aider/Cline/Cursor，按新的对比维度："反思 vs 验证是否解耦" + "evaluator 是否 opt-in" + "是否拒绝 self-eval"</li>
+      <li>P1.5 实证：收集 extractMemories 真实产出样本 + verification agent 实际触发频率统计</li>
+      <li>P2 对比 Aider/Cline 验证行业通用性</li>
+      <li>P3 长期方向作为论文/项目素材</li>
+    </ol>
+  </div>
+</div>
+
+<div class="footer">
+  调研对象: <code>/opt/workspace/myclaude/free-code45</code> · 分析时间: 2026-04-08<br>
+  本页是 <a href="open-problems.html">Challenge 系列</a> 的一部分，标记为待续调研。
+</div>
+
+</div><!-- /container -->
+
+</body>
+</html>

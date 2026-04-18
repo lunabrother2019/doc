@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读17：AgentSociety — 万人级Generative Agents仿真</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Highlight */
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    /* Card */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    /* Stat boxes */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Formula block */
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; text-align: center; color: var(--cyan); letter-spacing: 0.5px; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    /* Tool grid */
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    /* Smallville link */
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>AgentSociety — 万人级 Generative Agents 仿真 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：将斯坦福小镇的 25 个 Agent 扩展到 10,000+ 个，产生 500 万+ 交互，研究大规模社会动态涌现</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2502.08691" target="_blank">arXiv 2502.08691</a> &middot; Jianguo Chen et al. (Tsinghua) &middot; AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents &middot; 2025</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;"><a href="https://github.com/tsinghua-fib-lab/AgentSociety" target="_blank" style="color:inherit;">💻 GitHub: tsinghua-fib-lab/AgentSociety ⭐ 文档完善</a></div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 论文概述</a>
+    <a href="#sec2">2. 扩展挑战</a>
+    <a href="#sec3">3. 技术方案</a>
+    <a href="#sec4">4. 关键发现</a>
+    <a href="#sec5">5. 领域意义</a>
+    <a href="#sec6">6. 小镇关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>论文概述：从 25 到 10,000+</h2>
+    </div>
+
+    <p>斯坦福小镇（Generative Agents, 2023）以 25 个 Agent 在沙盒环境中展现了令人惊叹的社会行为涌现。但一个根本性问题始终悬而未决：<span class="hl">这种架构能否扩展到真实的社会规模？</span> AgentSociety 由清华大学团队提出，直接回答了这个问题 —— 将仿真规模提升到 10,000+ 个 Agent，产生超过 500 万次交互，研究大规模社会动态。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心贡献</div>
+      AgentSociety 不仅是一个规模扩展实验，更是一个系统性的架构研究。它证明了 Generative Agents 架构的可扩展性，同时识别了扩展过程中的关键瓶颈，并提出了分层记忆、异步调度、轻量推理等技术方案。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">10,000+</div>
+        <div class="stat-label">Agent 数量</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">500万+</div>
+        <div class="stat-label">Agent 交互次数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">400x</div>
+        <div class="stat-label">相比小镇的规模倍数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">清华</div>
+        <div class="stat-label">研究团队</div>
+      </div>
+    </div>
+
+    <p>从 25 到 10,000，这不仅仅是数量的线性增长。Agent 数量增加 400 倍意味着潜在交互对数增长到 <strong>~5000 万</strong>（N*(N-1)/2），LLM 调用量可能增长数个数量级。AgentSociety 需要解决的核心问题是：如何在可控的成本范围内维持大规模仿真的质量。</p>
+
+    <div class="sv-link">
+      AgentSociety 是斯坦福小镇的直系后代。它继承了小镇的核心架构理念（Memory Stream、Reflection、Planning），但面对的是一个全新的工程挑战：如何让这套为 25 个 Agent 设计的架构支撑万人级仿真。这是从「概念验证」到「规模化验证」的关键跨越。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">2</div>
+      <h2>扩展挑战：三座大山</h2>
+    </div>
+
+    <p>将 Generative Agents 从 25 扩展到 10,000+ 面临三个根本性挑战，每一个都需要架构级别的解决方案。</p>
+
+    <h3>挑战一：计算成本爆炸</h3>
+
+    <div class="card">
+      <h4>LLM 调用量的超线性增长</h4>
+      <p>25 个 Agent 扩展到 10,000 意味着 <strong>400 倍</strong>的基础 LLM 调用量。但实际情况更糟 —— 交互对数呈 O(N&sup2;) 增长：</p>
+      <div class="formula">
+        <span class="label">交互复杂度</span>
+        潜在交互对 = N &times; (N-1) / 2 &asymp; 5000万 （N = 10,000）
+      </div>
+      <p>即使只有一小部分潜在交互实际发生，LLM 调用量仍然是天文数字。按斯坦福小镇的架构设计，每个 Agent 的每次行动都需要 LLM 调用（规划、行动选择、对话生成、反思），这在万人规模下完全不可行。</p>
+    </div>
+
+    <h3>挑战二：行为一致性</h3>
+
+    <div class="card">
+      <h4>大规模下的人格与行为连贯</h4>
+      <ul>
+        <li><strong>人格漂移</strong>：经过数千轮交互后，Agent 的行为可能偏离初始人格设定</li>
+        <li><strong>记忆过载</strong>：大量交互产生的记忆远超 Agent 的处理能力，导致检索质量下降</li>
+        <li><strong>上下文窗口限制</strong>：即使是百万 token 的上下文窗口，也无法容纳万次交互的完整历史</li>
+      </ul>
+    </div>
+
+    <h3>挑战三：涌现复杂度</h3>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">不可预测的宏观动态</div>
+      25 个 Agent 的涌现行为已经令人惊讶（如自发组织情人节派对）。10,000 个 Agent 的交互将产生<strong>更高阶的涌现现象</strong>：社区自组织、信息瀑布、集体决策、舆论极化等。这些宏观现象难以从个体行为预测，也难以评估其合理性 —— 因为我们缺乏足够的真实社会数据作为基准。
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>挑战</th>
+            <th>25 Agent（小镇）</th>
+            <th>10,000 Agent（AgentSociety）</th>
+            <th>增长倍数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>LLM 调用/轮</strong></td>
+            <td>~100</td>
+            <td>~40,000+</td>
+            <td>400x</td>
+          </tr>
+          <tr>
+            <td><strong>潜在交互对</strong></td>
+            <td>300</td>
+            <td>~5000万</td>
+            <td>166,000x</td>
+          </tr>
+          <tr>
+            <td><strong>记忆总量</strong></td>
+            <td>数千条</td>
+            <td>数百万条</td>
+            <td>1000x+</td>
+          </tr>
+          <tr>
+            <td><strong>涌现层级</strong></td>
+            <td>个体 + 小群体</td>
+            <td>个体 + 群体 + 社区 + 社会</td>
+            <td>质变</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>技术方案：四大架构创新</h2>
+    </div>
+
+    <p>AgentSociety 针对上述三大挑战提出了四个核心技术方案，每一个都是对原始小镇架构的重要改进。</p>
+
+    <h3>方案一：分层记忆架构</h3>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">短期记忆（Working Memory）</div>
+        <div class="tool-desc">最近的交互和当前任务上下文。容量有限，自动过期。类似人类的工作记忆，只保留当前相关的信息。成本最低，访问最快。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">中期记忆（Episodic Memory）</div>
+        <div class="tool-desc">重要事件和关键交互的结构化记录。通过重要性评分筛选，只保留超过阈值的记忆。支持语义检索，是日常决策的主要记忆来源。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">长期记忆（Semantic Memory）</div>
+        <div class="tool-desc">高度压缩的知识和长期经验。通过反思（Reflection）机制将多条中期记忆合成为抽象的知识表示。容量最大，但粒度最粗。</div>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">分层的核心意义</div>
+      小镇的 Memory Stream 是一个平坦的时序日志，所有记忆存储在同一层级。在 25 Agent 规模下这没有问题，但 10,000 Agent 的记忆量会使平坦检索变得不可行。AgentSociety 的分层架构通过<span class="hl">逐层压缩</span>解决了这个问题：短期记忆自动过期，中期记忆定期压缩为长期记忆，确保检索空间始终可控。
+    </div>
+
+    <h3>方案二：异步调度</h3>
+
+    <div class="card">
+      <h4>从同步到异步的范式转变</h4>
+      <p>斯坦福小镇采用<strong>同步调度</strong>：每个时间步，所有 Agent 按顺序执行行动。在 10,000 Agent 规模下，同步调度意味着每个时间步需要等待所有 Agent 完成，延迟由最慢的 Agent 决定。</p>
+      <p>AgentSociety 采用<strong>异步事件驱动调度</strong>：</p>
+      <ul>
+        <li>每个 Agent 独立运行，不需要等待其他 Agent</li>
+        <li>交互通过异步消息传递实现</li>
+        <li>系统调度器根据 Agent 的活跃度和优先级分配计算资源</li>
+        <li>不活跃的 Agent 进入「休眠」状态，不消耗 LLM 调用</li>
+      </ul>
+    </div>
+
+    <div class="formula">
+      <span class="label">调度策略对比</span>
+      同步：T(step) = max(T_agent_i) &times; N &nbsp;&nbsp; vs &nbsp;&nbsp; 异步：T(step) &asymp; avg(T_active_agents) &times; 并发度
+    </div>
+
+    <h3>方案三：轻量推理路径</h3>
+
+    <div class="card">
+      <h4>关键决策 vs 常规行动的分级处理</h4>
+      <p>并非所有 Agent 行为都需要完整的 LLM 推理。AgentSociety 引入了<strong>分级推理策略</strong>：</p>
+      <ul>
+        <li><strong>常规行动</strong>（如移动、日常对话）：使用基于规则或小模型的<strong>轻量推理路径</strong>，极大降低 LLM 调用量</li>
+        <li><strong>关键决策</strong>（如重要社交、策略选择）：使用完整的 LLM 推理 + Chain-of-Thought</li>
+        <li><strong>触发机制</strong>：系统根据情境复杂度自动判断应使用哪种推理路径</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">80/20 法则的应用</div>
+      AgentSociety 的核心洞见是：大约 80% 的 Agent 行为是常规性的（走路、吃饭、日常寒暄），只有 20% 需要深度推理（关键决策、复杂社交）。通过将 80% 的常规行为分流到轻量路径，系统将 LLM 调用量减少了一个数量级，同时在关键决策上保持了质量。
+    </div>
+
+    <h3>方案四：Chain-of-Thought 集成</h3>
+
+    <div class="card">
+      <h4>关键决策使用 CoT 推理保持质量</h4>
+      <p>对于被判定为「关键决策」的行为，AgentSociety 使用 Chain-of-Thought 推理确保决策质量：</p>
+      <ul>
+        <li><strong>情境分析</strong>：Agent 首先分析当前情境的关键因素</li>
+        <li><strong>记忆召回</strong>：从分层记忆中检索相关经验</li>
+        <li><strong>推理展开</strong>：通过 CoT 逐步推导决策逻辑</li>
+        <li><strong>行动生成</strong>：基于推理结果生成具体行动</li>
+      </ul>
+      <p>这种设计确保了在大规模仿真中，<span class="hl">质量和效率的平衡</span>不是全局性的妥协，而是按需分配的精细控制。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>技术方案</th>
+            <th>解决的挑战</th>
+            <th>核心机制</th>
+            <th>效果</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>分层记忆</strong></td>
+            <td>记忆过载</td>
+            <td>短/中/长期三层压缩</td>
+            <td>检索空间可控</td>
+          </tr>
+          <tr>
+            <td><strong>异步调度</strong></td>
+            <td>同步延迟瓶颈</td>
+            <td>事件驱动 + 休眠机制</td>
+            <td>吞吐量大幅提升</td>
+          </tr>
+          <tr>
+            <td><strong>轻量推理</strong></td>
+            <td>LLM 调用量爆炸</td>
+            <td>常规/关键行为分级</td>
+            <td>调用量降低 ~80%</td>
+          </tr>
+          <tr>
+            <td><strong>CoT 集成</strong></td>
+            <td>关键决策质量</td>
+            <td>关键决策深度推理</td>
+            <td>关键行为质量保持</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">4</div>
+      <h2>关键发现</h2>
+    </div>
+
+    <h3>发现一：大规模社会涌现</h3>
+
+    <div class="card">
+      <h4>宏观社会现象的自发形成</h4>
+      <p>在万人级仿真中，系统观察到了多种仅在大规模时才出现的社会现象：</p>
+      <ul>
+        <li><strong>社区自组织</strong>：Agent 基于共同兴趣和地理邻近性自发形成社区，社区内部形成稳定的社交网络</li>
+        <li><strong>信息传播链</strong>：信息在社交网络中的传播呈现出与真实社会类似的扩散模式（包括信息衰减和变形）</li>
+        <li><strong>集体决策涌现</strong>：在面对公共事务时，Agent 群体展现出类似民主决策的行为模式</li>
+        <li><strong>社会分层</strong>：不同 Agent 在社交网络中形成了中心-边缘的层级结构</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">涌现的质变点</div>
+      研究发现，某些社会现象存在明确的<strong>规模阈值</strong>：例如，社区自组织在 Agent 数量超过约 500 时开始显著出现；信息瀑布效应在超过 2,000 Agent 时变得稳定。这意味着 25 Agent 的小镇仿真在原理上无法观察到这些现象 —— 规模本身是涌现的必要条件。
+    </div>
+
+    <h3>发现二：小规模与大规模仿真的差异</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>现象</th>
+            <th>25 Agent（小镇）</th>
+            <th>10,000 Agent（AgentSociety）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>社交网络</strong></td>
+            <td>全连通，人人认识</td>
+            <td>稀疏网络，社区结构</td>
+          </tr>
+          <tr>
+            <td><strong>信息传播</strong></td>
+            <td>近乎即时扩散</td>
+            <td>多跳传播，有延迟和失真</td>
+          </tr>
+          <tr>
+            <td><strong>行为模式</strong></td>
+            <td>个体行为主导</td>
+            <td>集体行为涌现</td>
+          </tr>
+          <tr>
+            <td><strong>社会结构</strong></td>
+            <td>扁平，无明显层级</td>
+            <td>分层，中心-边缘结构</td>
+          </tr>
+          <tr>
+            <td><strong>决策方式</strong></td>
+            <td>个体决策</td>
+            <td>群体决策 + 从众效应</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>发现三：成本效率分析</h3>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">最小可行复杂度（Minimum Viable Complexity）</div>
+      AgentSociety 提出了一个重要概念：<strong>达到可接受仿真质量所需的最小 Agent 复杂度</strong>。研究发现，并非所有 Agent 都需要完整的认知架构。在万人级仿真中，只有约 10-15% 的「核心 Agent」需要完整的记忆 + 反思 + 规划能力，其余 Agent 使用简化版本即可维持整体仿真质量。这一发现对大规模部署有重大的成本意义。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">~80%</div>
+        <div class="stat-label">LLM 调用量削减</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">10-15%</div>
+        <div class="stat-label">需完整认知的核心Agent</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">500+</div>
+        <div class="stat-label">社区涌现阈值</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">2,000+</div>
+        <div class="stat-label">信息瀑布阈值</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">5</div>
+      <h2>对领域的意义</h2>
+    </div>
+
+    <h3>意义一：证明架构可扩展性</h3>
+
+    <div class="card">
+      <p>AgentSociety 最重要的贡献是<strong>实证性地证明了 Generative Agents 架构的可扩展性</strong>。在此之前，人们只能推测小镇架构能否支撑大规模仿真。AgentSociety 给出了明确答案：可以，但需要架构级别的适配（分层记忆、异步调度、分级推理）。</p>
+    </div>
+
+    <h3>意义二：社会科学的新工具</h3>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">前所未有的仿真规模</div>
+      传统社会科学研究受限于实验规模（通常几十到几百人），且涉及伦理约束。AgentSociety 提供了一个万人级的「社会实验室」，研究者可以在其中观察社区形成、信息传播、集体决策等宏观社会现象，而无需真实人类参与。这为计算社会科学开辟了新的研究范式。
+    </div>
+
+    <h3>意义三：暴露扩展瓶颈</h3>
+
+    <p>AgentSociety 也诚实地暴露了当前架构在扩展时的核心瓶颈：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--orange);">记忆检索成本</div>
+        <div class="tool-desc">随着交互积累，每个 Agent 的记忆量持续增长，检索延迟也随之增加。分层记忆缓解但未根本解决这个问题 —— 长期运行后，即使是压缩后的长期记忆也会变得庞大。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">推理质量-效率权衡</div>
+        <div class="tool-desc">轻量推理路径虽然节省了计算成本，但不可避免地牺牲了部分行为质量。系统需要精确判断何时使用轻量推理、何时使用完整推理，而这个判断本身也需要计算资源。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--green);">评估困难</div>
+        <div class="tool-desc">如何评估万人级仿真的「质量」是一个开放问题。缺乏真实世界基准数据，难以判断涌现的社会现象是否合理。目前只能依赖定性观察和与已知社会学理论的对比。</div>
+      </div>
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">尚未解决的核心问题</div>
+      <p>AgentSociety 暴露了一个更深层的问题：<strong>当 Agent 数量超过一定规模后，仿真结果对架构细节高度敏感</strong>。轻量推理路径的阈值设定、记忆压缩的粒度、异步调度的优先级策略 —— 这些「实现细节」会显著影响宏观涌现行为。这意味着大规模仿真的可复现性和可解释性仍是重大挑战。</p>
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>与斯坦福小镇的关联</h2>
+    </div>
+
+    <p>AgentSociety 与斯坦福小镇的关系可以用一句话概括：<span class="hl">它是小镇的直系后代和大规模验证</span>。</p>
+
+    <h3>架构继承与演进</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>架构组件</th>
+            <th>小镇原版</th>
+            <th>AgentSociety 演进</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Memory Stream</strong></td>
+            <td>平坦时序日志</td>
+            <td>分层记忆（短/中/长期）</td>
+          </tr>
+          <tr>
+            <td><strong>Reflection</strong></td>
+            <td>重要性阈值触发</td>
+            <td>定期压缩 + 按需触发</td>
+          </tr>
+          <tr>
+            <td><strong>Planning</strong></td>
+            <td>每日计划分解</td>
+            <td>分级：轻量规则 vs 完整 LLM</td>
+          </tr>
+          <tr>
+            <td><strong>调度</strong></td>
+            <td>同步轮次</td>
+            <td>异步事件驱动</td>
+          </tr>
+          <tr>
+            <td><strong>规模</strong></td>
+            <td>25 Agent</td>
+            <td>10,000+ Agent</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">从概念验证到实际应用</div>
+      <p>AgentSociety 的意义在于将小镇从一个优雅的研究原型推向了实际应用的边界。它回答了三个关键问题：</p>
+      <ul>
+        <li><strong>能不能扩展？</strong> —— 能，但需要架构适配</li>
+        <li><strong>扩展后有什么新发现？</strong> —— 大规模涌现（社区形成、信息瀑布等）</li>
+        <li><strong>瓶颈在哪？</strong> —— 记忆检索成本、质量-效率权衡、评估困难</li>
+      </ul>
+    </div>
+
+    <div class="sv-link">
+      AgentSociety 是小镇的直系后代和大规模验证。它证明了小镇架构的可扩展性，同时暴露了扩展时的瓶颈（记忆检索成本、推理质量-效率权衡）。小镇的 Memory Stream 演化为分层记忆架构，同步调度演化为异步事件驱动，固定推理路径演化为分级推理策略。这是从「概念验证」到「实际应用」的关键一步，也为未来更大规模的社会仿真（百万级？）指明了方向和挑战。
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读17 &middot; AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents &middot; Jianguo Chen et al. (Tsinghua) 2025<br>
+  arXiv:2502.08691 &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+
+</body>
+</html>

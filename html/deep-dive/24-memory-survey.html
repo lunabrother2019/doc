@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读24：Memory in the Age of AI Agents — Agent 记忆领域最全综述</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero-badges { margin-top: 16px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .survey-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td code { background: var(--bg3); color: var(--yellow); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .tier { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .tier.t1 { border-left-color: var(--green); }
+    .tier.t2 { border-left-color: var(--cyan); }
+    .tier.t3 { border-left-color: var(--pink); }
+    .tier.t4 { border-left-color: var(--orange); }
+    .tier h4 { margin-top: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .pipeline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 20px 0 24px; }
+    .pipeline .step { flex: 1 1 200px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; position: relative; }
+    .pipeline .step .s-num { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(34,211,238,0.15); color: var(--cyan); margin-bottom: 8px; }
+    .pipeline .step h4 { margin: 0 0 6px; }
+    .pipeline .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Memory in the Age of AI Agents — Agent 记忆领域最全综述 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：当 Agent 记忆研究爆炸式增长、术语混乱、评测标准割裂时，需要一张"领域地图"。本综述以 <strong>Forms（形态）/ Functions（功能）/ Dynamics（动态）</strong> 三维视角，系统梳理 Agent Memory 的研究版图，并明确其与 LLM Memory、RAG、Context Engineering 的边界。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2512.13564" target="_blank">arXiv 2512.13564</a> &middot; Yuyang Hu et al.（47 作者） &middot; 2025.12 首版 · 2026.01 修订</div>
+    <div class="paper-ref" style="background:rgba(139,149,165,0.08);border-color:rgba(139,149,165,0.25);color:var(--muted);">📄 综述（暂无开源代码仓库）</div>
+  </div>
+  <div class="hero-badges">
+    <span class="survey-badge">Survey</span>
+    <span class="survey-badge" style="background:rgba(34,211,238,0.1);color:var(--cyan);border-color:rgba(34,211,238,0.35);">arXiv 2025.12</span>
+    <span class="survey-badge" style="background:rgba(167,139,250,0.1);color:var(--accent);border-color:rgba(167,139,250,0.35);">3×维度 / 3×功能</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 为什么需要这篇综述</a>
+    <a href="#sec2">2. 边界划分</a>
+    <a href="#sec3">3. Forms 形态</a>
+    <a href="#sec4">4. Functions 功能</a>
+    <a href="#sec5">5. Dynamics 动态</a>
+    <a href="#sec6">6. 基准与框架</a>
+    <a href="#sec7">7. 未来方向</a>
+    <a href="#sec8">8. 小镇关联</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <a href="18-hiagent.html">HiAgent</a>
+  <a href="20-a-mem.html">A-MEM</a>
+  <a href="21-memory-os.html">MemoryOS</a>
+  <a href="06-memori.html">Memori</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>为什么需要这篇综述：Agent 记忆研究的"碎片化"困境</h2>
+    </div>
+
+    <p>2023 年以来，"给 LLM 加记忆"几乎成为 Agent 方向的标配课题：从 MemGPT、Mem0、A-MEM 到 MemoryOS，从 LongMemEval 到 LoCoMo，从 HippoRAG 到 Zep ——<span class="hl">数十个系统、十几个评测、几十种术语同时涌现</span>。但这股繁荣的副作用是：<strong>研究动机、实现方式、评测协议几乎没有公共语言</strong>，传统的"长期/短期记忆"二分法已经完全不够用。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">综述的核心主张（原文摘要转译）</div>
+      <p style="margin-bottom:0;">"Agent memory 与 LLM memory、RAG、Context Engineering <span class="hl">不是同一件事</span>。" 作者统一用 <strong>Forms / Functions / Dynamics</strong> 三个棱镜来观察，给出一张可以让研究者互相对话的"领域坐标图"。</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">3</div>
+        <div class="stat-label">分析维度（Forms / Functions / Dynamics）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">3</div>
+        <div class="stat-label">功能类别（事实 / 经验 / 工作）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">3</div>
+        <div class="stat-label">形态类别（token / 参数 / latent）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">47</div>
+        <div class="stat-label">作者数 · 社区协作综述</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">5</div>
+        <div class="stat-label">未来方向（自动化/RL/多模态/多智能体/可信）</div>
+      </div>
+    </div>
+
+    <p>如果说 2024 年的综述还是"把 memory 分成 long-term / short-term"，这篇则正式宣布：<span class="hl">这个二分法已经失效</span>——它解释不了 MemGPT 的分页、A-MEM 的关联链接、MemoryOS 的三级分层、Zep 的 temporal graph 为什么都叫"记忆"。综述给出的替代方案就是下文要展开的三个棱镜。</p>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>核心贡献一：清晰划定 Agent Memory 的边界</h2>
+    </div>
+
+    <p>这一节是综述最"政治性"的一章——<strong>划清楚"什么才算 agent memory"</strong>。不设边界，讨论就不可能收敛。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>概念</th>
+            <th>存放在哪里</th>
+            <th>典型载荷</th>
+            <th>写入谁来决定</th>
+            <th>与 Agent 关系</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>LLM Memory</strong></td>
+            <td>模型权重 / KV-cache</td>
+            <td>训练语料中的通用知识、上下文窗口内的 token</td>
+            <td>训练时由预训练/微调决定；推理时由输入决定</td>
+            <td>Agent 的"底层记忆"，不是 agent 可主动管理的对象</td>
+          </tr>
+          <tr>
+            <td><strong>RAG</strong></td>
+            <td>外部向量库 / 文档</td>
+            <td>静态知识库（维基、企业文档）</td>
+            <td>系统离线索引，对 agent 的运行史只读</td>
+            <td>是检索通道，<span class="hl">默认不记录 agent 自己的经历</span></td>
+          </tr>
+          <tr>
+            <td><strong>Context Engineering</strong></td>
+            <td>prompt 模板 / 上下文槽位</td>
+            <td>指令、few-shot、工具描述</td>
+            <td>开发者 / 调用方 手工拼装</td>
+            <td>是"记忆使用方式"的工程层，不产生新记忆</td>
+          </tr>
+          <tr style="background:rgba(244,114,182,0.05);">
+            <td><strong>Agent Memory</strong></td>
+            <td>外部结构化/向量 + 可选参数</td>
+            <td>agent <em>自己</em> 的经历、反思、偏好、工作草稿</td>
+            <td><strong>agent 自身在运行中读写</strong></td>
+            <td>让 agent 跨会话持续成长、可追溯、可进化</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">关键判定准则</div>
+      <p style="margin-bottom:0;">一个记忆系统是不是 "agent memory" 的判据不在"长/短"，而在 <span class="hl">"是否是 agent 在运行中生成并再次利用的东西"</span>。按这个标准：RAG 接企业 wiki → <strong>不是</strong>；Smallville 的 memory stream 记录小镇居民今天谁跟谁吵架 → <strong>是</strong>。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">3</div>
+      <h2>核心贡献二 · Forms（形态）：记忆"存在哪一层"</h2>
+    </div>
+
+    <p>综述提出三种 Agent Memory 的物理实现形态。这一维度回答的是："这段记忆到底是 <em>一串 token</em>、<em>一组权重</em>、还是 <em>一个隐向量</em>？"</p>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① Token-level Memory（显式文本记忆）</h4>
+        <p style="margin-bottom:4px;">以自然语言文本 / JSON / 结构化表格的形式保存，放在向量库、知识图谱、文件系统里。检索后回填到 prompt。</p>
+        <p style="margin-bottom:0;"><strong>代表</strong>：Smallville Memory Stream、MemGPT、Mem0、A-MEM、MemoryOS、Memori、Zep。<strong>优点</strong>：可解释、可编辑、可审计；<strong>缺点</strong>：上下文带宽受限，每次检索都要"花 token"。</p>
+      </div>
+      <div class="tier t2">
+        <h4>② Parametric Memory（参数化记忆）</h4>
+        <p style="margin-bottom:4px;">把经验压缩进模型权重/适配器（LoRA / 增量微调 / edit），运行时"自然"产出而不必检索。</p>
+        <p style="margin-bottom:0;"><strong>代表</strong>：持续学习型 agent、knowledge editing（ROME / MEMIT）、personalised LoRA。<strong>优点</strong>：零检索成本；<strong>缺点</strong>：难追溯、难删除，<span class="hl">与 GDPR "被遗忘权" 紧张</span>。</p>
+      </div>
+      <div class="tier t3">
+        <h4>③ Latent Memory（隐空间记忆）</h4>
+        <p style="margin-bottom:4px;">把记忆编码成连续向量 / soft prompt / cache state，以 KV-cache、外部 hidden state 或 retrieval-augmented parameter 的形式参与推理。</p>
+        <p style="margin-bottom:0;"><strong>代表</strong>：RMT、Memorizing Transformers、Recurrent Memory、部分 agent 的 latent plan buffer。<strong>优点</strong>：带宽高、与模型融合深；<strong>缺点</strong>：不可人读、不可跨模型迁移。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">新视角：形态不是对立，而是频谱</div>
+      <p style="margin-bottom:0;">综述强调这三种形态 <span class="hl">常常同时存在于同一个 agent</span>。例如 MemoryOS 同时含 token-level 的长期画像 + latent 的短期 KV 缓存；未来系统可能把"近期"放 latent、"中期"放 token、"终身"压入参数。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>核心贡献三 · Functions（功能）：记忆"用来做什么"</h2>
+    </div>
+
+    <p>比起传统"长短期"划分，功能维度更能反映 agent 真实使用场景。综述把 agent memory 细分为三类：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>功能类别</th>
+            <th>定义</th>
+            <th>典型内容</th>
+            <th>典型系统</th>
+            <th>代表性用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Factual Memory<br>事实记忆</strong></td>
+            <td>关于"世界 / 用户 / 实体"的静态或慢变事实</td>
+            <td>用户偏好、人名、地址、业务术语表</td>
+            <td>Mem0、Memori、Zep（graph 部分）</td>
+            <td>跨会话个性化、客服一致性</td>
+          </tr>
+          <tr>
+            <td><strong>Experiential Memory<br>经验记忆</strong></td>
+            <td>agent 在过去任务/对话中 <em>做过什么、学到什么</em> 的历史</td>
+            <td>对话历史、行动轨迹、反思、工作流成败案例</td>
+            <td>Smallville Memory Stream、Reflexion、A-MEM、Voyager skill lib</td>
+            <td>长期成长、失败规避、经验复用</td>
+          </tr>
+          <tr>
+            <td><strong>Working Memory<br>工作记忆</strong></td>
+            <td>当前任务在进行时的 <em>中间草稿/中间状态</em></td>
+            <td>子目标栈、当前工具调用中间结果、暂存思考链</td>
+            <td>HiAgent、MemGPT 的 main context、plan-and-solve 的 scratchpad</td>
+            <td>多步推理、子任务协调</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">为什么这个三分法重要</div>
+      <p style="margin-bottom:0;">同一段文字在不同的三分位置上，<span class="hl">生命周期、检索策略、遗忘规则完全不同</span>：
+        事实记忆要<strong>去重 + 覆盖更新</strong>；
+        经验记忆要<strong>累积 + 反思升维</strong>；
+        工作记忆要<strong>任务结束即清空</strong>。
+        把三者混在一个 vector store 里是目前很多开源方案的隐性 bug。</p>
+    </div>
+
+    <div class="sv-link">
+      Smallville 的 memory stream 在综述分类里同时落在 <span class="hl">经验记忆</span>（对话、事件、反思）和一部分 <span class="hl">工作记忆</span>（当日计划的中间状态）；<strong>事实记忆</strong>则被"藏"在初始 seed memory 里。这解释了为什么小镇原文需要 recency/importance/relevance 三重评分才能跑起来：它在<em>一个池子里</em>同时服务了两种不同功能。
+    </div>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">5</div>
+      <h2>核心贡献四 · Dynamics（动态）：形成 → 演化 → 检索</h2>
+    </div>
+
+    <p>一段记忆不是"出生即死亡"的静态物。综述把记忆的生命周期拆成三个阶段：</p>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="s-num">阶段 1</div>
+        <h4>Formation 形成</h4>
+        <p style="margin-bottom:0;font-size:13.5px;">从原始交互中<strong>筛选、压缩、抽取</strong>。涉及：重要性评分、LLM 重写、实体抽取、embedding 生成、自动打标签。<br><em>类比：人类"编码"阶段</em></p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 2</div>
+        <h4>Evolution 演化</h4>
+        <p style="margin-bottom:0;font-size:13.5px;">记忆不是 append-only：<strong>反思、合并、升级、遗忘</strong>。A-MEM 的关联建边、MemoryOS 的页换出、Memori 的冲突消解都属于这一层。<br><em>类比：人类"巩固 + 遗忘曲线"</em></p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 3</div>
+        <h4>Retrieval 检索</h4>
+        <p style="margin-bottom:0;font-size:13.5px;">为当前 query 找出<strong>最相关、最新、最重要</strong>的记忆。涉及：向量相似、图遍历、recency/importance 加权、结构化过滤。<br><em>类比：人类"提取"阶段</em></p>
+      </div>
+    </div>
+
+    <h3>动态维度下各系统的侧重</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>系统</th>
+            <th>Formation 亮点</th>
+            <th>Evolution 亮点</th>
+            <th>Retrieval 亮点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Smallville</td>
+            <td>LLM 打重要性分 (1–10)</td>
+            <td>反思：阈值触发升维</td>
+            <td><code>0.5·rec + 0.3·imp + 0.2·rel</code></td>
+          </tr>
+          <tr>
+            <td>MemGPT / Letta</td>
+            <td>对话转档：main ↔ archival</td>
+            <td>OS 式分页、page-in/out</td>
+            <td>函数调用式检索</td>
+          </tr>
+          <tr>
+            <td>A-MEM</td>
+            <td>写入时即生成 tag + keywords</td>
+            <td><strong>Zettelkasten 自动建边</strong></td>
+            <td>向量 + 链接扩展</td>
+          </tr>
+          <tr>
+            <td>MemoryOS</td>
+            <td>分段写入 dialogue chain</td>
+            <td>三级 FIFO 淘汰 + 分页</td>
+            <td>从用户画像 + 近段话题混合召回</td>
+          </tr>
+          <tr>
+            <td>Mem0</td>
+            <td>LLM 抽取 facts 并去重</td>
+            <td>冲突时"覆盖 / 合并 / 忽略"三选一</td>
+            <td>过滤式向量检索</td>
+          </tr>
+          <tr>
+            <td>Zep (Graphiti)</td>
+            <td>时序知识图 + 实体解析</td>
+            <td>版本化事实（temporal validity）</td>
+            <td>图遍历 + 时间窗</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">这篇综述带来的新视角</div>
+      <p style="margin-bottom:0;">以前大家讨论"哪个记忆系统更好"基本不对等——Mem0 强在 <strong>formation</strong>（抽取/去重）；A-MEM 强在 <strong>evolution</strong>（建边）；MemoryOS 强在 <strong>retrieval</strong>（分层调度）。<span class="hl">它们本质在三个不同阶段互补，不是互相替代</span>。综述给了一个可以"分层比较"的公共尺子。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">6</div>
+      <h2>实用清单：Benchmark 目录 + 开源框架速查</h2>
+    </div>
+
+    <h3>6.1 主流 Memory Benchmark 对照</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Benchmark</th>
+            <th>考察重点</th>
+            <th>对话/任务长度</th>
+            <th>主要指标</th>
+            <th>评价维度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>LongMemEval</strong></td>
+            <td>长期用户偏好保持</td>
+            <td>数百到上千轮</td>
+            <td>QA 准确率、关键事实召回</td>
+            <td>事实记忆 · 检索</td>
+          </tr>
+          <tr>
+            <td><strong>LoCoMo</strong></td>
+            <td>长会话一致性（含时间推理）</td>
+            <td>~300 轮/ session</td>
+            <td>F1、BLEU、事件级准确率</td>
+            <td>经验记忆 · 检索 + 时序演化</td>
+          </tr>
+          <tr>
+            <td><strong>MemoryAgentBench / MemBench</strong></td>
+            <td>综合 agent 记忆能力（写读遗忘）</td>
+            <td>多任务多会话</td>
+            <td>任务成功率、跨会话迁移</td>
+            <td>三类功能混合</td>
+          </tr>
+          <tr>
+            <td><strong>PerLTQA / PersonaMem</strong></td>
+            <td>个性化持久问答</td>
+            <td>长时间跨度</td>
+            <td>人物一致性、偏好召回</td>
+            <td>事实 + 经验</td>
+          </tr>
+          <tr>
+            <td><strong>∞Bench / LongBench</strong></td>
+            <td>长上下文通用能力（对照组）</td>
+            <td>百万 token 级</td>
+            <td>阅读理解、摘要</td>
+            <td>常作为"无 memory 的 baseline"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">综述对现有评测的批评</div>
+      <p style="margin-bottom:0;">目前多数 benchmark 只测 <strong>retrieval</strong>（能不能"找回来"），但几乎没人测 <strong>evolution</strong>（冲突事实如何更新、旧事实何时遗忘）。对"记忆系统自动演化"的<span class="hl">评测工具基本空白</span>——这本身就是未来方向。</p>
+    </div>
+
+    <h3>6.2 开源框架一览（与本库已读 deep-dive 的映射）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>核心理念</th>
+            <th>Forms</th>
+            <th>Functions 主攻</th>
+            <th>本库链接</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Mem0</strong></td>
+            <td>事实抽取 + 去重</td>
+            <td>token-level</td>
+            <td>事实记忆</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>Memori</strong></td>
+            <td>双层（短期 working + 长期 fact）</td>
+            <td>token-level</td>
+            <td>事实 + 工作</td>
+            <td><a href="06-memori.html">06-memori</a></td>
+          </tr>
+          <tr>
+            <td><strong>Letta / MemGPT</strong></td>
+            <td>OS 式分页、main vs archival</td>
+            <td>token-level + latent</td>
+            <td>三者兼顾</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>HiAgent</strong></td>
+            <td>分层工作记忆</td>
+            <td>token-level</td>
+            <td>工作记忆</td>
+            <td><a href="18-hiagent.html">18-hiagent</a></td>
+          </tr>
+          <tr>
+            <td><strong>A-MEM</strong></td>
+            <td>Zettelkasten 关联网络</td>
+            <td>token-level + graph</td>
+            <td>经验记忆（演化）</td>
+            <td><a href="20-a-mem.html">20-a-mem</a></td>
+          </tr>
+          <tr>
+            <td><strong>MemoryOS</strong></td>
+            <td>三级分层 + FIFO 调度</td>
+            <td>token-level</td>
+            <td>事实 + 经验</td>
+            <td><a href="21-memory-os.html">21-memory-os</a></td>
+          </tr>
+          <tr>
+            <td><strong>Zep (Graphiti)</strong></td>
+            <td>时序知识图 + 实体解析</td>
+            <td>token-level + graph</td>
+            <td>事实记忆（时序）</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>Generative Agents / Smallville</strong></td>
+            <td>Memory Stream + Reflection</td>
+            <td>token-level</td>
+            <td>经验 + 工作</td>
+            <td><a href="19-generative-agents.html">19-smallville</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">7</div>
+      <h2>未来方向：作者视角下的 Agent Memory Frontier</h2>
+    </div>
+
+    <p>综述结尾列出五条值得重点投入的研究方向，每一条都已经能在本库看到早期萌芽：</p>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① Memory Automation（记忆自动化）</h4>
+        <p style="margin-bottom:0;">目前记忆策略（写什么、何时反思、何时遗忘）大多是<strong>人工规则 + 阈值</strong>。未来：让 agent 自己学会"如何管理自己的记忆"——把 memory management 本身做成一个可学习策略。</p>
+      </div>
+      <div class="tier t2">
+        <h4>② RL Integration（强化学习集成）</h4>
+        <p style="margin-bottom:0;">用 RL 来优化<strong>检索策略、写入时机、遗忘阈值</strong>，让任务反馈信号反向调参记忆模块。与 Voyager 的技能获取、Reflexion 的反思机制天然契合。</p>
+      </div>
+      <div class="tier t3">
+        <h4>③ Multimodal Memory（多模态记忆）</h4>
+        <p style="margin-bottom:0;">记忆不限于文本：<strong>图像、音频、视频、传感器流</strong>都应可被 agent 主动记录。挑战：跨模态的检索、摘要与"重要性"评分。</p>
+      </div>
+      <div class="tier t4">
+        <h4>④ Multi-Agent Memory（多智能体记忆）</h4>
+        <p style="margin-bottom:0;">小镇已经有雏形——agent 间可以<strong>共享、互传、互相污染</strong>记忆。综述提出需要系统研究"共享层级、访问控制、信任链"。</p>
+      </div>
+      <div class="tier" style="border-left-color:var(--red);">
+        <h4>⑤ Trustworthiness（可信：隐私 / 遗忘 / 防攻击）</h4>
+        <p style="margin-bottom:0;">参数化记忆与 <strong>GDPR 被遗忘权</strong>冲突；记忆投毒（memory poisoning）是新型攻击面；长期持久的 agent 甚至会记住不该记住的信息。需要显式的遗忘机制、访问控制、审计日志。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">跨方向串联的预测</div>
+      <p style="margin-bottom:0;">综述隐含的一个判断：<span class="hl">①②（自动化 + RL）会最先突破</span>，因为它们本质是"闭环优化"问题；③④⑤则需要新的评测基础设施。对工程社区而言，现在投入 <strong>自动化 + 可信</strong>两条是性价比最高的。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec8">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">8</div>
+      <h2>与 Generative Agents / 斯坦福小镇的系统性映射</h2>
+    </div>
+
+    <p>把小镇的 memory stream 放进综述的三维坐标里，可以看得更立体：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>小镇组件</th>
+            <th>Forms</th>
+            <th>Functions</th>
+            <th>Dynamics</th>
+            <th>综述视角下的评价</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Memory Stream（主日志）</td>
+            <td>token-level</td>
+            <td>经验记忆为主，工作记忆为辅</td>
+            <td>Formation（LLM 打分）+ Retrieval（三重加权）</td>
+            <td>代表性完整实现，但<strong>没有显式遗忘</strong></td>
+          </tr>
+          <tr>
+            <td>Reflection（反思）</td>
+            <td>token-level</td>
+            <td>经验记忆升维</td>
+            <td>Evolution：阈值触发 + LLM 综合</td>
+            <td>综述中 evolution 的<strong>经典范例</strong></td>
+          </tr>
+          <tr>
+            <td>Plan（当日计划）</td>
+            <td>token-level</td>
+            <td>工作记忆</td>
+            <td>短生命周期，当日写入、当日消费</td>
+            <td>按综述应<strong>独立成池</strong>而非与事件混放</td>
+          </tr>
+          <tr>
+            <td>Seed Memory（初始画像）</td>
+            <td>token-level</td>
+            <td>事实记忆</td>
+            <td>Formation 前置，几乎无 evolution</td>
+            <td>相当于"冷启动 fact store"</td>
+          </tr>
+          <tr>
+            <td>评分公式 0.5·rec + 0.3·imp + 0.2·rel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Retrieval 阶段</td>
+            <td>属于综述"检索动态"中<span class="hl">最早的多因子融合样板</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>用综述视角对照本库 18/19/20/21 号论文</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>论文</th>
+            <th>Forms</th>
+            <th>主攻 Functions</th>
+            <th>主攻 Dynamics 阶段</th>
+            <th>相对小镇的"增量"</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="18-hiagent.html">#18 HiAgent</a></td>
+            <td>token-level</td>
+            <td>工作记忆</td>
+            <td>Formation（分层写入）</td>
+            <td>把小镇混放的"工作记忆"独立成层</td>
+          </tr>
+          <tr>
+            <td><a href="19-generative-agents.html">#19 Smallville</a></td>
+            <td>token-level</td>
+            <td>经验 + 工作</td>
+            <td>三阶段都有，但都是"原始版"</td>
+            <td>原典</td>
+          </tr>
+          <tr>
+            <td><a href="20-a-mem.html">#20 A-MEM</a></td>
+            <td>token-level + graph</td>
+            <td>经验记忆</td>
+            <td>Evolution（自动建边）</td>
+            <td>把小镇的"线性 stream"升级为关联网络</td>
+          </tr>
+          <tr>
+            <td><a href="21-memory-os.html">#21 MemoryOS</a></td>
+            <td>token-level（含分层缓存）</td>
+            <td>事实 + 经验</td>
+            <td>Retrieval（分层调度）</td>
+            <td>把小镇的"单池 + 三因子"升级为 OS 式分级</td>
+          </tr>
+          <tr>
+            <td><a href="06-memori.html">#06 Memori</a></td>
+            <td>token-level</td>
+            <td>事实 + 工作</td>
+            <td>Formation（抽取）+ Evolution（冲突消解）</td>
+            <td>聚焦"个人知识库"与小镇的"社会经验"形成互补</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      如果要给小镇做"综述视角下的体检报告"：<br>
+      · <strong>优点</strong>：覆盖三阶段 dynamics；memory stream 概念开创性；反思机制即 evolution。<br>
+      · <strong>短板</strong>：没有显式遗忘（evolution 不完整）；事实/经验/工作记忆混放在一个池子（functions 没分层）；纯 token-level（forms 单一）；benchmark 上会被新一代系统反超。<br>
+      这正是为什么 MemoryOS、A-MEM、HiAgent 三条技术路线都值得同时吸收——它们分别在 <em>dynamics 的 retrieval</em>、<em>dynamics 的 evolution</em>、<em>functions 的工作记忆</em> 三个维度上各补了小镇的一块短板。
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">综述给本研究库的启示</div>
+      <p style="margin-bottom:0;">以后读任何一篇 memory 相关论文，应先在这张 <strong>Forms × Functions × Dynamics</strong> 的 3×3×3 立方体里找到它的坐标，再看它做了什么"增量"。这比按发表时间追论文高效得多，也能识别那些"换了个名字但本质是同一个单元格"的工作。</p>
+    </div>
+  </div>
+
+  <div class="cross-ref" style="margin:20px auto 0;">
+    <span class="cross-ref-label">延伸阅读：</span>
+    <a href="01-memory-stream.html">01 · Memory Stream</a>
+    <a href="02-reflection.html">02 · Reflection</a>
+    <a href="06-memori.html">06 · Memori</a>
+    <a href="18-hiagent.html">18 · HiAgent</a>
+    <a href="19-generative-agents.html">19 · Smallville</a>
+    <a href="20-a-mem.html">20 · A-MEM</a>
+    <a href="21-memory-os.html">21 · MemoryOS</a>
+    <span class="cr-personal">后加</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 #24 · Memory in the Age of AI Agents — 最全 Agent 记忆综述</p>
+  <p style="margin-top:6px;">
+    <a href="../index1.html" style="color:var(--blue);">← 返回研究索引</a>
+    &nbsp;·&nbsp;
+    <a href="../papers-reference.html#cat-personal" style="color:var(--blue);">论文库 · 个人补充</a>
+    &nbsp;·&nbsp;
+    <a href="../concepts-map.html" style="color:var(--blue);">概念地图</a>
+  </p>
+</div>
+
+</body>
+</html>

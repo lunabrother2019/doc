@@ -236,6 +236,8 @@
       <p>通过交互式 Mermaid 图了解 Generative Agents 的五大支柱、15 个核心概念及其演进关系</p>
       <div class="links">
         <a href="concepts-map.html">3 标签概念图</a>
+        <a href="cot-reflexion-map.html">CoT × Reflexion 关系图</a>
+        <a href="evolution-chains.html" style="background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.3);">🧭 5 条演进链速读</a>
       </div>
     </div>
 
@@ -273,6 +275,8 @@
       <p>5 大核心挑战：仿真验证鸿沟、反思有效性、涌现不可控、记忆权衡、安全脆弱性</p>
       <div class="links">
         <a href="challenge/open-problems.html">五大未解难题</a>
+        <a href="challenge/free-code-vs-reflexion.html">free-code vs Reflexion ⚠</a>
+        <a href="challenge/reflexion-architecture-comparison.html">Reflexion 三组件 vs 解耦架构</a>
       </div>
     </div>
 
@@ -326,6 +330,174 @@
       </div>
     </div>
 
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">12</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/06-memori.html">Memori 持久化记忆层</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>语义三元组 + 混合检索 — 20 倍降本的 Agent 记忆结构化方案</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(251,191,36,.12);color:#fbbf24;">07</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/07-chain-of-thought.html">Chain-of-Thought Prompting</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>CoT 奠基论文 — LLM 推理中间步骤，Agent 推理/规划/反思的基础技术</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(96,165,250,.12);color:#60a5fa;">08</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/08-react.html">ReAct 推理+行动</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>Thought→Action→Observation 循环 — 几乎所有 Agent 框架的基础范式</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(96,165,250,.12);color:#60a5fa;">09</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/09-inner-monologue.html">Inner Monologue 内心独白</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>具身 Agent 闭环推理 — 自然语言作为模块间统一通信接口</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(248,113,113,.12);color:#f87171;">10</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/10-reflexion.html">Reflexion 语言强化学习</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>自然语言反思替代标量 reward — 小镇 Reflection 模块的直接进化</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(251,146,60,.12);color:#fb923c;">11</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/11-tree-of-thoughts.html">Tree of Thoughts 思维树</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>CoT 从单链→树状搜索 — 多方案评估、BFS/DFS 搜索、回溯</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(251,146,60,.12);color:#fb923c;">12</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/12-plan-and-solve.html">Plan-and-Solve 先规划再求解</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>"先制定计划再执行" — 修复 CoT 漏步问题，小镇 daily plan 的理论验证</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(251,146,60,.12);color:#fb923c;">13</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/13-lats.html">LATS 统一搜索框架</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>MCTS + LLM 统一 ReAct/ToT/Reflexion — Agent 推理/行动/规划的大一统</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(52,211,153,.12);color:#34d399;">14</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/14-voyager.html">Voyager 开放世界Agent</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>Minecraft 中的 LLM Agent — 技能库 + 自动课程 + 终身学习</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(34,211,238,.12);color:#22d3ee;">15</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/15-camel.html">CAMEL 角色扮演协作</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>Inception Prompting 驱动多 Agent 自主协作 — 涌现类人社会行为</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(34,211,238,.12);color:#22d3ee;">16</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/16-multi-agent-tot-validator.html">Multi-Agent ToT Validator</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>多 Agent 并行推理 + Validator 逻辑验证 — 集体智慧形式化</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(34,211,238,.12);color:#22d3ee;">17</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/17-agent-society.html">AgentSociety 万人仿真</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>小镇 25→10,000+ Agent — 从概念验证到大规模社会仿真</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">18</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/18-hiagent.html">HiAgent 分层工作记忆</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>双层工作记忆:子目标栈 + 行动窗口 — 长程任务上下文 O(N)→O(1),成功率 2x</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#a78bfa;">
+      <span class="dd-num" style="background:rgba(167,139,250,.18);color:#a78bfa;">19</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/19-generative-agents.html">Generative Agents 原论文</a> <span style="font-size:10px;color:#a78bfa;border:1px solid #a78bfa;padding:1px 6px;border-radius:3px;">核心</span></h4>
+        <p>斯坦福小镇原始论文深度解读 — 五大支柱 + 三个涌现行为 + 影响与局限</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">20</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/20-a-mem.html">A-MEM Zettelkasten 记忆</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>写入时自动建边的关联记忆网络 — NeurIPS 2025,把记忆从日志升级为图</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">21</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/21-memory-os.html">MemoryOS 三级记忆调度</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>把 OS 思想搬到 LLM 记忆 — 短/中/长三级 + FIFO 对话链,LoCoMo F1 +49%</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">22</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/22-metagpt.html">MetaGPT SOP 流水线</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>SOP 编码为 prompt — 五角色通过结构化 artifact 协作,HumanEval 85.9%,ICLR 2024 Oral</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">23</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/23-chatdev.html">ChatDev Waterfall 软件公司</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>Chat Chain + 对话式质疑抗幻觉 — 与 MetaGPT 对照的自由对话路线,ACL 2024</p>
+      </div>
+    </div>
+
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">24</span>
+      <div class="dd-info">
+        <h4><a href="deep-dive/24-memory-survey.html">Memory in the Age of AI Agents 综述</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>最全面的 Agent 记忆综述 — Forms × Functions × Dynamics 三棱镜,arXiv 2025.12</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── CoT-Reflexion Concept Map ── -->
+<div class="section">
+  <h2 class="section-title">专题概念图</h2>
+  <p class="section-sub">CoT × Reflexion 关系谱系 — 从推理到反思的演化全景</p>
+
+  <div class="dd-grid">
+    <div class="dd-card" style="border-color:#f472b6;">
+      <span class="dd-num" style="background:rgba(244,114,182,.12);color:#f472b6;">★</span>
+      <div class="dd-info">
+        <h4><a href="cot-reflexion-map.html">CoT × Reflexion 关系概念图</a> <span style="font-size:10px;color:#f472b6;border:1px dashed #f472b6;padding:1px 6px;border-radius:3px;">后加</span></h4>
+        <p>11 篇论文的完整关系图谱 — Mermaid 交互图 + 演化时间线 + 四层架构 + 小镇模块映射</p>
+      </div>
+    </div>
   </div>
 </div>
 
