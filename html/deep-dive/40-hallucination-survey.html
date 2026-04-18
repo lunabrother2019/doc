@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读40：LLM Agents Suffer from Hallucinations — Agent 幻觉系统综述</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #3a0f2a 0%, #0f1117 50%, #2a0f1f 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero-badges { margin-top: 16px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .survey-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unverified { background: rgba(251,146,60,0.15); color: var(--orange); padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: 600; border: 1px dashed rgba(251,146,60,0.4); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td code { background: var(--bg3); color: var(--yellow); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .tier { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .tier.t1 { border-left-color: var(--green); }
+    .tier.t2 { border-left-color: var(--cyan); }
+    .tier.t3 { border-left-color: var(--pink); }
+    .tier.t4 { border-left-color: var(--orange); }
+    .tier.t5 { border-left-color: var(--red); }
+    .tier h4 { margin-top: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .pipeline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 20px 0 24px; }
+    .pipeline .step { flex: 1 1 180px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; position: relative; }
+    .pipeline .step .s-num { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: var(--pink); margin-bottom: 8px; }
+    .pipeline .step h4 { margin: 0 0 6px; }
+    .pipeline .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+    .faq-q { font-weight: 600; color: var(--cyan); margin-bottom: 10px; font-size: 15px; }
+    .faq-a { color: var(--text); font-size: 14px; line-height: 1.8; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LLM Agents Suffer from Hallucinations — Agent 幻觉系统综述 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：当 Agent 从"纯 LLM 对话"进化为"感知 → 推理 → 规划 → 记忆 → 工具 → 通信"的多模块系统，幻觉也从"一句话编造"升级为 <strong>跨阶段、跨模块、可传播、物理后果不可逆</strong> 的复合现象。本综述首次把 Agent 幻觉拉成一张完整的"五阶段 × 十八成因"地图。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2509.18970" target="_blank">arXiv 2509.18970</a> &middot; Xixun Lin et al.（24 作者） &middot; 2025.09 首版</div>
+    <div class="paper-ref" style="background:rgba(139,149,165,0.08);border-color:rgba(139,149,165,0.25);color:var(--muted);">📄 综述（无统一代码仓库，涉及方法分散于各引用文献）</div>
+  </div>
+  <div class="hero-badges">
+    <span class="survey-badge">Survey</span>
+    <span class="survey-badge" style="background:rgba(34,211,238,0.1);color:var(--cyan);border-color:rgba(34,211,238,0.35);">arXiv 2025.09</span>
+    <span class="survey-badge" style="background:rgba(244,114,182,0.12);color:var(--pink);border-color:rgba(244,114,182,0.4);">5 阶段 / 18 成因</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 五阶段幻觉分类</a>
+    <a href="#sec3">3. Agent 特有幻觉</a>
+    <a href="#sec4">4. 缓解路径</a>
+    <a href="#sec5">5. 小镇警示</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <a href="10-reflexion.html">Reflexion</a>
+  <a href="16-multi-agent-tot-validator.html">MA-ToT Validator</a>
+  <a href="24-memory-survey.html">Memory 综述</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">1</div>
+      <h2>一句话定位：Agent 幻觉不是"LLM 幻觉 + Agent 壳"，而是全新的复合病灶</h2>
+    </div>
+
+    <p>过去两年关于"LLM 幻觉"的综述已经有十余篇，但它们讨论的本质是 <strong>"一句话对不对"</strong>——事实性（factuality）与忠实性（faithfulness）。然而 LLM-based Agent 把模型包进了一个多模块闭环（感知—推理—规划—记忆—工具—通信），<span class="hl-pink">幻觉不再是一次 forward pass 的错误，而是跨模块、跨时间步的"链式污染"</span>。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">综述的核心主张（原文精炼）</div>
+      <p style="margin-bottom:0;">"Agent hallucinations are <strong>compound behaviors</strong> arising from interactions among multiple modules, with propagation chains across multiple steps, and physically consequential errors in real-world systems."<br>
+      —— 与纯 LLM 幻觉的区别不是程度，而是 <span class="hl">拓扑</span>：它发生在图（多模块 DAG）上，不是在序列（token stream）上。</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">5</div>
+        <div class="stat-label">Agent 阶段（推理/执行/感知/记忆/通信）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">18</div>
+        <div class="stat-label">触发成因</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">3</div>
+        <div class="stat-label">缓解路径大类（知识/范式/事后验证）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">10+</div>
+        <div class="stat-label">具体缓解方法</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">6</div>
+        <div class="stat-label">未来方向</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">1st</div>
+        <div class="stat-label">声称"首个 Agent 幻觉综述"</div>
+      </div>
+    </div>
+
+    <p>与传统 LLM 幻觉综述的三点区别：</p>
+    <ul>
+      <li><strong>按"阶段"组织而非按"事实/忠实"两分</strong>——承认 Agent 的内部状态比 LLM 多得多（环境观测、工具返回值、记忆检索结果、多 agent 通信）。</li>
+      <li><strong>承认"物理后果"</strong>——Agent 往往驱动真实工具（API 调用、文件操作、机器人手臂），幻觉不再只是"说错话"而是"做错事"。</li>
+      <li><strong>引入"传播"视角</strong>——一个上游模块的小幻觉，可能在下游被规划器采纳、被记忆固化、被通信广播，形成雪球。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>综述的幻觉分类体系：五阶段 × 十八成因</h2>
+    </div>
+
+    <p>综述以 <strong>Agent 完整工作流</strong> 为骨架，把幻觉按 "发生在哪个阶段" 一刀切开，共五大类，每类下各有 2–3 个子型；再配 18 个触发成因。以下是完整展开。</p>
+
+    <h3>2.1 五大类幻觉概览</h3>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="s-num">阶段 1</div>
+        <h4>Reasoning 推理</h4>
+        <p style="margin-bottom:0;font-size:13px;">理解目标、分解意图、生成计划。典型病症：看起来合理但逻辑错误、子目标不相关、漏掉关键约束。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 2</div>
+        <h4>Execution 执行</h4>
+        <p style="margin-bottom:0;font-size:13px;">选择工具、传参调用。典型病症：调用不存在的工具、捏造参数值、声称执行完成实则未动作。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 3</div>
+        <h4>Perception 感知</h4>
+        <p style="margin-bottom:0;font-size:13px;">对环境观测的内部表示。典型病症：看到了不存在的物体、忽视了真实对象、跨模态对齐错误。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 4</div>
+        <h4>Memorization 记忆</h4>
+        <p style="margin-bottom:0;font-size:13px;">检索/写入记忆。典型病症：召回无关事实、把错误信息当真记下、更新时误删正确记忆。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">阶段 5</div>
+        <h4>Communication 通信</h4>
+        <p style="margin-bottom:0;font-size:13px;">多 agent 间消息传递。典型病症：agent A 捏造事实说给 agent B，B 当真并继续传播。</p>
+      </div>
+    </div>
+
+    <h3>2.2 完整分类表</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>阶段</th>
+            <th>子类幻觉</th>
+            <th>具体表现</th>
+            <th>Smallville 对应环节</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="3"><strong style="color:var(--pink);">Reasoning</strong></td>
+            <td>Goal Understanding</td>
+            <td>误解用户/自身意图</td>
+            <td>居民对 context prompt 的解读偏差</td>
+          </tr>
+          <tr>
+            <td>Intention Decomposition</td>
+            <td>子目标不相关、遗漏、冗余</td>
+            <td>当日计划拆解出不合逻辑的 activity 块</td>
+          </tr>
+          <tr>
+            <td>Planning Generation</td>
+            <td>子意图到具体动作的计划错误</td>
+            <td>把"吃早饭"规划到家里不存在的位置</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong style="color:var(--cyan);">Execution</strong></td>
+            <td>Tool Selection</td>
+            <td>自信地选择不存在/不相关的工具</td>
+            <td>小镇 action API 调用（如操作物体）</td>
+          </tr>
+          <tr>
+            <td>Tool Calling</td>
+            <td>参数错误、省略、捏造</td>
+            <td>给 walk_to 传错目的地坐标</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--green);">Perception</strong></td>
+            <td>Environmental Misperception</td>
+            <td>内部观测与真实环境显著偏离</td>
+            <td>小镇 agent 对周围物体/他人状态的感知错误</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong style="color:var(--yellow);">Memorization</strong></td>
+            <td>Memory Retrieval</td>
+            <td>检索出无关或不存在的信息</td>
+            <td>Memory Stream 按 rec/imp/rel 召回时的假阳性</td>
+          </tr>
+          <tr>
+            <td>Memory Update</td>
+            <td>写入/修改/删除错误</td>
+            <td>Reflection 把错误结论写入高阶记忆</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--red);">Communication</strong></td>
+            <td>Inter-Agent Misinformation</td>
+            <td>交换的消息不准确、误导、捏造</td>
+            <td>居民之间对话时编造八卦、把误信息广播</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.3 十八触发成因（按阶段归类）</h3>
+
+    <div class="tier-grid">
+      <div class="tier t3">
+        <h4>Reasoning 推理阶段（5 因）</h4>
+        <ol style="margin-bottom:0;">
+          <li><strong>Problematic Objective Expression</strong>：用户输入目标不完整、含糊</li>
+          <li><strong>Inadequate Subjective Comprehension</strong>：指令跟随偏差、长程上下文误用</li>
+          <li><strong>Deficient Dependency Modeling</strong>：子意图间依赖关系建模不足</li>
+          <li><strong>Planning Information Misinterpretation</strong>：对可操作对象/自身能力边界的误解</li>
+          <li><strong>Planning Information Misapplication</strong>：逻辑谬误、内省能力不足</li>
+        </ol>
+      </div>
+      <div class="tier t2">
+        <h4>Execution 执行阶段（4 因）</h4>
+        <ol start="6" style="margin-bottom:0;">
+          <li><strong>Tool Documentation Limitation</strong>：工具描述冗余/不完整/不规范</li>
+          <li><strong>Shallow Pattern Understanding</strong>：训练数据中工具使用场景不够多样</li>
+          <li><strong>Weak Dynamic Adaptability</strong>：无法应对工具版本变化、API 废弃</li>
+          <li><strong>Lack of Solvability Awareness</strong>：工具不可用/计划不完整时过度自信</li>
+        </ol>
+      </div>
+      <div class="tier t1">
+        <h4>Perception 感知阶段（2 因）</h4>
+        <ol start="10" style="margin-bottom:0;">
+          <li><strong>Environmental Sensor Malfunction</strong>：相机/麦克风/测量单元的硬件失效</li>
+          <li><strong>Limited Encoding Capability</strong>：单模态表示不足、跨模态协同弱</li>
+        </ol>
+      </div>
+      <div class="tier t4">
+        <h4>Memorization 记忆阶段（4 因）</h4>
+        <ol start="12" style="margin-bottom:0;">
+          <li><strong>Flawed Memory Initialization</strong>：基础记忆有偏/不完整</li>
+          <li><strong>Sub-optimal Retrieval Mechanism</strong>：排序/索引/语义理解差</li>
+          <li><strong>Imperfect Priority Assignment</strong>：遗忘/合并优先级判定错误</li>
+          <li><strong>Inaccurate Information Writing</strong>：压缩损失、格式不规范</li>
+        </ol>
+      </div>
+      <div class="tier t5">
+        <h4>Communication 通信阶段（3 因）</h4>
+        <ol start="16" style="margin-bottom:0;">
+          <li><strong>Erroneous Message Propagation</strong>：事实性/忠实性幻觉在 agent 间扩散</li>
+          <li><strong>Uncoordinated Communication Protocols</strong>：异步调度错位、自然语言格式歧义</li>
+          <li><strong>Ineffective Network Updates</strong>：延迟的/不同步的 agent 间连接更新</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么这个分类比"factuality / faithfulness"两分强</div>
+      <p style="margin-bottom:0;">传统二分法把所有非事实陈述一锅端。综述的五阶段分类使得<span class="hl">治理手段可以"对症下药"</span>：感知幻觉应在视觉编码器/多模态对齐上改进，记忆幻觉应在检索/遗忘策略上改进，通信幻觉应在协议/共识机制上改进——完全不是同一类工程问题。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">3</div>
+      <h2>Agent 特有幻觉 vs 纯 LLM 幻觉：三种"新物种"</h2>
+    </div>
+
+    <p>相较于传统 LLM 幻觉综述（如 Ji et al. 2023 那一代），本综述真正新的贡献是识别出<strong>只有 Agent 才会犯</strong>的三大类幻觉。这些在纯 LLM 里"不存在"，因为纯 LLM 没有循环、没有工具、没有持久记忆。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>纯 LLM 幻觉</th>
+            <th>Agent 特有幻觉</th>
+            <th>Agent 特有的根因</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>时间尺度</td>
+            <td>一次 forward</td>
+            <td>跨多轮、多 episode</td>
+            <td>状态循环 / 记忆持久化</td>
+          </tr>
+          <tr>
+            <td>输入空间</td>
+            <td>仅 token</td>
+            <td>token + 环境观测 + 工具返回</td>
+            <td>感知/执行模块引入新噪声</td>
+          </tr>
+          <tr>
+            <td>错误放大机制</td>
+            <td>一次采样即终止</td>
+            <td>反馈回环累积、跨 agent 传播</td>
+            <td>闭环结构</td>
+          </tr>
+          <tr>
+            <td>典型可观测后果</td>
+            <td>错误回答</td>
+            <td><span class="hl-pink">错误动作（改文件、发邮件、下订单）</span></td>
+            <td>Agent 接入了真实 effector</td>
+          </tr>
+          <tr>
+            <td>可检测性</td>
+            <td>事后比对事实</td>
+            <td>需追溯多模块日志，"归因"困难</td>
+            <td>模块间耦合</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.1 循环带来的幻觉：Hallucination Accumulation</h3>
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">"雪球效应"——Agent 循环独有</div>
+      <p style="margin-bottom:0;">第 T 步一个小幻觉（比如把某物体坐标记错 5 米）进入 <strong>状态 s_T</strong>，第 T+1 步的规划基于 s_T 产生"看似合理"的新动作，但其实是被污染的。经过 10 步 ReAct，原始误差可能被放大数十倍。综述把这类称为 <span class="hl">Hallucination Accumulation</span>，并指出"如何在多步推理中检测误差源"是未解决问题。</p>
+    </div>
+
+    <h3>3.2 工具调用带来的幻觉：Fabricated Tool Invocation</h3>
+    <p>这是纯 LLM 根本不会有的病症：</p>
+    <ul>
+      <li><strong>Tool Selection 幻觉</strong>：从工具库里挑了一个<em>根本不存在</em>的工具名（如发明 <code>send_whatsapp_voice()</code>）。</li>
+      <li><strong>Tool Calling 幻觉</strong>：工具名对但参数捏造（如给真实的 <code>book_flight</code> 传一个查询不到的机场代码）。</li>
+      <li><strong>Silent Success 幻觉</strong>：LLM 在没真正调用工具的情况下，<span class="hl-pink">凭"想象"生成了 tool 返回值并继续推理</span>——这在 ReAct/Reflexion 里被多次观察到。</li>
+      <li><strong>Solvability 盲区</strong>：任务本来就解不了（所需工具未注册），Agent 仍然自信地 "完成" 它。<待实证>：综述是否给出具体比例不详。</li>
+    </ul>
+
+    <h3>3.3 记忆带来的幻觉：Memory Poisoning & False Retrieval</h3>
+    <p>这是本综述与 <a href="24-memory-survey.html">#24 Memory 综述</a> 相互印证的重点：</p>
+    <ul>
+      <li><strong>错误写入被固化</strong>：Reflexion/Reflection 把一条"其实错误"的反思写入长期记忆，之后每次检索都重复错误结论。</li>
+      <li><strong>检索语义漂移</strong>：向量检索召回"看起来相关但其实无关"的旧记忆，被 LLM 当成证据。</li>
+      <li><strong>遗忘失配</strong>：该忘的没忘（旧事实 override 新事实）、不该忘的忘了（重要偏好被换出）。</li>
+      <li><strong>记忆投毒</strong>：对抗场景下外部注入的 prompt 污染长期记忆；综述把这列为 <strong>Trustworthiness</strong> 未解决问题。</li>
+    </ul>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">本综述与 #24 Memory 综述的交集</div>
+      <p style="margin-bottom:0;">#24 Memory 综述在 Dynamics → Evolution 阶段批评"现有评测几乎不测遗忘/冲突消解"，而本篇则在 Memorization 幻觉里给出了 <strong>更精细的症状标签</strong>——两者合起来可以得到一张"Agent 记忆的失败模式×评测缺口"完整对照，是未来 benchmark 设计的关键依据。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>缓解路径：三大分支 / 十余方法</h2>
+    </div>
+
+    <p>综述把现有缓解工作拆成三条主线：<strong>知识利用（Knowledge Utilization）</strong>、<strong>范式改进（Paradigm Improvement）</strong>、<strong>事后验证（Post-hoc Verification）</strong>。每条线都可以在本库现有 deep-dive 里找到对应样本。</p>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① 知识利用分支（外部 + 内部知识）</h4>
+        <p><strong>外部知识引导</strong>：</p>
+        <ul>
+          <li><strong>Expert Knowledge</strong>：引入知识库、规则约束（数学/语言学/程序学）、合成数据集</li>
+          <li><strong>World Models</strong>：物理法则、社会系统知识；例如 NavMorph（环境知识）、WKM（常识知识）<待实证>：具体实现细节需查原论文</li>
+        </ul>
+        <p style="margin-bottom:0;"><strong>内部知识增强</strong>：</p>
+        <ul style="margin-bottom:0;">
+          <li><strong>Prompt Engineering</strong>：CoT（思维链）、ToT（思维树）、constrained prompting（语义/空间约束）</li>
+          <li><strong>Knowledge Editing</strong>：locate-and-edit、meta-learning（替换错误知识）</li>
+          <li><strong>Knowledge Unlearning</strong>：参数优化、参数合并（删除错误内容）</li>
+        </ul>
+      </div>
+
+      <div class="tier t2">
+        <h4>② 范式改进分支（训练/学习结构创新）</h4>
+        <ul style="margin-bottom:0;">
+          <li><strong>Contrastive Learning</strong>：自监督区分"对/错"模式</li>
+          <li><strong>Curriculum Learning</strong>：从简到难的任务序列</li>
+          <li><strong>Reinforcement Learning</strong>：trial-feedback-adjustment 闭环优化策略（与 Reflexion 一脉相承）</li>
+          <li><strong>Causal Learning</strong>：建模因果关系而非相关性</li>
+          <li><strong>Graph Learning</strong>：把工具调用/记忆结构图化，降低规划幻觉</li>
+        </ul>
+      </div>
+
+      <div class="tier t3">
+        <h4>③ 事后验证分支（Self-correct / External Validator）</h4>
+        <ul style="margin-bottom:0;">
+          <li><strong>Self-verification</strong>：Agent 自己再生成一轮验证（对应 <a href="10-reflexion.html">#10 Reflexion</a>、Self-Refine 系列）</li>
+          <li><strong>Validator Assistance</strong>：外部验证者/专家模型对输出做校准（对应 <a href="16-multi-agent-tot-validator.html">#16 MA-ToT Validator</a>）</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>4.1 缓解路径 → 本库已读论文映射</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>综述提出的缓解类型</th>
+            <th>针对的幻觉阶段</th>
+            <th>本库最相关 deep-dive</th>
+            <th>落地机制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CoT / ToT（Prompt Engineering）</td>
+            <td>Reasoning</td>
+            <td><a href="07-chain-of-thought.html">#07 CoT</a> / <a href="11-tree-of-thoughts.html">#11 ToT</a></td>
+            <td>显式化推理路径，降低 Planning Generation 幻觉</td>
+          </tr>
+          <tr>
+            <td>Self-verification</td>
+            <td>全阶段可用</td>
+            <td><a href="10-reflexion.html">#10 Reflexion</a></td>
+            <td>Agent 自我反思后回写记忆</td>
+          </tr>
+          <tr>
+            <td>Validator Assistance</td>
+            <td>Reasoning / Communication</td>
+            <td><a href="16-multi-agent-tot-validator.html">#16 MA-ToT Validator</a></td>
+            <td>专用 Validator agent 核对子结论</td>
+          </tr>
+          <tr>
+            <td>ReAct 式工具接地</td>
+            <td>Execution</td>
+            <td><a href="08-react.html">#08 ReAct</a></td>
+            <td>把"思考 + 工具"绑定到真实观测</td>
+          </tr>
+          <tr>
+            <td>RAG / 检索接地</td>
+            <td>Reasoning / Memorization</td>
+            <td><a href="24-memory-survey.html">#24 Memory 综述</a></td>
+            <td>外部知识检索作为锚定</td>
+          </tr>
+          <tr>
+            <td>RL 闭环（trial-feedback-adjustment）</td>
+            <td>Execution / Reasoning</td>
+            <td><a href="14-voyager.html">#14 Voyager</a></td>
+            <td>技能获取中失败→改代码→再试</td>
+          </tr>
+          <tr>
+            <td>Graph-based Memory</td>
+            <td>Memorization</td>
+            <td><a href="20-a-mem.html">#20 A-MEM</a></td>
+            <td>Zettelkasten 关联网络降低误召回</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">综述的"治疗建议"小结</div>
+      <p style="margin-bottom:0;">没有单一银弹：Reasoning 幻觉用 CoT + Self-verification；Execution 幻觉用 ReAct + 工具文档标准化；Memorization 幻觉用 RAG + 冲突消解 + 显式遗忘；Communication 幻觉用 Validator 或 共识协议。<span class="hl">真正健壮的 Agent 必须是多层防御的组合，不是单一方法。</span></p>
+    </div>
+
+    <h3>4.2 检测方法（相对缓解方法更不成熟）</h3>
+    <ul>
+      <li><strong>Reasoning/Execution</strong>：逻辑一致性检查、工具可行性验证</li>
+      <li><strong>Perception</strong>：传感器置信度评分、多模态一致性分析</li>
+      <li><strong>Memorization</strong>：记忆一致性校验、检索相关性评分</li>
+      <li><strong>Communication</strong>：消息准确性评估、协议符合性检查</li>
+    </ul>
+    <p style="color:var(--muted);font-size:13px;">综述明确指出：<strong>检测方法的成熟度远低于缓解方法</strong>——这也解释了为什么工业界部署 Agent 时常常"发生了幻觉但直到用户投诉才发现"。</p>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>对小镇用户模拟的警示：哪些机制会放大幻觉？</h2>
+    </div>
+
+    <p>把综述的 5 阶段 × 18 成因映射回斯坦福小镇，会发现小镇的几个标志性机制恰恰是 <strong>幻觉放大器</strong>。这对"用 Generative Agents 做用户行为模拟"的研究者尤其重要——幻觉不是 bug，是<span class="hl-pink">被架构结构性放大</span>的特征。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>小镇机制</th>
+            <th>原始意图</th>
+            <th>被综述识别出的"幻觉放大路径"</th>
+            <th>对用户模拟的风险</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Memory Stream 持久存储</strong></td>
+            <td>保留所有经历，支持长期演化</td>
+            <td>一次错误观察/错误反思 → 进入 stream → 后续检索反复复现</td>
+            <td>错误信念会"<span class="hl">在居民身上生根</span>"，影响后续所有决策</td>
+          </tr>
+          <tr>
+            <td><strong>Reflection 反思升维</strong></td>
+            <td>把琐碎经历归纳成高阶洞察</td>
+            <td>Memory Update 幻觉：把错误前提归纳成"高可信度结论"，因为它看起来像洞察</td>
+            <td>模拟的用户画像会形成<strong>系统性偏差</strong>，越反思越自信错误</td>
+          </tr>
+          <tr>
+            <td><strong>Inter-Agent 对话</strong></td>
+            <td>居民互相交流、协作</td>
+            <td>Communication 幻觉：A 编造事实 → B 当真 → B 记入 memory → B 再传给 C</td>
+            <td>"假消息在小镇里复制"——实验结论被污染</td>
+          </tr>
+          <tr>
+            <td><strong>当日 Plan 分解</strong></td>
+            <td>从粗到细生成行动链</td>
+            <td>Intention Decomposition + Planning Generation 幻觉叠加</td>
+            <td>居民计划"去不存在的地方做不存在的事"，仿真失真</td>
+          </tr>
+          <tr>
+            <td><strong>retrieval = 0.5·rec + 0.3·imp + 0.2·rel</strong></td>
+            <td>三因子加权召回</td>
+            <td>Memory Retrieval 幻觉：相似度假阳性 + 重要性误判</td>
+            <td>错误记忆以高分被召回，喂给下一次 prompt</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sv-link">
+      综述 5 阶段在小镇里 <strong>全部</strong> 都出现：感知（对环境对象的解读）、推理（计划分解）、执行（action 指令）、记忆（stream 写读）、通信（agent 对话）。<br>
+      更糟的是：小镇没有任何 <span class="hl">显式验证器</span>——没有 Validator agent，也没有外部 ground truth 对照。这等于把"无防御配置"推向大规模仿真，成因 #1（目标模糊）、#2（长程上下文误用）、#13（检索次优）、#16（消息传播）会联合发作。
+    </div>
+
+    <h3>5.1 小镇做"用户模拟"时最值得警惕的三条放大链</h3>
+    <div class="tier-grid">
+      <div class="tier t4">
+        <h4>链 1：Perception → Memory → Reflection（内部污染闭环）</h4>
+        <p style="margin-bottom:0;">居民错误地把 Alice 的中性表情解读为"生气" → 写入 memory → 到阈值触发 reflection → 升维为 "Alice 最近情绪不稳定" → 作为高权重事实被反复召回。整个过程<span class="hl">无人复核</span>，对用户画像研究是致命的。</p>
+      </div>
+      <div class="tier t5">
+        <h4>链 2：Communication → Memory → Communication（群体级放大）</h4>
+        <p style="margin-bottom:0;">居民 A 在对话中编造"Bob 要搬家" → Alice 信了写入自己 memory → Alice 跟 Carol 聊天时把它当事实再讲一遍。三步内，一个 A 凭空生成的消息变成<strong>社区共识</strong>。这是社会模拟实验最容易出现的污染路径，且非常像真实人类的谣言扩散——但问题在于这里<em>是 LLM 编造的</em>，不是仿真出的涌现现象。</p>
+      </div>
+      <div class="tier t3">
+        <h4>链 3：Planning → Execution → Memory（行动污染）</h4>
+        <p style="margin-bottom:0;">计划"去图书馆"，但 action 调用到了不存在的 location → silent success 地"完成"（LLM 自填"我到了"）→ memory 里记录"今天去过图书馆"。之后居民相信自己去过图书馆，<strong>基于假经历</strong>规划后续行为。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">给小镇/用户模拟研究者的实操建议</div>
+      <ol style="margin-bottom:0;">
+        <li><strong>在 reflection 前插入 self-verification</strong>：每条高阶反思写入前，让 agent 再 check 一遍原始 memory 支撑。</li>
+        <li><strong>给通信引入 validator</strong>：关键对话内容（涉及第三人信息）由独立 agent 交叉验证，类似 <a href="16-multi-agent-tot-validator.html">#16 MA-ToT Validator</a>。</li>
+        <li><strong>为工具/动作增加 solvability check</strong>：action 执行前显式判断目标是否可达，避免 silent success。</li>
+        <li><strong>显式遗忘机制</strong>：参考 #24 综述所指"evolution 阶段缺遗忘"，引入冲突解消策略。</li>
+        <li><strong>实验日志保留模块级追溯</strong>：每条 memory 记录"哪一步感知/推理/通信产生"，使幻觉归因成为可能。</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">6</div>
+      <h2>FAQ（两问）</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q1. 本综述与之前的 LLM 幻觉综述（比如 Huang 2023 / Ji 2023）相比，有必要单独存在吗？</div>
+      <div class="faq-a">
+        <p>有，必要性非常强。原因不是"换个场景重新写一遍"，而是 <strong>Agent 引入了三种此前不存在的幻觉来源</strong>：</p>
+        <ul>
+          <li><strong>循环结构</strong>：LLM 幻觉只看一次 forward；Agent 幻觉必须看多轮传播——需要全新的"累积"视角。</li>
+          <li><strong>外部 effector</strong>：LLM 幻觉最多是"说错"；Agent 幻觉是"做错"——后果与治理手段完全不同。</li>
+          <li><strong>多 agent 社会层</strong>：纯 LLM 不存在"通信幻觉"这一类型，本综述把它单独列出是原创贡献。</li>
+        </ul>
+        <p style="margin-bottom:0;">此外，传统二分（factuality / faithfulness）在 Agent 场景里没有粒度：一条错误的工具参数既不是事实性也不是忠实性问题。综述的"五阶段"分类是对旧框架的必要升级。<待实证>：是否真的是"首个 Agent 幻觉综述"有待对比 2024 年同类工作。</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q2. 工程上如果我今天就要构建一个"幻觉受控"的 Agent，应该优先抓哪几件事？</div>
+      <div class="faq-a">
+        <p>按综述的"阶段 × 成因"排序，投入产出比最高的三件事：</p>
+        <ol>
+          <li><strong>工具层最先做</strong>：Execution 幻觉最容易检测也最容易修——标准化工具文档（成因 #6）、加 solvability check（成因 #9）、工具调用后强制验证返回值（避免 silent success）。这一层改造成本低但直接消灭"最有物理后果"的一类幻觉。</li>
+          <li><strong>记忆层加冲突消解</strong>：参考 <a href="06-memori.html">#06 Memori</a> 的 "overwrite / merge / ignore" 三选一，以及 <a href="20-a-mem.html">#20 A-MEM</a> 的关联网络，避免错误记忆被反复召回。显式遗忘比"永远 append"安全得多。</li>
+          <li><strong>反思层加自验证</strong>：在 Reflection 写入前强制一轮 self-check，对应综述"Self-verification"分支。这是唯一能阻断"Perception → Memory → Reflection"污染闭环的点。</li>
+        </ol>
+        <p style="margin-bottom:0;"><strong>不建议优先做的</strong>：通信协议标准化（成因 #17）、causal learning（范式改进）——这些对研究有价值，但对当前 agent 产品的幻觉消除效果有限。先做"能检测的"，再做"能预防的"。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-ref" style="margin:20px auto 0;">
+    <span class="cross-ref-label">延伸阅读：</span>
+    <a href="07-chain-of-thought.html">07 · CoT</a>
+    <a href="08-react.html">08 · ReAct</a>
+    <a href="10-reflexion.html">10 · Reflexion</a>
+    <a href="11-tree-of-thoughts.html">11 · ToT</a>
+    <a href="16-multi-agent-tot-validator.html">16 · MA-ToT Validator</a>
+    <a href="19-generative-agents.html">19 · Smallville</a>
+    <a href="24-memory-survey.html">24 · Memory 综述</a>
+    <span class="cr-personal">后加</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 #40 · LLM Agents Suffer from Hallucinations — Agent 幻觉系统综述</p>
+  <p style="margin-top:6px;">
+    <a href="../index1.html" style="color:var(--blue);">← 返回研究索引</a>
+    &nbsp;·&nbsp;
+    <a href="../papers-reference.html#cat-personal" style="color:var(--blue);">论文库 · 个人补充</a>
+    &nbsp;·&nbsp;
+    <a href="../concepts-map.html" style="color:var(--blue);">概念地图</a>
+  </p>
+</div>
+
+</body>
+</html>

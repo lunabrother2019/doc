@@ -52,12 +52,14 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/36-critical-perspectives.html` — "后加": Critical Perspectives on Generative Social Simulation with LLMs (Larooij & Törnberg, Springer AI Review 2025) — 35-paper critical review covering prior pollution, diversity collapse, LLM-as-Judge loops
 - `html/deep-dive/37-concordia.html` — "后加": Concordia (Google DeepMind, arXiv:2312.03664) — Entity × Component × Engine library for generative social simulation
 - `html/deep-dive/38-sotopia.html` — "后加": SOTOPIA (CMU LTI, arXiv:2310.11667, ICLR 2024) + SOTOPIA-S4 (arXiv:2504.16122) — 7-dimension social intelligence evaluation framework
+- `html/deep-dive/39-sweet-sour.html` — "后加": Sweet&Sour (arXiv:2411.02223, NeurIPS 2024) — positive-experience reflection complements Reflexion's failure-only focus; ScienceWorld benchmark
+- `html/deep-dive/40-hallucination-survey.html` — "后加": LLM-based Agents Suffer from Hallucinations: A Survey (arXiv:2509.18970, 2025) — 5-stage hallucination taxonomy, agent-specific failure modes, mitigation pathways
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 38). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 40). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

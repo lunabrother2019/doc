@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读39：Sweet&Sour — 成功经验也值得反思（不只从失败学习）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2d1f1b 0%, #0f1117 50%, #1b1340 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 780px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .card:hover { border-color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(167,139,250,0.03); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 15px; color: var(--cyan); letter-spacing: 0.5px; white-space: pre-wrap; line-height: 1.9; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; }
+
+    .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 24px; }
+    .tool-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.t1::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .tool-card.t2::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+    .tool-card.t3::before { background: linear-gradient(90deg, var(--accent), var(--pink)); }
+    .tool-card.t4::before { background: linear-gradient(90deg, var(--blue), var(--accent)); }
+    .tool-card .tool-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tool-card .tool-desc { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .footer a { color: var(--muted); margin: 0 8px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 36px 16px 28px; }
+      .container { padding: 20px 12px 60px; }
+      .card { padding: 14px 16px; }
+      .tool-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .dual-flow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .flow-col { background: var(--bg2); border-radius: 12px; padding: 18px 20px; border: 1px solid var(--border); }
+    .flow-col.sweet { border-left: 4px solid var(--pink); }
+    .flow-col.sour { border-left: 4px solid var(--orange); }
+    .flow-col h4 { font-size: 15px; margin: 0 0 8px; }
+    .flow-col.sweet h4 { color: var(--pink); }
+    .flow-col.sour h4 { color: var(--orange); }
+    .flow-col ul { padding-left: 20px; margin-bottom: 0; }
+    .flow-col li { font-size: 13.5px; }
+    @media (max-width: 640px) { .dual-flow { grid-template-columns: 1fr; } }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-q { font-weight: 600; color: var(--yellow); margin-bottom: 8px; font-size: 14.5px; }
+    .faq-a { color: #c9d1d9; font-size: 14px; line-height: 1.8; }
+
+    .tag-unverified { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: rgba(251,146,60,0.15); color: var(--orange); border: 1px dashed var(--orange); font-weight: 600; margin-left: 4px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<!-- ========== Hero ========== -->
+<div class="hero">
+  <h1>Sweet&amp;Sour — 成功经验也值得反思（不只从失败学习）<span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：Reflexion 只从失败中反思，本文加入"成功经验反思"——在每个子目标达成后立即反思"为什么成功"，并通过短期/长期双层记忆管理让反思即刻可用，弥补小模型与"一上来就顺"场景下的反思失效问题</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2411.02223" target="_blank">arXiv 2411.02223</a> &middot; Lippmann, Spaan, Yang &middot; TU Delft &middot; 2024</div>
+    <div class="paper-ref">NeurIPS 2024 Language Gamification Workshop</div>
+  </div>
+</div>
+
+<!-- ========== Nav ========== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 动机：Reflexion 盲区</a>
+    <a href="#sec3">3. 双流反思 + 管理记忆</a>
+    <a href="#sec4">4. 实验：ScienceWorld</a>
+    <a href="#sec5">5. 与 10/25 对照</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="10-reflexion.html">10 Reflexion</a>
+  <a href="25-expel-erl.html">25 ExpeL</a>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<!-- ========== Content ========== -->
+<div class="container">
+
+  <!-- ===== Section 1 ===== -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">1</div>
+      <h2>一句话定位</h2>
+    </div>
+
+    <p>Sweet&amp;Sour 是对 <a href="10-reflexion.html">Reflexion</a> 反思范式的一次"对称补全"：<span class="hl-pink">Reflexion 只在失败（sour）后反思，Sweet&amp;Sour 增加了成功（sweet）后的反思</span>，并引入短期/长期双缓冲的管理记忆机制，让成功经验可以在<strong>同一轮尝试内</strong>立即复用，而不必等到下一轮重开。</p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">+9.3</div>
+        <div class="stat-label">GPT-4o 平均分提升<br>(vs Reflexion 45.3→54.6)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">+17.0</div>
+        <div class="stat-label">Mistral Large 2 提升<br>(27.6→44.6)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">+10.8</div>
+        <div class="stat-label">Llama 3.1 8B 提升<br>(21.7→32.5)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">30</div>
+        <div class="stat-label">ScienceWorld 任务<br>(10×变体 / 150 step 上限)</div>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">一句话摘要</div>
+      "别只从失败里学习——人类从成功里学到的更多。"Sweet&amp;Sour 让 LLM Agent 在达成每个 subgoal 后追加一段"为什么成功"的反思，并用 short-term buffer 在<strong>当前 episode 内</strong>立即注入 prompt；episode 结束再将其归并到 long-term 记忆，从而打破 Reflexion "只有重开一轮才获益"的闭环。
+    </div>
+  </div>
+
+  <!-- ===== Section 2 ===== -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>动机：Reflexion 的三个盲区</h2>
+    </div>
+
+    <p>作者首先把 Reflexion 范式放到显微镜下，梳理出三个在实际部署中被反复观察到的失效模式：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--orange);">① 一上来就顺 → 反思失效</div>
+        <div class="tool-desc">如果 agent 在第一次尝试中就部分成功（拿到部分 reward 但没完成全部 subgoal），Reflexion 没有"失败信号"去触发反思。它只会把 trajectory 原样塞回去，丧失了进一步加深正确策略的机会。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--red);">② 小模型不会反思</div>
+        <div class="tool-desc">Reflexion 假设 LLM 有稳健的自我诊断能力。但在 Llama 8B 这类小模型上，Reflexion 的诊断经常"幻觉式归因"——写出一段看似合理、实则错误的反思，反而把下一轮带偏。</div>
+      </div>
+      <div class="tool-card t2">
+        <div class="tool-name" style="color:var(--yellow);">③ 依赖外部反馈</div>
+        <div class="tool-desc">必须等 Evaluator 明确判"失败"才能触发反思。对于部分奖励、稀疏奖励、或没有明确结束信号的任务，Reflexion 不知道何时反思。</div>
+      </div>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">核心洞察：反思是对称的</div>
+      现有方法（Reflexion、Self-Refine、Retroformer 等）的反思对象<strong>都是"出错了什么"</strong>。但人类学习是对称的——遇到一个有效的策略时，我们会在内心默念"原来这样做是对的，下次类似情况继续这样"。Sweet&amp;Sour 把这种"success rehearsal"的认知操作显式化：每次 reward 增加时，query LLM 去"verbalize what made the current policy successful"。
+    </div>
+
+    <h3>为什么"同一 episode 内立即可用"很重要？</h3>
+    <p>Reflexion 的记忆粒度是<strong>跨 attempt 的</strong>——反思只有在下一轮重开时才会被注入 prompt。这意味着：即使 agent 在 step 30 想明白了某个道理，这个道理也要等到下一次 attempt 的 step 1 才能生效，中间 step 30→step 150 的所有决策都还在"老脑子"上。Sweet&amp;Sour 的 short-term buffer 让反思<span class="hl">在同一 trajectory 内就能影响后续 step</span>，解决了反思延迟问题。<span class="tag-unverified">&lt;待实证&gt;</span>（论文未正面量化此"延迟"收益，但图 1 的对比图示清晰展示了"Next timestep"与"Next attempt"的差异）</p>
+  </div>
+
+  <!-- ===== Section 3 ===== -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>双流反思 + 管理记忆</h2>
+    </div>
+
+    <p>Sweet&amp;Sour 的技术方案由两个正交组件构成：<strong>（A）双流反思</strong>——在成功与失败两端都生成反思；<strong>（B）双缓冲记忆</strong>——区分短期与长期存储。</p>
+
+    <h3>A. 双流反思（Sweet / Sour）</h3>
+
+    <div class="dual-flow">
+      <div class="flow-col sweet">
+        <h4>🍬 Sweet：成功经验反思</h4>
+        <ul>
+          <li><strong>触发</strong>：subgoal 达成（reward 增量 &gt; 0）</li>
+          <li><strong>Prompt 要点</strong>：让 LLM "extrapolate from"当前策略，口头化"what made the current policy successful"以及"what can be generalized"</li>
+          <li><strong>产物</strong>：一段自然语言的成功策略抽象（可迁移的启发式）</li>
+          <li><strong>去向</strong>：先进 short-term buffer，与 <code>(obs, action, reward)</code> 一同打包为 tuple <code>(reflection<sub>t</sub>, o<sub>t</sub>, a<sub>t</sub>, r<sub>t</sub>)</code></li>
+        </ul>
+      </div>
+      <div class="flow-col sour">
+        <h4>🍋 Sour：失败经验反思</h4>
+        <ul>
+          <li><strong>触发</strong>：一次 attempt 失败（达到 step 上限或明确报错）</li>
+          <li><strong>Prompt 要点</strong>：沿用 Reflexion 的诊断型 prompt——"devise a concise, new plan of action that accounts for your mistake with references to specific actions that you should have taken"</li>
+          <li><strong>产物</strong>：对错因的诊断 + 下轮改进建议</li>
+          <li><strong>去向</strong>：<strong>直接进 long-term memory</strong>，供下一次 attempt 开始时注入 prompt</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">为什么 sweet 反思比 sour 反思更便宜</div>
+      sour 反思需要 agent 具备"自我诊断能力"——找出做错的原因，这在小模型上极其困难。但 sweet 反思只需要 agent "复述已经有效的做法"——这是一个<strong>描述性任务</strong>而非<strong>归因性任务</strong>，对 LLM 的认知负担小得多。这解释了为什么 Sweet&amp;Sour 在 Llama 8B 上的提升幅度（+10.8）仍然显著，而纯 Reflexion 在小模型上几乎毫无起色（21.7 vs ReAct 20.5）。
+    </div>
+
+    <h3>B. 管理记忆（Managed Memory）</h3>
+
+    <p>为了让 sweet 反思能够"<strong>当下即用</strong>"，作者引入了一个 dual-buffer 的记忆结构：</p>
+
+    <div class="tool-grid">
+      <div class="tool-card t1">
+        <div class="tool-name" style="color:var(--green);">Short-term Buffer（短期缓冲）</div>
+        <div class="tool-desc">存放当前 episode 内产生的 sweet 反思。在每次 LLM 调用时，当前短期缓冲中的所有反思都会被注入 prompt，使得"在 step t 产生的成功启发可以立即影响 step t+1 的决策"。</div>
+      </div>
+      <div class="tool-card t3">
+        <div class="tool-name" style="color:var(--pink);">Long-term Memory（长期记忆）</div>
+        <div class="tool-desc">跨 episode 持续累积。sweet 反思会在 episode 结束（无论成功或失败）后被"固化"迁移过来；sour 反思则<strong>绕过 short-term</strong>，失败即刻进入 long-term，供下一次 attempt 使用。</div>
+      </div>
+    </div>
+
+    <h3>记忆迁移规则</h3>
+    <ol>
+      <li><strong>subgoal 达成</strong> → 生成 sweet 反思 → 进 <code>short-term</code></li>
+      <li><strong>episode 完成（达成最终目标）</strong> → 整个 <code>short-term</code> 归并进 <code>long-term</code></li>
+      <li><strong>episode 失败（达到 150 step 上限或出错）</strong> → 生成 sour 反思 → 直接进 <code>long-term</code>，同时终止 short-term 收集</li>
+      <li><strong>下一次 attempt</strong> → 重置 short-term，从 long-term 检索相关反思作为 demo 注入</li>
+    </ol>
+
+    <div class="formula"><span class="label">决策时刻 prompt 构造</span>prompt<sub>t</sub> = Demo + SubGoals + LongTermMem + ShortTermMem<sub>&lt;t</sub> + Trajectory<sub>&lt;t</sub></div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">设计精髓</div>
+      Reflexion 的反思<strong>粒度是 episode</strong>（跨尝试）；Sweet&amp;Sour 的 sweet 反思<strong>粒度是 subgoal</strong>（段内即时）。这是一个看似微小但影响深远的改动——它把"反思"从 outer-loop 的策略更新下沉到 inner-loop 的决策链路里，既避免了等下一轮才能生效的滞后，又把成功经验及时固化下来防止遗忘。
+    </div>
+  </div>
+
+  <!-- ===== Section 4 ===== -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>实验：ScienceWorld 基准</h2>
+    </div>
+
+    <h3>4.1 为什么选 ScienceWorld 而非 ALFWorld</h3>
+    <p>作者明确说明：<span class="hl-pink">放弃了 ALFWorld 和 TWC</span>，原因是对当前 LLM-based agent 而言这些基准<strong>过于简单</strong>，容易在任何反思方法下都撞到上限。<a href="https://sciworld.apps.allenai.org/" target="_blank">ScienceWorld</a> 则提供了：</p>
+    <ul>
+      <li><strong>10 个互联场景</strong>（温室、工作坊等）</li>
+      <li><strong>200+ 可交互物体</strong> 与 <strong>25 个 action template</strong></li>
+      <li><strong>30 个不同任务</strong>，每个最多 10 变体（如"煮沸"、"测量电阻"、"生长植物"）</li>
+      <li><strong>平均最优决策深度 50 步</strong>，step 上限 150</li>
+      <li><strong>稀疏 subgoal reward</strong>（0-100 分）</li>
+    </ul>
+
+    <h3>4.2 对比方法</h3>
+    <ul>
+      <li><strong>CALM</strong>：基于 DRRN + fine-tuned 因果语言模型的 rerank 方法（非 LLM agent 基线）</li>
+      <li><strong>ReAct</strong>：无反思，纯 THINK+ACT 的 few-shot 基线</li>
+      <li><strong>Reflexion</strong>：最多 4 轮尝试，失败时反思并注入下一轮</li>
+      <li><strong>Sweet&amp;Sour (ours)</strong>：同上 4 轮 + sweet 反思 + 管理记忆</li>
+    </ul>
+
+    <h3>4.3 测试模型（参数量递减）</h3>
+    <ul>
+      <li><strong>GPT-4o</strong>（gpt-4o-2024-08-06）— 闭源大模型代表</li>
+      <li><strong>Mistral Large 2</strong>（mistral-large-2407）— 开源中大模型</li>
+      <li><strong>Llama 3.1 8B Instruct</strong> — 小模型代表</li>
+    </ul>
+
+    <h3>4.4 主结果（平均 score，越高越好）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>方法</th><th>Llama 8B</th><th>Mistral Large 2</th><th>GPT-4o</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CALM（非 LLM）</td>
+            <td colspan="3" style="text-align:center; color:var(--muted);">5.07（单模型）</td>
+          </tr>
+          <tr>
+            <td>ReAct</td>
+            <td>20.5</td><td>24.8</td><td>36.0</td>
+          </tr>
+          <tr>
+            <td>Reflexion</td>
+            <td>21.7</td><td>27.6</td><td>45.3</td>
+          </tr>
+          <tr style="background:rgba(244,114,182,0.06);">
+            <td><strong>Sweet&amp;Sour</strong></td>
+            <td style="color:var(--pink); font-weight:700;">32.5</td>
+            <td style="color:var(--pink); font-weight:700;">44.6</td>
+            <td style="color:var(--pink); font-weight:700;">54.6</td>
+          </tr>
+          <tr>
+            <td>Sweet&amp;Sour (ablate: only sour)</td>
+            <td style="color:var(--muted);">24.6</td>
+            <td style="color:var(--muted);">31.1</td>
+            <td style="color:var(--muted);">44.9</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">消融结论</div>
+      把 sweet 反思关掉（只保留 sour 反思），性能立刻回落到接近 Reflexion 的水平（Llama 24.6 ≈ 21.7、Mistral 31.1 ≈ 27.6、GPT-4o 44.9 ≈ 45.3）。这证明<strong>提升的核心来源正是"成功反思"本身</strong>，而不是管理记忆结构带来的副作用。
+    </div>
+
+    <h3>4.5 "Anti-Tilt"现象：中等难度任务的关键差距</h3>
+
+    <p>作者通过任务难度分层观察到一个有趣现象——称之为 <strong>Anti-Tilt</strong>（防滑坡）：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>任务难度</th><th>典型任务</th><th>表现模式</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>极难</td>
+            <td>1-1 Boil, 8-2 Identify life 2</td>
+            <td>所有方法都接近 0，反思机制共同失效</td>
+          </tr>
+          <tr>
+            <td>简单</td>
+            <td>4-2 Find2, 7-1 Lifespan 1</td>
+            <td>LLM 原生能力就能完成，各方法差距小</td>
+          </tr>
+          <tr style="background:rgba(244,114,182,0.06);">
+            <td><strong>中等</strong></td>
+            <td>3-2 Power2, 3-3 Conductivity1</td>
+            <td><strong>出现关键分化</strong>：S&amp;S 远超 Reflexion</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>最鲜明的例子是<strong>任务 3-2 (Power2)</strong>：GPT-4o 上 ReAct 55.6，Reflexion 反而跌到 24.7，Sweet&amp;Sour 达到 58.0。作者的解释：Reflexion 因为初始已经部分成功，没有明确"失败"去触发反思，结果<strong>反而被自己无意义的重启拖累</strong>（"got stuck despite its self-reflection"）；而 Sweet&amp;Sour 在每个 subgoal 处都反思，<span class="hl-pink">把初始的成功动能固化为可复用的策略</span>，实现"乘胜追击"。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">反直觉发现</div>
+      在任务 3-2 上 <strong>Reflexion 比 ReAct 还差</strong>（24.7 vs 55.6）——这是 Reflexion 的一个重要负面案例：当 agent 已经走在对的路上时，强行反思反而会破坏已有的好策略。这也佐证了 Sweet&amp;Sour 论文所说的"反思限制 ①：一上来就顺时失效"。<span class="tag-unverified">&lt;待实证&gt;</span>（解释是作者推测，可能还有 prompt 长度、attempt 预算分配等混淆因素）
+    </div>
+
+    <h3>4.6 小模型收益最大</h3>
+    <p>观察绝对分数的变化比例：</p>
+    <ul>
+      <li><strong>GPT-4o</strong>：45.3 → 54.6，相对提升 <strong>+20.5%</strong></li>
+      <li><strong>Mistral Large 2</strong>：27.6 → 44.6，相对提升 <strong>+61.6%</strong></li>
+      <li><strong>Llama 3.1 8B</strong>：21.7 → 32.5，相对提升 <strong>+49.8%</strong></li>
+    </ul>
+    <p>这支持了论文核心论点：Sweet&amp;Sour <span class="hl">特别适合计算资源受限的场景</span>——小模型本来写不出高质量 sour 反思，但可以写出"复述成功做法"的 sweet 反思。</p>
+  </div>
+
+  <!-- ===== Section 5 ===== -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">5</div>
+      <h2>与 10 Reflexion / 25 ExpeL 对照</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th><a href="10-reflexion.html">10 Reflexion</a></th>
+            <th><a href="25-expel-erl.html">25 ExpeL</a></th>
+            <th style="color:var(--pink);">39 Sweet&amp;Sour</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>反思触发</strong></td>
+            <td>attempt 失败后</td>
+            <td>任务完成后对整条轨迹做事后 insight 抽取</td>
+            <td style="background:rgba(244,114,182,0.06);"><strong>subgoal 成功 + attempt 失败（双流）</strong></td>
+          </tr>
+          <tr>
+            <td><strong>反思对象</strong></td>
+            <td>失败原因 + 下轮改进计划</td>
+            <td>跨任务 trajectory 比较 → 抽 insights</td>
+            <td style="background:rgba(244,114,182,0.06);">成功：可泛化的启发 / 失败：诊断 + 计划</td>
+          </tr>
+          <tr>
+            <td><strong>记忆结构</strong></td>
+            <td>单一 episodic buffer</td>
+            <td>insight pool + 范例 trajectory pool</td>
+            <td style="background:rgba(244,114,182,0.06);"><strong>short-term + long-term 双缓冲</strong></td>
+          </tr>
+          <tr>
+            <td><strong>生效时机</strong></td>
+            <td>下一 attempt（episode 间）</td>
+            <td>下一任务（task 间，跨 episode）</td>
+            <td style="background:rgba(244,114,182,0.06);">sweet 反思 <strong>同 episode 内立即生效</strong></td>
+          </tr>
+          <tr>
+            <td><strong>对比机制</strong></td>
+            <td>—</td>
+            <td><strong>trajectory 两两比对</strong>（成功 vs 失败）</td>
+            <td style="background:rgba(244,114,182,0.06);">—（但在概念上对称处理成功/失败）</td>
+          </tr>
+          <tr>
+            <td><strong>对小模型友好度</strong></td>
+            <td>弱（需稳健自诊断）</td>
+            <td>中<span class="tag-unverified">&lt;待实证&gt;</span></td>
+            <td style="background:rgba(244,114,182,0.06);"><strong>强</strong>（sweet 只需复述而非诊断）</td>
+          </tr>
+          <tr>
+            <td><strong>与外部 reward</strong></td>
+            <td>需二元 pass/fail 信号</td>
+            <td>需最终成功标签</td>
+            <td style="background:rgba(244,114,182,0.06);">需 <strong>subgoal 粒度</strong>的稀疏 reward</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>三者共享的核心信念</h3>
+    <p>Reflexion、ExpeL、Sweet&amp;Sour 其实构成一条演化链——<strong>不断扩大"反思"所覆盖的经验范围</strong>：</p>
+    <ul>
+      <li><strong>Reflexion</strong>（2023）：只反思失败、单一 buffer</li>
+      <li><strong>ExpeL</strong>（2024）：引入轨迹<strong>对比</strong>（trajectory comparison），从成功-失败轨迹对里蒸馏 insight</li>
+      <li><strong>Sweet&amp;Sour</strong>（2024）：显式把成功也作为独立反思源，并把反思粒度细化到 subgoal、记忆粒度细化到 short/long-term</li>
+    </ul>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">ExpeL 已覆盖 trajectory comparison，Sweet&amp;Sour 的增量在哪？</div>
+      ExpeL 是"事后诸葛亮式"对比——任务全部结束后再去挑两条轨迹对比出 insight，这需要一批成功+失败样本才能启动。Sweet&amp;Sour 则是"<strong>即时确认式</strong>"——每个 subgoal 成功的瞬间就 verbalize 一次，不需要拿另一条失败轨迹做对照。两者在"从成功中学习"这个大方向上一致，但 Sweet&amp;Sour 更轻量、更在线（online），且不依赖大批量轨迹积累。
+    </div>
+
+    <div class="sv-link">
+      如果把 Sweet&amp;Sour 投射回 Smallville 的 Reflection 机制：斯坦福小镇的 Reflection 在 importance 累积到阈值时<strong>无差别地</strong>对最近记忆做总结，并不区分"这段记忆是好经历还是坏经历"。Sweet&amp;Sour 的启示是——将来可以在 Memory Stream 上分别维护"成功反思池"和"挫折反思池"，让角色在不同情绪/场景下检索不同侧的经验（开心时强化"我成功的原因"、失落时对照"我失败的教训"），这是 Smallville 社会模拟的一个很自然的扩展方向。<span class="tag-unverified">&lt;待实证&gt;</span>
+    </div>
+  </div>
+
+  <!-- ===== Section 6 ===== -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">6</div>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q1：Sweet&amp;Sour 只是多加了一个 prompt——这真的有那么大影响吗？小模型+17 分的提升是不是过拟合 ScienceWorld？</div>
+      <div class="faq-a">
+        这是一个合理质疑。几点观察：
+        <br>（1）消融实验清楚表明——拿掉 sweet 反思后，Mistral 从 44.6 跌到 31.1，几乎丢光全部增益，证明提升来自 sweet 反思本身而非 prompt 工程或 buffer 结构；
+        <br>（2）论文确实只在 ScienceWorld 单一基准上验证（作者在 Limitations 里也坦承"single environment"），所以<strong>是否能迁移到 WebArena、AlfWorld Hard、真实软件工程任务</strong>仍需验证<span class="tag-unverified">&lt;待实证&gt;</span>；
+        <br>（3）"verbalize 成功原因"这个操作的泛用性在认知科学上有长期支持（self-explanation effect），因此我倾向于认为效应真实存在，但具体数值可能随任务而浮动；
+        <br>（4)一个潜在混淆：sweet 反思必然让 prompt 变长，是否<strong>仅仅因为 context 更丰富</strong>而不是"反思内容正确"？论文未做 prompt-length 对照实验。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q2：如果 agent 在 step 5 因为运气或幻觉"误判"自己成功了，生成一段错误的 sweet 反思并注入 short-term buffer，会不会导致后续决策雪崩？这是不是比 Reflexion 更脆弱？</div>
+      <div class="faq-a">
+        非常尖锐的问题。论文的隐含假设是：<strong>subgoal 的达成由环境 reward 判定，而非 LLM 自评</strong>——因此"误判成功"要求环境误报 reward，这在 ScienceWorld 这类 well-defined 仿真中概率极低。但这个架构确实有两个脆弱点：
+        <br>（a）<strong>虚假归因</strong>：subgoal 真的成功了，但 agent 把成功归因到错误的因素上（"我赢是因为我先拿了锤子"，实际上与锤子无关）。这会被 verbalize 进 short-term buffer，并被后续 step 作为行动依据。小模型尤其容易陷入此陷阱，但目前结果显示小模型反而提升最大——猜测是<strong>复述策略本身（描述性）比归因（解释性）容易得多</strong>，虚假归因的概率被天然压低；<span class="tag-unverified">&lt;待实证&gt;</span>
+        <br>（b）<strong>过拟合局部启发</strong>：sweet 反思在 step 10 得出"先开灯再找物体"的启发，但这只对当前房间成立，后续房间里变成误导。论文没有讨论过期反思的 invalidation 机制。
+        <br>实践中建议：限制 short-term buffer 大小、定期让 LLM 自检 buffer 中的反思是否仍然有效，以及在环境奖励可靠性存疑时降级为 Reflexion-only 模式。
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  深度解读39 &middot; Sweet&amp;Sour: Positive Experience Reflection for Agents in Interactive Text Environments &middot; Lippmann, Spaan, Yang &middot; TU Delft<br>
+  arXiv:2411.02223 &middot; NeurIPS 2024 Language Gamification Workshop &middot; 本页由 AI 辅助生成，仅供学术研究参考<br>
+  <a href="../index1.html">返回导航</a> &middot;
+  <a href="10-reflexion.html">← 10 Reflexion</a> &middot;
+  <a href="25-expel-erl.html">25 ExpeL</a>
+</div>
+
+</body>
+</html>
