@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读36：Critical Perspectives — 对 LLM 社会仿真的根本性批判</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #3a1418 0%, #0f1117 50%, #1b1340 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--red); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.tag-red { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
+    .hero .paper-ref.tag-gray { background: rgba(139,149,165,0.08); border-color: rgba(139,149,165,0.3); color: var(--muted); }
+    .hero .paper-ref.tag-springer { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.3); color: var(--green); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--red); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); }
+    .callout-orange { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td.up { color: var(--green); font-weight: 600; }
+    tbody td.down { color: var(--red); font-weight: 600; }
+    tbody td.same { color: var(--muted); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.red { border-color: rgba(248,113,113,0.3); }
+    .stat-box.red .stat-val { color: var(--red); }
+    .stat-box.orange .stat-val { color: var(--orange); }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 18px 0 22px; }
+    .bd-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .bd-card .bd-title { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 10px; letter-spacing: .03em; }
+    .bd-card .bd-sub { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+    .verdict { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 6px; font-weight: 600; }
+    .verdict.bad { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+    .verdict.warn { background: rgba(251,146,60,0.12); color: var(--orange); border: 1px solid rgba(251,146,60,0.25); }
+    .verdict.ok { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Validation is the Central Challenge for Generative Social Simulation — 对 LLM 社会仿真的根本性批判 <span class="personal-badge">后加</span></h1>
+  <p class="sub">Maik Larooij &amp; Petter Törnberg（阿姆斯特丹大学）系统综述了 <strong>35 篇 LLM 驱动的 Generative ABM 论文</strong>，得出的结论极为冷峻：LLM 不但没有解决传统 ABM 最顽固的"验证/校准"难题，<span class="hl-red">反而让它变得更难</span>。论文指向所有小镇路线工作（Park 2023 / Park 2024 / AgentSociety / SocioVerse / OpenCity）共有的五个结构性弱点：training data 先验污染、黑盒不可解释、高成本阻碍鲁棒性检验、LLM 评测回路循环论证、face-validity 取代 operational validity。本文是建立"批判视角"专题的奠基综述。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://link.springer.com/article/10.1007/s10462-025-11412-6" target="_blank">Artif Intell Rev 59, 15 (2026)</a></div>
+    <div class="paper-ref tag-springer">Springer · AI Review · Open Access</div>
+    <div class="paper-ref tag-red">批判视角 · Critical Review</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref tag-gray">📄 系统性文献综述，无代码 / 无实验</div>
+    <div class="paper-ref tag">DOI: 10.1007/s10462-025-11412-6</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 核心批判</a>
+    <a href="#sec3">3. 其他质疑</a>
+    <a href="#sec4">4. 对具体系统的评价</a>
+    <a href="#sec5">5. 证据已有 / 待实证</a>
+    <a href="#sec6">6. 小镇联系 + FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../challenge/validation-gap.html">验证鸿沟</a>
+  <a href="../challenge/open-problems.html">开放问题</a>
+  <a href="../challenge/verification-testbeds.html">验证试验台</a>
+  <a href="../challenge/user-simulation-challenges.html">用户模拟挑战</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <a href="33-socioverse.html">SocioVerse</a>
+  <a href="34-1000-people.html">1000 People</a>
+  <a href="35-opencity.html">OpenCity</a>
+  <a href="17-agent-society.html">AgentSociety</a>
+  <a href="28-self-correct-limits.html">Self-Correct 批判</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- Section 1 -->
+  <section class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>一句话定位 &amp; 关键数字</h2>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 一句话总结（批判综述的核心立场）</div>
+      本文系统综述 35 篇 LLM 生成式 ABM（Generative Agent-Based Model，下称 GABM）文献，得出的结论是：<span class="hl-red">LLM 所谓"让 agent 更像人"的能力，在 ABM 研究范式下不是解药而是毒药</span>。因为它同时叠加了传统 ABM 原有的三大病（校准难、复现难、比较难）与 LLM 自带的三大病（黑盒、随机性、文化偏差），让"验证"——这个 ABM 社群 50 年来的老大难问题——从"难"变成了"可能无解"。作者毫不客气地用了一个极重的判断词："generative ABMs occupy an ambiguous methodological space — lacking both the parsimony of formal models and the empirical validity of data-driven approaches"（既没有形式模型的简洁性，也没有数据驱动方法的经验效力）。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box red">
+        <div class="stat-val">35 / 35</div>
+        <div class="stat-label">综述纳入论文数（系统筛选后）</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">15 / 35</div>
+        <div class="stat-label">仅使用主观 validation 的研究（42.9%）</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">22 / 35</div>
+        <div class="stat-label">以主观评测作为主要 validation 手段（62.9%）</div>
+      </div>
+      <div class="stat-box yellow">
+        <div class="stat-val">~ 单次运行</div>
+        <div class="stat-label">"大多数"研究只跑一次 simulation，无鲁棒性检验 <span class="unconfirmed">&lt;作者原话 "most"&gt;</span></div>
+      </div>
+      <div class="stat-box pink">
+        <div class="stat-val">$500K</div>
+        <div class="stat-label">100 agents × 2 参数扫描（10×10×10 重复）在 GPT-4.1 上的估价</div>
+      </div>
+      <div class="stat-box cyan">
+        <div class="stat-val">5</div>
+        <div class="stat-label">作者归纳的 validation 策略类型</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">4 月 4 日</div>
+        <div class="stat-label">2025 年 Received，2025-11-18 正式 Published</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-val">CC BY 4.0</div>
+        <div class="stat-label">开放获取许可，可直接引用转载</div>
+      </div>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">📐 论文基本坐标</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>作者</strong>：Maik Larooij &amp; Petter Törnberg，University of Amsterdam（Törnberg 是计算社会科学领域对 LLM 社会仿真持审慎立场的代表性学者之一）。</li>
+        <li><strong>类别</strong>：Systematic Literature Review（非实证研究，不出数据、不跑实验、不放代码）。</li>
+        <li><strong>方法论</strong>：用 RQ1（仿真对象）/ RQ2（validation 策略）/ RQ3（这些策略是否足以建立 operational validity）三问拆开，对 35 篇候选论文做分类学分析。</li>
+        <li><strong>立场</strong>：<span class="hl-pink">这不是一篇"LLM 仿真到底行不行"的辩论文，而是一篇"如果要让它成为严肃科学方法，还差哪些环节"的批判 + 路径文</span>。</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">🧭 为什么对本库很关键</div>
+      <p>本库此前有多篇"反证 / 质疑"的工作：<a href="28-self-correct-limits.html">deep-dive/28 LLMs Cannot Self-Correct</a> 针对反思机制、<a href="../challenge/validation-gap.html">challenge/validation-gap</a> 针对 Smallville 的 face-validity 评测、<a href="../challenge/user-simulation-challenges.html">challenge/user-simulation-challenges</a> 针对大规模用户模拟。本篇 Larooij &amp; Törnberg (2026) 第一次把这些散点批判<span class="hl">收束成一个体系性综述</span>，并且明确把"ABM 50 年验证史"作为尺子套在 LLM 仿真上。任何做小镇路线的工作 —— 包括我们重点研究的 <a href="19-generative-agents.html">Park 2023</a> / <a href="34-1000-people.html">Park 2024</a> / <a href="33-socioverse.html">SocioVerse</a> / <a href="17-agent-society.html">AgentSociety</a> / <a href="35-opencity.html">OpenCity</a> —— 今后都必须回应它。</p>
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>核心批判点：LLM 先验污染（Training Data Contamination）</h2>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 最致命的一击：Emergent ≠ Emergent</div>
+      <p>作者在 §4.2.2 明确指出："<em>Data leakage represents a serious risk for such validation approaches, as the previous research likely was part of the training data and the LLM may simply be reproducing published results.</em>"（training data 泄漏是严重风险：LLM 很可能只是在"复述"已经发表过的研究结论，而非真的"涌现"出了社会现象。）</p>
+      <p style="margin-bottom:0;margin-top:8px;并引用了关键证据论文 <strong>Barrie &amp; Törnberg (2025) — "Emergent LLM behaviors are observationally equivalent to data leakage"（arXiv:2505.23796）</strong>。这篇文章的标题本身就是一个强声明：<span class="hl-red">"涌现"与"数据泄漏"在观测层面无法区分</span>。</p>
+    </div>
+
+    <h3>2.1 问题的结构</h3>
+    <p>传统 ABM 用简单规则（如 Schelling 1971 年的邻居偏好规则）跑出宏观的 segregation 模式，此时研究者可以明确说："宏观是从微观规则<em>emerge</em>出来的"——因为规则是你自己写的，它里面没有 segregation。</p>
+    <p>LLM 驱动的 agent 则完全不同：</p>
+    <ul>
+      <li><strong>LLM 的 weights 已经编码了人类社会几乎所有已知行为模式</strong>（因为训练语料包含维基百科、学术论文、新闻、社交媒体语料）；</li>
+      <li>当你看到一群 LLM agent"自发"形成 echo chamber、polarization、friendship paradox、herd effect 时 —— <span class="hl-red">你无法证明这是从交互中涌现出来的，还是 LLM 直接从 training data 里把这些模式"背"出来的</span>；</li>
+      <li>更糟的是：这些经典社会现象的相关论文（Schelling 1971、Sunstein 2001 的 echo chamber、Feld 1991 的 friendship paradox）几乎<strong>百分之百</strong>在 GPT-4 / Claude 等前沿模型的 training data 里。</li>
+    </ul>
+
+    <div class="callout callout-orange">
+      <div class="callout-title">⚠️ 论文中引用的具体例子</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>De Marzo et al. 2023</strong> 声称 LLM agent 交互自发产生 <span class="hl">scale-free network</span> —— 但 scale-free 分布是社交网络最著名、最被写进教科书的属性；LLM 几乎必然"知道"社交网络应该长这样。</li>
+        <li><strong>Orlando et al. 2025</strong> 声称 LLM agent 自发复现 <span class="hl">friendship paradox</span> —— Feld 1991 的这个概念在社会学教材里反复出现。</li>
+        <li><strong>Yang et al. 2024 (OASIS)</strong> 声称在模拟 Reddit 上复现 <span class="hl">herd effect</span>（早期点赞影响后续反应）—— Muchnik 2013 年的 Science 论文是这个现象的经典引用。</li>
+        <li><strong>Chuang et al. 2024</strong> 声称复现 <span class="hl">wisdom of partisan crowds</span>（暴露于群体平均观点会让偏见向 ground truth 收敛）—— 同样是被高度引用的社会心理学结论。</li>
+      </ul>
+    </div>
+
+    <h3>2.2 这为什么是"根本性"批判</h3>
+    <p>把"LLM 复现社会现象"当作 validation 的研究，其论证逻辑常常是：</p>
+    <div class="card">
+      <p style="margin-bottom:0;"><strong>论证结构：</strong></p>
+      <ol style="margin-top:8px;margin-bottom:0;">
+        <li>真实社会里存在现象 X（如 echo chamber）；</li>
+        <li>我们的 LLM agent 模拟也出现了现象 X；</li>
+        <li>∴ 我们的模拟"捕捉"到了 X 背后的机制。</li>
+      </ol>
+    </div>
+    <p>本文明确指出：<span class="hl-red">第 3 步是飞跃</span>。LLM agent 出现 X 至少有三种完全不同的可能：</p>
+    <ul>
+      <li>(A) 它真的从 agent 之间的互动中 emerge 出来的（我们希望的情形）；</li>
+      <li>(B) LLM 在 weights 里"记得" X 是社会常见现象，被 prompt 触发后直接输出符合 X 的行为；</li>
+      <li>(C) LLM 在被要求"假装成人"时，倾向于输出"人们通常会做的事"，而 training data 里的"人们通常会做的事"就已经包含 X。</li>
+    </ul>
+    <p>(B) 和 (C) 在观测层面与 (A) 完全一致 —— 这就是 Barrie &amp; Törnberg 那句话的要义。</p>
+
+    <div class="callout callout-pink">
+      <div class="callout-title">💡 怎么破？作者的暗示</div>
+      <p style="margin-bottom:0;">作者没给完整解药，但暗示了方向（§5 Discussion）：</p>
+      <ol style="margin-bottom:0;margin-top:6px;">
+        <li><strong>反向测试</strong>：让 agent 复现 training cutoff <em>之后</em> 发生的、LLM 不可能"背过"的社会事件；</li>
+        <li><strong>消融 prompt</strong>：主动从 agent 的 persona / 环境描述里<span class="hl">去掉引发 X 的语义线索</span>，看 X 是否还出现；如果一去掉就没了，说明 X 是 prompt-driven 而非 interaction-driven；</li>
+        <li><strong>反事实扰动</strong>：把网络结构 / 初始条件改成"真实世界从未出现过"的配置，看 agent 行为是否依然复现 X（如果还是复现，那就一定是 LLM 先验，而非结构涌现）。</li>
+        <li>本库<a href="../challenge/verification-testbeds.html">验证试验台</a>笔记对此有详细展开。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow); color:#0f1117;">3</div>
+      <h2>其他关键质疑 — 多样性坍缩 / 平均人格 / 黑盒 / 成本</h2>
+    </div>
+
+    <h3>3.1 多样性坍缩（Diversity Collapse）与"平均人格"</h3>
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 LLM agent 的 persona 是假多样性</div>
+      <p>作者在 §5 Discussion 强调：几乎所有现有研究都使用 <strong>zero-shot prompting without fine-tuning</strong>。所谓"persona 校准"本质上只是<span class="hl-red">prompt engineering</span> —— 给 agent 一段"你是 34 岁的老师"的描述。</p>
+      <p style="margin-bottom:0;margin-top:8px;作者引用 Boelaert et al. 2025（"Machine bias: how do generative language models answer opinion polls?"）的发现：LLM 在被要求扮演不同人口学 persona 回答民调时，输出会<span class="hl-pink">显著向一个"平均值 persona"坍缩</span>——比如被要求扮演保守派与自由派，给出的答案差异远小于真实人类中这两群人的差异；更糟的是，LLM 的"保守派"输出常常带着一种"<em>一个受过良好教育的自由派在想象保守派会怎么说</em>"的味道。</p>
+    </div>
+    <p>这带来的直接后果：</p>
+    <ul>
+      <li><strong>群体行为趋同</strong>：LLM agent 模拟的"千人社会"在分布上往往比真实社会更<span class="hl">窄</span>，标准差更小，极端值更少；</li>
+      <li><strong>文化偏差输入</strong>：LLM 的"平均人格"是西方、英语、高学历、高收入、偏自由派的偏移；用这种 agent 模拟其他人口群体时，所得结论<span class="hl-red">系统性地偏向该偏移</span>（Abid 2021 / Ghosh &amp; Caliskan 2023 / Kotek 2023 都已实证过 LLM 的人口偏差）；</li>
+      <li><strong>稳定性不可验证</strong>：persona 的"稳定性"常只在几轮对话里做主观检测，没人做长期（1000+ step）的 persona drift 量化。</li>
+    </ul>
+
+    <h3>3.2 评测回路的循环论证（LLM-as-Judge Problem）</h3>
+    <p>作者列出了一个在 LLM 仿真研究里日渐普遍、但根本站不住脚的做法：<strong>用 GPT-4 评价 GPT-4 生成的行为是否"像人"</strong>。这种做法的问题：</p>
+    <ul>
+      <li><strong>自我偏爱</strong>：Panickssery et al. 2024（NeurIPS oral）明确证明 <span class="hl-red">LLM 评测者会偏爱自己的输出</span>；</li>
+      <li><strong>循环论证</strong>：被评价方与评价方共享 weights、training data、甚至偏差；"两者都觉得像人"根本不构成"它们真的像人"的证据；</li>
+      <li><strong>成本动机</strong>：作者暗示这类做法之所以泛滥，主要是<span class="hl">省钱</span>——雇 crowd-worker 做可信度评测太贵，用 LLM 自评几乎零成本。</li>
+    </ul>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30%">评测来源</th>
+            <th style="width:20%">可信度</th>
+            <th style="width:25%">典型代表</th>
+            <th style="width:25%">问题</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>领域专家（常是作者自己）</td>
+            <td><span class="verdict warn">中</span></td>
+            <td>Hua 2023 / Li 2025 / Wang 2025</td>
+            <td>利益相关；样本极小</td>
+          </tr>
+          <tr>
+            <td>Crowd-worker（MTurk）</td>
+            <td><span class="verdict warn">中低</span></td>
+            <td>Park 2022, 2023 / Li 2023 / Zhou 2024</td>
+            <td>连人类自己都难分辨 AI 文本（Clark 2021）；MTurk worker 可能用 ChatGPT 完成 HIT</td>
+          </tr>
+          <tr>
+            <td>LLM-as-Judge</td>
+            <td><span class="verdict bad">低 / 循环</span></td>
+            <td>Zhou 2024 / Jarrett 2023 / Yu 2024</td>
+            <td>自我偏爱（Panickssery 2024）、bias 不可控（Wang 2024）</td>
+          </tr>
+          <tr>
+            <td>与真实人类数据定量对比</td>
+            <td><span class="verdict ok">高</span></td>
+            <td>Gao 2023 / Mou 2024 / Yang 2024</td>
+            <td>但 style-level 对齐常与 mechanism-level 脱节</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 黑盒不可解释 — ABM 最核心美德的破坏</h3>
+    <div class="callout callout-key">
+      <div class="callout-title">📐 ABM 的历史正当性 vs LLM 的破坏</div>
+      <p style="margin-bottom:0;">传统 ABM 的价值主张是 Axelrod (1997) 所说的<span class="hl">"the strength of abstract modeling lies in the simplicity that enables making complex dynamics interpretable"</span>——简单规则 → 复杂涌现 → 我们能清晰说明因果链。</p>
+    </div>
+    <p>LLM 直接毁掉这个价值主张：</p>
+    <ul>
+      <li>agent 的"决策规则"分布在 1750 亿参数里，无法打印成一条 if-then 规则；</li>
+      <li>当 agent A 做出决策 X，你<span class="hl-red">无法说清</span>是哪些 weights / 哪些 in-context tokens / 哪些 prompt 片段导致了它；</li>
+      <li>传统 ABM "为什么会出现 segregation" 有清晰答案（邻居偏好阈值 &gt; 0）；LLM ABM 的答案永远是"因为 LLM 这么做了"—— 这不是科学解释。</li>
+    </ul>
+    <p>作者在结论部分给了一个非常精准的定位：generative ABMs <strong>"neither the parsimony of formal models nor the empirical validity of data-driven approaches"</strong>——<span class="hl-pink">夹在两边都够不着的模糊地带</span>。</p>
+
+    <h3>3.4 成本阻碍鲁棒性检验</h3>
+    <p>作者做了一个小型经济学推演（§5），揭示了 GABM 研究的一个脏角落：<strong>几乎没人做鲁棒性检验，因为根本付不起</strong>。</p>
+    <div class="card">
+      <p style="font-weight:600;margin-bottom:8px;color:var(--orange);">成本估算（2025 年 6 月 OpenAI 定价）</p>
+      <ul style="margin-bottom:0;">
+        <li>100 agents × 10 interactions/step × 100 steps = <code>10<sup>5</sup></code> LLM calls / run；</li>
+        <li>每 call 约 100 input + 100 output tokens → <code>10<sup>7</sup></code> tokens / run；</li>
+        <li>GPT-4.1 nano (0.10$/M in + 0.40$/M out)：<strong>$5 / run</strong>；</li>
+        <li>两参数扫描（10×10 组合 × 10 次重复）= 1,000 runs = <strong>$5,000</strong>；</li>
+        <li>若换 GPT-4.1（$2.00/M in + $8.00/M out）：$100 / run → <span class="hl-red">$500,000 / 扫描</span>；</li>
+        <li>若 agent 数翻倍（交互 O(N²) 增长）、参数维度从 2 升到 5（指数级）—— 费用<strong>直接失控</strong>。</li>
+      </ul>
+    </div>
+    <div class="callout callout-orange">
+      <div class="callout-title">⚠️ 成本 → 方法论腐败</div>
+      由于跑不起多次，绝大多数论文只报告<span class="hl-red">单次 run</span> 的结果。这等价于"基于单一案例得出普遍结论"——这是任何认真的计算社会科学研究都不会接受的做法。LLM 的 stochasticity 让这个问题比传统 ABM 更严重：同一 prompt 跑两遍可能得到显著不同的 trajectory。<span class="hl">一次 run 得到的涌现现象，可能只是 sampling noise 里开出的昙花</span>。
+    </div>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">4</div>
+      <h2>对 Smallville / AgentSociety / Park 2024 / SocioVerse 的具体评价</h2>
+    </div>
+
+    <p>论文没有对单篇工作做严厉点名，但从 RQ1 / RQ2 的分类评价中可以清晰读出它对小镇路线每个代表作的隐含判决：</p>
+
+    <div class="breakdown">
+      <div class="bd-card">
+        <div class="bd-title">Park et al. 2023 · Smallville 原作 <span class="verdict warn">weak validation</span></div>
+        <div class="bd-sub">(Generative Agents: Interactive Simulacra of Human Behavior)</div>
+        <p style="font-size:13px;">被归入"validation based on human-like judgment"类别。作者指出：<span class="hl">Park 用 crowd-worker 评估 agent 对 interview 问题回答的"可信度"，但这只是 face-validity，不是 operational validity</span>。文中原话："<em>validate agent behavior by interviewing agents...and evaluating whether their responses align with their personality, memory, and environmental context</em>" —— 评的是一致性，不是机制正确性。</p>
+        <p style="font-size:13px;margin-bottom:0;">同时指出 Park 2023 在 network propagation 与 network structure 两处也做了 validation，但用的是"expected patterns of tie formation"等模糊对照 —— 实际上是 <strong>§4.2.2 well-known social patterns 类别</strong>，处于 data leakage 风险最高的那一档。</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">Park et al. 2024 · 1,000 People <span class="verdict warn">calibration still zero-shot</span></div>
+        <div class="bd-sub">(arXiv:2411.10109)</div>
+        <p style="font-size:13px;">本文把它归在"digital representatives / profile alignment"讨论范畴。作者对这类工作的通用评语是："<em>nearly all current studies rely on zero-shot prompting without fine-tuning: 'calibration' is thus reduced to prompt engineering</em>"。</p>
+        <p style="font-size:13px;margin-bottom:0;">换言之：<span class="hl-red">"用 2 小时访谈生成 1000 个人的数字代表"这一核心卖点，在作者看来仍然只是高端版 prompt engineering</span>，没有触及 LLM 先验如何污染 persona 这个根本问题。参见 <a href="34-1000-people.html">deep-dive/34</a>。</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">AgentSociety (Piao et al. 2024) <span class="verdict warn">scale ≠ validity</span></div>
+        <div class="bd-sub">(deep-dive/17)</div>
+        <p style="font-size:13px;">AgentSociety 强调"大规模 agent 社会模拟"能复现 polarization / norm emergence 等宏观现象。本文的核心反驳正是针对这一类声明：<span class="hl-red">宏观现象的复现 ≠ 机制捕捉</span>，因为它很可能是 LLM 先验 + 合适 prompt 的共同产物。</p>
+        <p style="font-size:13px;margin-bottom:0;">作者在 §5 直接点到："<em>validation must directly engage with the modeled mechanism in the context of the model's intended application</em>"——AgentSociety 目前的 validation 停留在"样式真实"和"大数定律式宏观匹配"，而非 mechanism-level。参见 <a href="17-agent-society.html">deep-dive/17</a>。</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">SocioVerse <span class="verdict warn">LLM-as-Judge 风险</span></div>
+        <div class="bd-sub">(deep-dive/33)</div>
+        <p style="font-size:13px;margin-bottom:0;">SocioVerse 类工作常大量使用 LLM-as-Judge 做 validation —— 本文 §4.2.1 专门警告了这种做法的自我偏爱与循环论证。如果把这种 evaluator 换成 human raters，作者预计<span class="hl-pink">效果会显著下滑</span>（至今未见该消融 <span class="unconfirmed">&lt;待实证&gt;</span>）。参见 <a href="33-socioverse.html">deep-dive/33</a>。</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">OpenCity <span class="verdict warn">cost × single-run</span></div>
+        <div class="bd-sub">(城市级 LLM 仿真)</div>
+        <p style="font-size:13px;margin-bottom:0;">城市级仿真是本文"computational cost → single-run → no robustness check"批评的<span class="hl">最直接标靶</span>：agent 数量越大，交互 O(N²)、参数扫描指数爆炸，研究者被迫只报告一次运行。参见 <a href="35-opencity.html">deep-dive/35</a>。</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">Yu et al. 2024 · Affordable Generative Agents <span class="verdict bad">circular validation</span></div>
+        <div class="bd-sub">(优化版小镇)</div>
+        <p style="font-size:13px;">本文明确举例批判："<em>Yu et al. use GPT-4 to distinguish AI-generated responses from human ones — despite prior research indicating that LLMs may be unreliable for this task</em>"。这是典型的循环验证。</p>
+        <p style="font-size:13px;margin-bottom:0;">另外作者挑明：Yu et al. 将自己与 Park 2023 比较时，"<em>offers no quantitative comparison between the two models, but merely includes the responses of agents, concluding that their version did not obviously impair the believability</em>"——这是<span class="hl-red">定性说我和大师差不多</span>的典型反面教材。</p>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      小镇路线整体的判决可以用作者的三句话概括：(1) validation targets 错了（评的是 style 而非 mechanism）；(2) evaluator 可疑（crowd-worker / LLM-as-Judge）；(3) 鲁棒性缺失（single-run）。这三条放在一起就是：<span class="hl">目前的小镇路线还处于 proof-of-concept 阶段，不能产出严肃社会科学结论</span>。但作者并没有"判死刑"——Section 5 最后一段给出了 <strong>GABM 作为"新方法论门类"的三条可行路径</strong>（见 §6）。
+    </div>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
+      <h2>哪些证据已存在 / 哪些尚不明确</h2>
+    </div>
+
+    <h3>5.1 已有硬证据支撑的批判</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:24%">批判点</th>
+            <th style="width:34%">证据 / 引用</th>
+            <th style="width:22%">支持强度</th>
+            <th style="width:20%">本库关联</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data leakage vs emergence 不可辨</td>
+            <td>Barrie &amp; Törnberg 2025 (arXiv:2505.23796) — 直接论证"观测等价"</td>
+            <td><span class="verdict ok">强</span> 同作者团队专题工作</td>
+            <td><a href="../challenge/validation-gap.html">validation-gap</a></td>
+          </tr>
+          <tr>
+            <td>LLM-as-Judge 自我偏爱</td>
+            <td>Panickssery et al. NeurIPS 2024 oral — 实证 GPT 偏爱自己输出</td>
+            <td><span class="verdict ok">强</span> 顶会 oral</td>
+            <td><a href="28-self-correct-limits.html">deep-dive/28</a></td>
+          </tr>
+          <tr>
+            <td>人类辨别 AI 文本能力弱</td>
+            <td>Clark et al. ACL 2021 / Jones et al. FAccT 2025（GPT-4 通过图灵测试）</td>
+            <td><span class="verdict ok">强</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>LLM 人口偏差系统性</td>
+            <td>Abid 2021 (anti-muslim) / Ghosh 2023 (gender) / Kotek 2023 / Cheng 2023 (marked personas) / Boelaert 2025 (opinion polls)</td>
+            <td><span class="verdict ok">强</span> 多项独立研究</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>LLM 风格与人类差异可量化</td>
+            <td>Pagan et al. 2025 (BERT-based Turing test)</td>
+            <td><span class="verdict ok">中强</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>LLM-based evaluator 不公平</td>
+            <td>Wang et al. ACL 2024 (LLMs are not fair evaluators)</td>
+            <td><span class="verdict ok">强</span> ACL 主会</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>ABM 复现危机 / 软件 bug 占比</td>
+            <td>Wilensky &amp; Rand 2007</td>
+            <td><span class="verdict ok">强</span> 历史经典</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 尚未被严格实证的批判（<span style="color:var(--orange);">待实证</span>）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40%">论点</th>
+            <th style="width:40%">为何未实证</th>
+            <th style="width:20%">本库定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>若去掉引发 X 的语义线索，LLM agent 是否仍复现 X</td>
+            <td>从未见系统性 ablation；各工作都在正向声明 emergence <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td><a href="../challenge/verification-testbeds.html">verification-testbeds</a></td>
+          </tr>
+          <tr>
+            <td>小镇 reflection 是否主要在巩固 persona 而非产生新 insight</td>
+            <td>Park 2023 无 A/B 对照；deep-dive/28 给出了相关间接证据 <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td><a href="28-self-correct-limits.html">deep-dive/28</a></td>
+          </tr>
+          <tr>
+            <td>"1000 people" digital representative 的相关性是否在 training cutoff 之后的事件上依然成立</td>
+            <td>Park 2024 的评测基准大多数来自 cutoff 之前的调查 <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td><a href="34-1000-people.html">deep-dive/34</a></td>
+          </tr>
+          <tr>
+            <td>多样性坍缩的量化程度（人群方差 ratio）</td>
+            <td>Boelaert 2025 给了民调场景的证据，但 agent simulation 场景缺 <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>同样 prompt 多次运行的 trajectory 方差</td>
+            <td>绝大多数仿真只报告 1 次 run <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>long-horizon persona drift（100+ 天 sim）</td>
+            <td>成本阻碍；目前可见最长 sim 是小镇 2 天 <span class="unconfirmed">&lt;待实证&gt;</span></td>
+            <td><a href="../challenge/open-problems.html">open-problems</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">🔬 小结：为什么本篇重要</div>
+      <p style="margin-bottom:0;">5.1 的 8 条都是"硬钉子"，每一条都已经有至少一篇顶会 / 期刊级实证支撑。5.2 的 6 条是"软钉子"，目前只是批判推理 + 间接证据。<span class="hl-pink">对本库来说，5.2 的每一条都可以作为一篇独立的 challenge 笔记 / 复现实验的起点</span>——它们是"小镇路线"最肥沃的未开垦地。</p>
+    </div>
+
+    <h3>5.3 作者给出的"救援"路径（§6 Conclusion）</h3>
+    <p>论文并未彻底否定 GABM，而是给出三条<strong>潜在正当性重建路径</strong>：</p>
+    <ol>
+      <li><strong>路径 A · 严格 empirical validation</strong>：做到类似传统 ABM 的 operational validity。作者承认这"<em>essential and ongoing task</em>"但极难，因为 LLM 的复杂度让校准本身成为难题；</li>
+      <li><strong>路径 B · context-specific generalizability</strong>：不追求"通用社会理论"，只证明 LLM agent 在<span class="hl">有限的、可明确边界化的</span>具体场景里能给出可靠洞见；</li>
+      <li><strong>路径 C · 解释性增强 (interpretability)</strong>：让 LLM ABM 成为 exploratory thought-experiments，像 Schelling 模型那样即使不精确校准也能提供理论洞察——前提是我们有工具打开 LLM 黑盒；</li>
+      <li><strong>路径 D · 新方法论门类</strong>：干脆不要用传统 ABM 的尺子量它，而是把 GABM 当作<span class="hl-green">"合成数据生成器 / 快速原型工具"</span>使用—— idea：先用 GABM 快速探索假设，再用传统方法严格验证。</li>
+    </ol>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">6</div>
+      <h2>与斯坦福小镇的联系 + FAQ</h2>
+    </div>
+
+    <h3>6.1 本文对 Smallville 范式的"五问"</h3>
+    <p>把 Larooij &amp; Törnberg 的批判收束到 <a href="19-generative-agents.html">Park 2023 Smallville</a>，可以得到五个对整个范式的直接追问：</p>
+
+    <div class="card">
+      <ol>
+        <li><strong>Q1 · 涌现还是记忆？</strong> 小镇里的生日派对、竞选活动，真的是 agent 交互涌现的吗？还是 LLM 直接从 "生日派对典型组织流程"的 training 语料里"背"出来的？</li>
+        <li><strong>Q2 · 多样性真够吗？</strong> 25 个 persona 描述不超过 200 词，在 LLM 的"平均人格"力场下，25 人实际行为分布可能远窄于 25 个真实 Smallville 居民。</li>
+        <li><strong>Q3 · face-validity 够严吗？</strong> 只做"让 crowd-worker 判断是否 believable"，评的是 style 不是 mechanism。</li>
+        <li><strong>Q4 · 单 run 够吗？</strong> Smallville 展示的轨迹是少数几次 run 的"好看的那次"（作者未报告多次运行的方差）<span class="unconfirmed">&lt;待实证&gt;</span>。</li>
+        <li><strong>Q5 · Reflection 是增益还是偏差放大器？</strong> 见 <a href="28-self-correct-limits.html">deep-dive/28</a>——intrinsic self-correction 在推理任务上被证明是有害的，小镇 reflection 是一种典型的 intrinsic 操作。</li>
+      </ol>
+    </div>
+
+    <div class="sv-link">
+      这五问里，<span class="hl">Q1 是本文最独特的贡献</span>——在 Larooij &amp; Törnberg 之前，批判更多集中在"验证方法不够严"；本文把"LLM training data 已经编码了答案"这层窗户纸彻底捅破，让小镇范式所有"涌现"声明都带上了一层根本性阴影。本库<a href="../challenge/validation-gap.html">验证鸿沟</a>与<a href="../challenge/verification-testbeds.html">验证试验台</a>笔记都直接继承了这条批判脉络。
+    </div>
+
+    <h3>6.2 对"人类行为模拟"研究路线的影响</h3>
+    <ul>
+      <li><strong>对"扩展 Smallville"类工作</strong>（Project Sid / Lyfe Agents / Affordable GAs / Humanoid Agents / OpenCity）：本文直接剥夺了"跑更大 sim 就是更好科学"的正当性，若不同时解决 data leakage、多样性坍缩、LLM-as-Judge 循环，规模越大贡献越不清晰；</li>
+      <li><strong>对"用 LLM 替代调研"类工作</strong>（Park 2024 1000 People / Horton homo silicus / Argyle 2023）：本文暗示这些工作本质上是"prompt engineering + LLM prior"，<span class="hl-red">研究产物的可推广性与 LLM 版本深度绑定</span>——当 GPT 升级到 v5，你所有结论可能都要重跑甚至翻盘；</li>
+      <li><strong>对"多 agent 涌现规范"类工作</strong>（Ren 2024 / AgentVerse / Project Sid）：最需要做的是 §2.2 提到的"反向测试"和"反事实扰动"——如果没有这些 ablation，"规范涌现"的声明就难以成立；</li>
+      <li><strong>对未来研究的实操建议</strong>：作者在 §6 暗示正确的定位是<span class="hl-green">把 GABM 当作合成数据生成器 / 早期假设原型工具</span>使用——idea：先用 GABM 快速探索假设，再用传统方法严格验证。</li>
+    </ul>
+
+    <h3>6.3 FAQ 三问</h3>
+
+    <div class="faq-item">
+      <div class="q">Q1：如果 LLM 先验污染真的这么严重，整个小镇路线是不是就该放弃？</div>
+      <div class="a">
+        作者明确不这么认为。他们的立场是："<em>it may be too limiting to judge generative ABMs solely by the standards of existing modeling paradigms. Rather than forcing these models into established methodological categories, it may be more productive to treat generative ABMs as a novel methodological genre.</em>"（不该用传统 ABM 的尺子量它，该把它当作新方法论门类。）换言之：<strong>小镇路线的价值不在"替代严肃社会科学"，而在"合成数据 / 快速原型 / 早期探索"</strong>。如果定位于此，本文所有批判不构成否定；如果定位于"它能产出新的社会科学理论"，则目前距离达标还很远。见 §5.3 和 <a href="../challenge/open-problems.html">open-problems</a>。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：这篇跟 deep-dive/28（LLMs Cannot Self-Correct）有什么区别？</div>
+      <div class="a">
+        <strong>deep-dive/28 是"反思机制"级批判</strong>（范围窄、证据硬、针对 Reflexion / Self-Refine 等具体机制），<strong>本篇是"整个 GABM 领域"级批判</strong>（范围广、证据密度更分散、针对整个 Park 2023 以降的研究范式）。两者关系：
+        <ul style="margin-bottom:0;margin-top:6px;">
+          <li>deep-dive/28 是本篇批判链条里的<span class="hl">一个局部硬证据</span>——它证明 LLM 的自我反思在推理任务上系统性有害，从而暗示小镇 reflection 也可能无效；</li>
+          <li>本篇把这类局部批判汇聚成整个范式级批判，并补上了 deep-dive/28 未涉及的：data leakage、多样性坍缩、成本阻碍、LLM-as-Judge；</li>
+          <li>对研究者而言：deep-dive/28 指导"别做什么机制设计"，本篇指导"整个研究议程怎么定位"。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q3：如果我想做一篇 GABM 工作，怎么才能避免踩本文所有批评？</div>
+      <div class="a">
+        按本文 §5 + §6 提炼，给出"合规 checklist"（<span class="hl-pink">本库的实操总结，部分超出作者原文</span>）：
+        <ul style="margin-bottom:0;margin-top:6px;">
+          <li><strong>1. Target 选择</strong>：选 <em>LLM training cutoff 之后</em>的事件 / 场景做对照（消除 data leakage）；</li>
+          <li><strong>2. Prompt 消融</strong>：做 "是否在 persona/environment 描述里出现引发目标现象 X 的语义线索"的 ablation；</li>
+          <li><strong>3. 反事实扰动</strong>：把 interaction structure / initial condition 改成真实世界<em>不存在</em>的配置，看目标现象是否还出现；</li>
+          <li><strong>4. Validation target 对齐</strong>：验证的对象要是 mechanism（sharing 行为、tie formation、exposure-response），不是 style / believability；</li>
+          <li><strong>5. Evaluator</strong>：绝对不要用同模型自评；优先用定量对照真实人类数据，其次才用人类评审；</li>
+          <li><strong>6. Robustness</strong>：至少 5-10 次 run 报告均值和方差，做基础 sensitivity analysis；</li>
+          <li><strong>7. Calibration</strong>：若做 persona 模拟，明确报告"prompt engineering vs fine-tuning"定位；不要声称做了 calibration；</li>
+          <li><strong>8. Scope 声明</strong>：明确说明模型适用的 context 边界（路径 B），别默认 universally applicable。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-key" style="margin-top:24px;">
+      <div class="callout-title">📌 一句话记住本篇</div>
+      Larooij &amp; Törnberg (2026) = <span class="hl-red">LLM 没解决 ABM 的验证病，反而让病加重</span>；<span class="hl">小镇路线要么限定用途为"合成数据 / 原型工具"，要么就必须证明自己能穿越 data leakage、多样性坍缩、黑盒、LLM-as-Judge、成本五道关</span>。本文是本库"批判视角"专题的奠基综述——所有后续 challenge 笔记都应把它作为主引用。
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 36 · Validation is the Central Challenge for Generative Social Simulation · Artif Intell Rev (2026)</p>
+  <p style="margin-top:8px;"><a href="../index1.html">← 返回导航中心</a></p>
+</div>
+
+</body>
+</html>

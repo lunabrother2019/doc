@@ -49,12 +49,15 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/33-socioverse.html` — "后加": SocioVerse (arXiv:2504.10157, Fudan DISC): 10M real-user pool world model for social simulation, 2024 election 92.2% accuracy
 - `html/deep-dive/34-1000-people.html` — "后加": Generative Agent Simulations of 1,000 People (arXiv:2411.10109, Park et al. 2024) — Stanford followup using deep interviews of 1052 people, 85% attitude prediction
 - `html/deep-dive/35-opencity.html` — "后加": OpenCity (ACL 2025, Tsinghua FIB Lab) — 10K-agent urban simulation framework with epoll LLM scheduler and group-and-distill
+- `html/deep-dive/36-critical-perspectives.html` — "后加": Critical Perspectives on Generative Social Simulation with LLMs (Larooij & Törnberg, Springer AI Review 2025) — 35-paper critical review covering prior pollution, diversity collapse, LLM-as-Judge loops
+- `html/deep-dive/37-concordia.html` — "后加": Concordia (Google DeepMind, arXiv:2312.03664) — Entity × Component × Engine library for generative social simulation
+- `html/deep-dive/38-sotopia.html` — "后加": SOTOPIA (CMU LTI, arXiv:2310.11667, ICLR 2024) + SOTOPIA-S4 (arXiv:2504.16122) — 7-dimension social intelligence evaluation framework
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 35). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 38). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

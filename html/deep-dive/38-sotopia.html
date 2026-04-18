@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读38：Sotopia — 社交智能评估与仿真平台</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2a1640 0%, #0f1117 50%, #1a1d27 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.cmu { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.35); color: var(--red); font-weight: 600; }
+    .hero .paper-ref.github { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.35); color: var(--green); }
+    .hero .paper-ref.site { background: rgba(244,114,182,0.08); border-color: rgba(244,114,182,0.3); color: var(--pink); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--pink); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr.hi td { background: rgba(52,211,153,0.05); }
+    tbody tr.hi-pink td { background: rgba(244,114,182,0.05); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.orange .stat-val { color: var(--orange); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.red .stat-val { color: var(--red); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(244,114,182,0.15); color: var(--pink); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0 22px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; line-height: 1.8; }
+    .col-box .col-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; letter-spacing: .3px; }
+    .col-box.academic { border-left: 3px solid var(--accent); }
+    .col-box.academic .col-title { color: var(--accent); }
+    .col-box.prod { border-left: 3px solid var(--green); }
+    .col-box.prod .col-title { color: var(--green); }
+
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 22px; }
+    @media (max-width: 900px) { .three-col { grid-template-columns: 1fr; } }
+    .three-col .col-box { padding: 14px 16px; }
+
+    .dim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .dim-card { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--pink); border-radius: 10px; padding: 14px 16px; }
+    .dim-card .dim-name { font-size: 13px; color: var(--pink); font-weight: 700; margin-bottom: 4px; letter-spacing: .3px; }
+    .dim-card .dim-range { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .dim-card .dim-desc { font-size: 13px; line-height: 1.7; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Sotopia — 社交智能评估与仿真平台 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：Sotopia 是 CMU LTI 主导的<strong>社交智能评估框架</strong>，把 LLM Agent 投进 90 个带冲突目标的社交场景里让它们"角色扮演谈判"，再用七维 <span class="hl-pink">SOTOPIA-EVAL</span> 打分。它的核心问题不是"能不能拟人"，而是<span class="hl-green">LLM 做社交决策到底比人类差多少</span>——结果是 GPT-4 在 hard 子集上显著落后于人类。后续的 S4 把整个平台做成了 pip 可装的大规模仿真工具。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2310.11667" target="_blank">arXiv:2310.11667</a> · Zhou et al. · ICLR 2024 Spotlight</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2504.16122" target="_blank">arXiv:2504.16122</a> · SOTOPIA-S4 · NAACL 2025 Demo</div>
+  </div>
+  <div style="margin-top:10px;">
+    <div class="paper-ref tag">Social Intelligence · Benchmark</div>
+    <div class="paper-ref cmu">CMU LTI</div>
+    <div class="paper-ref site"><a href="https://sotopia.world/projects/sotopia" target="_blank" style="color:inherit;">🌐 sotopia.world</a></div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref github"><a href="https://github.com/sotopia-lab/sotopia" target="_blank" style="color:inherit;">💻 GitHub: sotopia-lab/sotopia</a></div>
+    <div class="paper-ref" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.25);color:#fbbf24;"><a href="https://huggingface.co/datasets/cmu-lti/sotopia" target="_blank" style="color:inherit;">🤗 HF Dataset: cmu-lti/sotopia</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 定位 &amp; 数字</a>
+    <a href="#sec2">2. 核心设定</a>
+    <a href="#sec3">3. SOTOPIA-EVAL 七维</a>
+    <a href="#sec4">4. S4 扩展</a>
+    <a href="#sec5">5. 与三个对照</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="37-concordia.html">Concordia</a>
+  <a href="17-agent-society.html">AgentSociety</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <a href="../evolution-chains.html">演化链</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- Section 1 -->
+  <section class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>一句话定位 &amp; 关键数字</h2>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">一句话总结</div>
+      Sotopia 把 LLM Agent 放进<span class="hl-pink">"两人目标互斥的社交情境"</span>里当演员——比如"房东和租客就宠物条款谈判""前同事想借 $5000"——让它们用自然语言对话去达成<strong>各自的隐藏目标</strong>；结束后用 GPT-4 按七维标尺打分。它不像小镇那样追求"拟人感"，也不像 Concordia 提供"通用仿真框架"，<span class="hl-green">它是一把为"社交智能"专门打造的标尺</span>。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box pink">
+        <div class="stat-val">90</div>
+        <div class="stat-label">社交场景 · 覆盖合作/竞争/混合</div>
+      </div>
+      <div class="stat-box cyan">
+        <div class="stat-val">40</div>
+        <div class="stat-label">角色档案 · 带性格/职业/秘密</div>
+      </div>
+      <div class="stat-box yellow">
+        <div class="stat-val">7</div>
+        <div class="stat-label">SOTOPIA-EVAL 评估维度</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-val">ICLR 2024</div>
+        <div class="stat-label">Spotlight · 2023.10 首投</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">CMU LTI</div>
+        <div class="stat-label">Zhou / Sap / Neubig / Bisk 等</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">~389</div>
+        <div class="stat-label">S4 每秒交互数 · 150 agent 同跑</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      注：第一作者 Xuhui Zhou（CMU 博士），合著含 Maarten Sap（CMU LTI，社会NLP 领军人物）、Graham Neubig、Yonatan Bisk、Daniel Fried 等。后续 <code>SOTOPIA-π</code>（ACL 2024）和 <code>SOTOPIA-RL</code>（2025.08）分别探索"通过互动训练社交智能"和"社交奖励设计"两条路线，本篇聚焦主框架 + S4 扩展。
+    </p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">📌 为何值得专篇研究</div>
+      在 LLM agent 社会仿真的演化链里，Sotopia 占据一个<strong>独特的评估生态位</strong>：小镇回答"能不能拟真"、Concordia 回答"能不能做实验"、<span class="hl-pink">Sotopia 回答"LLM 的社交决策水平如何量化"</span>。它提供了首个<span class="hl-green">多维度、细粒度、目标驱动</span>的社交交互基准，后来的 LIFELONG-SOTOPIA、SOTOPIA-RL 都建立在这个框架的评分体系之上。
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>核心设定：Social Task + Goal Conflict 驱动的角色扮演</h2>
+    </div>
+
+    <h3>2.1 它回答的问题</h3>
+    <p>Sotopia 作者对"社交智能"的操作化定义很明确：<strong>在与他人的目标冲突 / 信息不对称 / 规则约束下，仍能达成自己的社交目标的能力</strong>。这比"会聊天"要窄得多，也比"能完成任务"要软得多——它测的是<span class="hl">谈判、妥协、揣摩、撒谎/保密、合作邀请</span>等人类日常的"软技能"。</p>
+
+    <div class="callout callout-pink">
+      <div class="callout-title">🎭 一个典型 Episode 的结构</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>Scenario（场景）</strong>：描述情境的自然语言，比如"两个朋友合租，其中一个想要养一只大型犬，另一个有哮喘"；</li>
+        <li><strong>Characters（角色）</strong>：各自的名字、职业、性格（Big Five）、背景故事、人际关系；</li>
+        <li><strong>Social Goals（社交目标）</strong>：<span class="hl-pink">对双方不对称</span>——A 想养狗，B 想保护健康 + 维系友谊。两个目标通常<strong>不可同时完美达成</strong>；</li>
+        <li><strong>Secrets / Private Info</strong>：某方可能持有对方不知道的信息（比如"A 其实已经领养了狗"），测试保密/披露策略；</li>
+        <li><strong>Interaction</strong>：双方轮流发言，每轮可选 speak / non-verbal / leave / none；最多 N 轮或有人退出；</li>
+        <li><strong>Evaluation</strong>：对话结束后 GPT-4 按七维评分，双方各得一份分数。</li>
+      </ul>
+    </div>
+
+    <h3>2.2 90 场景 × 40 角色的组合空间</h3>
+    <p>每个 episode 是 <code>(scenario × char_A × char_B × goal_A × goal_B)</code> 的组合。90 个场景按冲突类型分三类：</p>
+    <div class="three-col">
+      <div class="col-box prod">
+        <div class="col-title">合作型 (Cooperative)</div>
+        双方需要共同达成一个外部目标（如"一起策划惊喜派对"），冲突主要在<strong>分工和偏好</strong>。
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--orange);">
+        <div class="col-title" style="color:var(--orange);">竞争型 (Competitive)</div>
+        零和或近零和（如"就房租打折谈判"），一方得利另一方就让步——测试<strong>谈判策略</strong>。
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--pink);">
+        <div class="col-title" style="color:var(--pink);">混合型 (Mixed)</div>
+        最常见、也最像真实生活——既有冲突又想维持关系（如"提醒朋友信用卡超支"），测试<span class="hl-green">关系维护与利益平衡</span>。
+      </div>
+    </div>
+
+    <h3>2.3 角色卡：不只是名字和性格</h3>
+    <p>40 个角色每个都带有丰富的结构化档案，典型字段包括：</p>
+    <ul>
+      <li><strong>基础信息</strong>：姓名、性别、年龄、职业；</li>
+      <li><strong>Big Five 性格</strong>：显著影响对话风格和决策倾向；</li>
+      <li><strong>道德准则 / 价值观</strong>：比如"非常看重诚实"vs"结果导向"；</li>
+      <li><strong>过往经历 / 背景故事</strong>：一段叙述式描写；</li>
+      <li><strong>人际关系网</strong>：与其他 39 位角色的熟悉度 / 关系类型；</li>
+      <li><strong>秘密（secrets）</strong>：不想让对方知道的私有信息——这是 Sotopia 的独特设计，<span class="hl-pink">用来测"保守秘密"能力</span>。</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ Goal Conflict 的深层用意</div>
+      Sotopia 设计里最关键的一点是<strong>每个场景都植入了目标冲突或信息不对称</strong>——如果两个 agent 只是"合作完成一件事"，大模型会轻易 100 分，因为 LLM 天然擅长礼貌对话。只有当<span class="hl">达成目标需要说服、妥协、策略性让步</span>时，模型与人类的社交水平差距才会暴露出来。这是 Sotopia 与一般多轮对话基准最本质的区别。
+    </div>
+
+    <h3>2.4 两类参与者：LLM × LLM 与 LLM × Human</h3>
+    <p>Sotopia 天然支持两种运行模式：</p>
+    <ul>
+      <li><strong>LLM vs LLM</strong>：两个模型（可以是同一个，也可以是不同家族）互为对手，用于<span class="hl-green">横向比较社交能力</span>——比如 GPT-4 和 Claude、Llama 分别配对；</li>
+      <li><strong>LLM vs Human</strong>：真实人类通过 Web 界面与 LLM agent 对话，用于建立"人类 baseline"和观察<span class="hl-pink">人类如何看穿模型的社交弱点</span>。这套数据构成了论文关于"人机社交能力差距"的核心证据。</li>
+    </ul>
+
+    <div class="sv-link">
+      小镇用"涌现的日常互动"（早餐闲聊、偶遇邀请）来展示 agent 的社交可信度；Sotopia 则<strong>反过来</strong>——刻意设计尖锐的社交任务，把 agent 逼到需要权衡的情境里去。前者是<span class="hl">生态学观察</span>，后者是<span class="hl-pink">控制变量实验</span>。二者互为补充，但研究目的几乎正交。
+    </div>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>SOTOPIA-EVAL：七维社交智能标尺</h2>
+    </div>
+
+    <h3>3.1 七个维度概览</h3>
+    <p>SOTOPIA-EVAL 的设计借鉴了社会学、心理学、经济学的跨学科标准。每个维度独立打分，覆盖<strong>"做成事"与"做人"两方面</strong>：</p>
+
+    <div class="dim-grid">
+      <div class="dim-card">
+        <div class="dim-name">1. Goal Completion (GOAL)</div>
+        <div class="dim-range">[0, 10] · 越高越好</div>
+        <div class="dim-desc">达成该 agent 私有社交目标的程度，是最核心的绩效指标，也是"社交智能"的最直接体现。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">2. Believability (BEL)</div>
+        <div class="dim-range">[0, 10] · 越高越好</div>
+        <div class="dim-desc">是否表现得像一个真实人物，符合角色卡设定的性格与背景——防止 agent 用"AI 腔"应付。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">3. Knowledge (KNO)</div>
+        <div class="dim-range">[0, 10] · 越高越好</div>
+        <div class="dim-desc">是否从对话中<strong>成功获取新信息</strong>，如打探到对方的立场、偏好、底线——对应"信息获取能力"。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">4. Secret (SEC)</div>
+        <div class="dim-range">[-10, 0] · 越接近 0 越好</div>
+        <div class="dim-desc">负向分——测量<strong>秘密泄露程度</strong>。持有秘密的 agent 不应主动吐出私有信息，否则扣分。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">5. Relationship (REL)</div>
+        <div class="dim-range">[-5, 5]</div>
+        <div class="dim-desc">对话后双方关系的变化——是拉近了还是疏远了。用于测试<span class="hl-pink">"成事不损关系"</span>的长线思维。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">6. Social Rules (SOC)</div>
+        <div class="dim-range">[-10, 0] · 越接近 0 越好</div>
+        <div class="dim-desc">负向分——是否<strong>违反社会规范与道德</strong>（说谎、威胁、歧视性语言等）。对齐研究者很关心这一项。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">7. Financial/Material (FIN)</div>
+        <div class="dim-range">[-5, 5]</div>
+        <div class="dim-desc">从对话中<strong>获得或失去的物质/金钱利益</strong>——直接反映谈判能力，仅在涉及交易的场景中激活。</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      维度编码：GOAL / BEL / KNO / SEC / REL / SOC / FIN。具体打分分值区间见上表。<span class="unconfirmed">&lt;各维度 prompt 模板可在 sotopia-lab/sotopia 仓库的 evaluators 模块找到，具体 rubric 细则待实证&gt;</span>。
+    </p>
+
+    <h3>3.2 谁来打分：GPT-4-as-judge</h3>
+    <div class="callout callout-red">
+      <div class="callout-title">🎯 LLM 当裁判的合理性与风险</div>
+      Sotopia 选择用 <strong>GPT-4 作为 evaluator</strong> 来对每个 episode 的七维打分，原因和代价都很清楚：
+      <ul style="margin-bottom:0;">
+        <li><strong>合理</strong>：90 × 40 × 39 的组合空间下，人工标注成本爆炸，GPT-4 打分在论文里展示了与人类判断较高的相关性（"a decent proxy"）；</li>
+        <li><strong>风险 1</strong>：<span class="hl-pink">自家模型给自家打分的偏好</span>——GPT-4 判 GPT-4 的对话是否会打高分？论文给出过一些 sanity check，但这个问题在 LLM-as-judge 领域整体未解决；</li>
+        <li><strong>风险 2</strong>：<span class="hl">维度之间的相关性</span>——比如 "Believability" 高的 agent 很可能 "Relationship" 也高，两维未必真的独立；</li>
+        <li><strong>风险 3</strong>：<span class="unconfirmed">GPT-4 版本漂移导致历史评分不可比 &lt;待实证，可能需要锁模型版本&gt;</span>。</li>
+      </ul>
+    </div>
+
+    <h3>3.3 SOTOPIA-hard：拉开差距的子集</h3>
+    <p>论文另一核心贡献是从 90 个场景中筛出一个<strong>"hard" 子集</strong>——对所有模型都挑战较大的场景。关键实验结果：</p>
+
+    <div class="formula">
+<span class="label">论文核心结论 · 在 hard 子集上 GPT-4 vs 人类的差距尤其显著</span>在 SOTOPIA 全集上：
+  GPT-4 的 GOAL 得分 ≈ 人类 baseline 但仍偏低
+  其他维度表现较强
+
+在 SOTOPIA-hard 子集上：
+  GPT-4 的 GOAL ≪ 人类 baseline
+  社交常识推理、策略性沟通明显不足
+  ——模型在"真正难的社交情境"中暴露短板</div>
+
+    <p>这个设计精妙之处在于：<strong>用一个小而难的子集代替"一刀切的总分"</strong>——模型在容易场景上的高分会掩盖真实的社交能力差距。SOTOPIA-hard 变成了后续 RL / π 训练的重点优化对象。</p>
+
+    <h3>3.4 用公式描述一个 Episode 的评分</h3>
+
+    <div class="formula">
+<span class="label">SOTOPIA-EVAL 的打分流程（简化）</span>Episode E = {scenario, (char_A, goal_A), (char_B, goal_B), dialogue[]}
+
+For each agent i ∈ {A, B}:
+    scores_i = LLM_judge(
+        E,
+        agent=i,
+        rubric=[GOAL, BEL, KNO, SEC, REL, SOC, FIN]
+    )
+
+Aggregate:
+    model_score(M) = avg over episodes where M plays as i
+                     of each dimension independently
+
+Key benchmark:
+    SOTOPIA-hard  ⊂  SOTOPIA-all  (~100 episodes)
+    report: GOAL_hard, overall_hard</div>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>SOTOPIA-S4：从论文到 pip 可装的平台</h2>
+    </div>
+
+    <h3>4.1 S4 要解决的痛点</h3>
+    <p>原版 Sotopia 虽然开源，但用起来仍然是"论文级代码"——<strong>想做新实验要改底层、要配 Redis、要自己跑 episode 生成</strong>。S4（Simple Social Simulation System，NAACL 2025 Demo）的目标是把这套评估能力<span class="hl-green">产品化</span>：</p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body"><strong>pip package</strong> — 直接 <code>pip install sotopia</code>（<span class="unconfirmed">包名待实证确认</span>），装上就能跑；不用克隆仓库、不用编译依赖。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body"><strong>API Server (FastAPI)</strong> — 提供 RESTful 端点管理场景、角色、episode、评估，Swagger 自动生成文档，方便被其他系统集成。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body"><strong>Web UI</strong> — 非程序员研究者（社会学家、心理学家）可以通过浏览器<strong>用自然语言写场景</strong>，配置角色、运行仿真、看结果，完全不用写 Python。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body"><strong>大规模异步执行</strong> — 论文声称在普通服务器上 150 个 agent 同跑时<strong>每秒 ~389 次交互</strong>，依赖 asyncio + LiteLLM 统一管理多 LLM 供应商。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div class="pipe-body"><strong>信息不对称 message broker</strong> — Redis 后端 + 自定义消息中介，让每个 agent 看到的"world view"按脚本控制（比如 A 知道 X，B 不知道），这是社交场景必备能力。</div>
+      </div>
+    </div>
+
+    <h3>4.2 S4 的两个新增示范用例</h3>
+    <div class="two-col">
+      <div class="col-box academic">
+        <div class="col-title">① Dyadic Hiring Negotiation</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>招聘官 × 候选人 二人谈判；</li>
+          <li>系统地操纵候选人的<strong>性格特质</strong>（transparency / competence / adaptability），看对谈判结果的因果影响；</li>
+          <li>做的是<span class="hl-pink">HR 实验社会心理学的 LLM 复刻</span>——用硅基被试代替人类招募成本。</li>
+        </ul>
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--cyan);">
+        <div class="col-title" style="color:var(--cyan);">② Multi-Party Planning</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>突破原 Sotopia 的<strong>"二人 only"</strong>限制，支持多方共同决策；</li>
+          <li>agent 可以<strong>同时</strong>行动、可以向特定他人发起<strong>有条件报价</strong>（contingent offer）；</li>
+          <li>研究<span class="hl-green">群体动力学与权力结构</span>如何影响妥协的涌现——这是传统社会学的经典议题。</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>4.3 S4 与原版 Sotopia 的关系</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>SOTOPIA (2023.10 / ICLR 2024)</th>
+            <th>SOTOPIA-S4 (2025.04 / NAACL 2025 Demo)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>定位</td>
+            <td>benchmark + 框架</td>
+            <td><strong>通用社交仿真平台</strong>（pip 装 + Web UI）</td>
+          </tr>
+          <tr>
+            <td>场景规模</td>
+            <td>固定 90 场景 × 40 角色</td>
+            <td>自然语言写新场景 · 场景库无硬上限</td>
+          </tr>
+          <tr>
+            <td>参与方数量</td>
+            <td>严格 2 人</td>
+            <td><strong>多方（multi-party）</strong></td>
+          </tr>
+          <tr class="hi-pink">
+            <td><strong>用户门槛</strong></td>
+            <td>需要改 Python 代码</td>
+            <td><strong>Web UI + 自然语言配置，零代码</strong></td>
+          </tr>
+          <tr>
+            <td>吞吐量</td>
+            <td>未强调</td>
+            <td><strong>150 agent @ ~389 interactions/s</strong></td>
+          </tr>
+          <tr>
+            <td>API</td>
+            <td>Python 库</td>
+            <td>FastAPI RESTful + Swagger</td>
+          </tr>
+          <tr>
+            <td>评估</td>
+            <td>SOTOPIA-EVAL 七维（固定）</td>
+            <td>可自定义 metric · 继承原七维作默认</td>
+          </tr>
+          <tr class="hi">
+            <td><strong>面向人群</strong></td>
+            <td>AI/NLP 研究者</td>
+            <td><strong>AI + 社会科学家 + 心理学家混合</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.4 衍生工作：Sotopia 家族</h3>
+    <p>围绕主框架，CMU 团队和合作者持续扩展出多条研究线：</p>
+    <ul>
+      <li><strong>SOTOPIA-π</strong>（arXiv:2403.08715）— 通过"行为克隆 + 自强化"训练<span class="hl-pink">7B 模型达到 GPT-4 级社交目标完成率</span>，同时保留 MMLU 等通用能力；</li>
+      <li><strong>SOTOPIA-RL</strong>（arXiv:2508.03905）— 专门设计多维度、utterance 级别的社交奖励信号，在 hard 子集上拿到 7.17 的 GOAL 分（<span class="unconfirmed">&lt;与人类 baseline 对比待实证&gt;</span>）；</li>
+      <li><strong>LIFELONG-SOTOPIA</strong> — 把多个 episode 串成"人生长弧"，研究 agent 的<span class="hl-green">记忆整合与长期关系演化</span>——这个方向和 Generative Agents 的记忆流直接对话；</li>
+      <li><strong>Agent vs Storyteller</strong> — 研究"仿真对话"与"真实对话"的差异——这是对<a href="../challenge/validation-gap.html">validation gap</a>的直接回应。</li>
+    </ul>
+
+    <div class="callout callout-green">
+      <div class="callout-title">✅ Sotopia 生态的累积效应</div>
+      从 2023 到 2025，Sotopia 已经从单一论文变成了一个<strong>研究集群</strong>——评估（main）→ 训练（π / RL）→ 平台（S4）→ 长期性（Lifelong）→ 真实性（Storyteller）。这种"围绕一个核心抽象做持续深耕"的模式，比"每篇论文起新名字"更有复利效应。
+    </div>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
+      <h2>与 AgentSociety / Concordia / 斯坦福小镇的对照</h2>
+    </div>
+
+    <h3>5.1 四个项目的一页地图</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>核心目的</th>
+            <th>规模</th>
+            <th>交互形式</th>
+            <th>评估方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hi-pink">
+            <td><strong style="color:var(--pink);">Sotopia</strong></td>
+            <td><strong>社交智能评估</strong>（诊断模型社交弱点）</td>
+            <td>2 人（S4 支持多方）</td>
+            <td>文本对话 · 目标驱动</td>
+            <td><strong>七维 LLM-judge 打分</strong></td>
+          </tr>
+          <tr>
+            <td><a href="37-concordia.html">Concordia</a></td>
+            <td>通用社会仿真框架</td>
+            <td>10-100 agent</td>
+            <td>Game Master 裁决 · 自由行动</td>
+            <td>研究者自定义</td>
+          </tr>
+          <tr>
+            <td><a href="17-agent-society.html">AgentSociety</a></td>
+            <td>大规模社会议题仿真</td>
+            <td>千级 agent</td>
+            <td>城市 + 社交网络</td>
+            <td>社会学指标（极化等）</td>
+          </tr>
+          <tr>
+            <td><a href="19-generative-agents.html">Smallville</a></td>
+            <td>拟真 NPC 的可行性论证</td>
+            <td>25 NPC</td>
+            <td>2D 地图 · 日常生活</td>
+            <td>质性观察 + 人工打分</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 关键差异：评估 vs 仿真的分野</h3>
+    <div class="callout callout-insight">
+      <div class="callout-title">💡 Sotopia 与其他三者的本质区别</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>小镇 / Concordia / AgentSociety</strong> 共同偏向"<span class="hl">仿真</span>"——让 agent 跑起来，看涌现什么；</li>
+        <li><strong>Sotopia</strong> 偏向"<span class="hl-pink">评估</span>"——先定好标尺，再让 agent 对着标尺打分；</li>
+        <li>仿真型项目的成功标准是"<strong>看起来像真的</strong>"（believability），评估型项目的成功标准是"<strong>可比、可量化、有区分度</strong>"；</li>
+        <li>正因如此，Sotopia 的场景数量（90）远小于小镇自动涌现的事件数，但<strong>每一个都精心校准</strong>，以确保不同模型在同一场景下的对比是公平的。</li>
+      </ul>
+    </div>
+
+    <h3>5.3 Sotopia vs Concordia：都是"大厂开源"，但定位互补</h3>
+    <div class="two-col">
+      <div class="col-box prod" style="border-left-color:var(--pink);">
+        <div class="col-title" style="color:var(--pink);">Sotopia 的强项</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>现成的 90 场景 + 40 角色——<strong>开箱即用的 benchmark</strong>；</li>
+          <li>七维量化指标，跨模型可直接比较；</li>
+          <li>场景精心设计含目标冲突，拉得开分差；</li>
+          <li>面向<span class="hl-pink">"模型诊断"</span>场景最合适。</li>
+        </ul>
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--green);">
+        <div class="col-title" style="color:var(--green);">Concordia 的强项</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>Entity / Component / GM 通用原语，<strong>任何社会场景可建</strong>；</li>
+          <li>不预设场景，研究者自由定义；</li>
+          <li>支持物理规则 / API 工具 / 任意多方；</li>
+          <li>面向<span class="hl-green">"新假设探索"</span>场景最合适。</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>一个可能的组合用法：<strong>用 Concordia 搭环境，用 SOTOPIA-EVAL 的七维标尺来打分</strong>——但这个组合目前<span class="unconfirmed">&lt;尚未见正式工作，待实证&gt;</span>。理论上它是最优组合：Concordia 提供通用仿真骨架 + Sotopia 提供精细评估标尺。</p>
+
+    <h3>5.4 Sotopia vs AgentSociety：评估 vs 大规模</h3>
+    <div class="callout callout-pink">
+      <div class="callout-title">🌆 为什么 Sotopia 不追求大规模</div>
+      <ul style="margin-bottom:0;">
+        <li>AgentSociety 的研究问题是<span class="hl">"群体层面涌现什么"</span>——意见极化、信息扩散；所以必须千级 agent；</li>
+        <li>Sotopia 的研究问题是<span class="hl-pink">"单个模型的社交决策质量"</span>——两个 agent 一对一就够了；</li>
+        <li>两者都在"社交"，但<strong>层次完全不同</strong>：微观决策 vs 宏观涌现；</li>
+        <li>如果粗暴地扩展 Sotopia 到千级，评估会失效——七维 LLM-judge 在数百个 agent 同时互动时无法给每人发一份独立评分（谁和谁的对话已经混在一起了）。</li>
+      </ul>
+    </div>
+
+    <h3>5.5 Sotopia vs 小镇：同是社交，思路相反</h3>
+    <div class="sv-link">
+      小镇用大量<strong>无目标的日常闲聊</strong>来展示"LLM 可以像人一样生活"；Sotopia 用少量<strong>有尖锐目标的谈判场景</strong>来展示"LLM 离真正的人类社交还有多远"。前者是<span class="hl-green">存在性证明（"能做")</span>，后者是<span class="hl-pink">差距量化（"差多少"）</span>——这两种研究思路都必要，但代表截然不同的科研气质。研究者选哪条路，很大程度上取决于他/她想让读者看到 LLM 的<strong>光明面还是阴影面</strong>。
+    </div>
+
+    <h3>5.6 生态位总结</h3>
+    <div class="callout callout-key">
+      <div class="callout-title">🗺️ LLM 社交研究的"四象限"</div>
+      <ol style="margin-bottom:0;">
+        <li><strong>拟真 × 小规模</strong> → <a href="19-generative-agents.html">Smallville</a>（25 NPC 日常生活）；</li>
+        <li><strong>通用 × 中规模</strong> → <a href="37-concordia.html">Concordia</a>（Entity/Component 框架）；</li>
+        <li><strong>议题 × 大规模</strong> → <a href="17-agent-society.html">AgentSociety</a>（千级城市居民）；</li>
+        <li><strong>评估 × 小规模精细</strong> → <span class="hl-pink">Sotopia</span>（90 场景 × 七维标尺）。</li>
+      </ol>
+      如果把"LLM 社交研究"视为一个学科，这四者就是它的<strong>四根支柱</strong>——缺了评估支柱（Sotopia），其他三个的结论都无从标定。
+    </div>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">6</div>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q1：SOTOPIA-EVAL 用 GPT-4 自评，可信度到底有多高？会不会"自家模型拉自家模型"？</div>
+      <div class="a">
+        这是所有 LLM-as-judge benchmark 的通病。论文里 Zhou 等作者做了<strong>几类校准工作</strong>：用人类标注作 ground truth 算 evaluator 的 Pearson / Spearman 相关；对每个维度分别验证；抽样做质性 debug。结论是七维中多数与人类判断有"decent"相关（具体数字论文里 0.3-0.6 量级不等，<span class="unconfirmed">确切数字待查 v2 原文</span>）。
+        <br><br>
+        但这远不意味着可以放心直接用——<span class="hl-pink">尤其在跨模型比较时</span>，GPT-4 可能对与自己风格相近的文本给出系统性偏高的分。一个务实做法是：<strong>用 SOTOPIA-EVAL 做相对比较（同一 evaluator 下的排名）而不是绝对打分</strong>；如果要跨时间对比，锁死 evaluator 版本（比如固定 gpt-4-0613）。
+        <br><br>
+        更长远看，Sotopia-RL 这条线反倒"利用"了评估器本身——把七维打分变成 RL 的奖励信号，就不用追问"评估是否绝对正确"，只关心"训练目标是否稳定"。这是在 evaluation 和 training 之间建立的一个闭环设计。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：Sotopia 和小镇、Concordia 明显不是一类东西，为什么还要和它们放在一起对照？</div>
+      <div class="a">
+        因为<strong>做 LLM agent 研究的人会同时需要这三者的能力</strong>。典型研究 pipeline：
+        <ol>
+          <li>先有个假设（比如"记忆增强能提升社交能力"）；</li>
+          <li>设计一个新 agent 架构——这时候用 <strong>Concordia / 小镇</strong>作骨架；</li>
+          <li>需要验证新架构真的"更社交"——这时候拿 <strong>Sotopia 的 90 场景 + 七维</strong>来打分；</li>
+          <li>如果要看宏观效应——再扔进 <strong>AgentSociety</strong> 或自建的大规模仿真。</li>
+        </ol>
+        所以这四者<span class="hl-green">不是竞争关系而是工具链关系</span>。把它们并排讨论，是为了帮研究者看清"手里这个研究问题，要组合哪几件工具"。实际上 <span class="hl">Sotopia 和 Concordia 技术上完全可以组合</span>——Concordia 搭环境，Sotopia 的 evaluator 打分——但目前还没看到这样的公开工作，是一个潜在的有价值方向。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q3：Sotopia 的 90 个场景是不是太少了？会不会过拟合到这个 benchmark？</div>
+      <div class="a">
+        这个担忧完全合理，也是 benchmark 研究的经典问题。Sotopia 的应对有几层：
+        <br><br>
+        <strong>①</strong> 原版确实只有 90 场景，但每个场景搭配 40 × 39 种角色对，<span class="hl-pink">实际 episode 组合超过 10 万</span>，模型很难逐一记住；
+        <br><br>
+        <strong>②</strong> SOTOPIA-hard 子集是<strong>模型表现差</strong>的场景，会被重点优化——如果某个模型真的把这些"过拟合"了，其实反映了社交能力提升（至少在这类场景上）；
+        <br><br>
+        <strong>③</strong> S4 支持<strong>自然语言写新场景</strong>，消除了"90 场景封顶"的问题——研究者可以按需生成自己的场景；
+        <br><br>
+        <strong>④</strong> 更严重的担忧其实不是场景数，而是<span class="hl-green">所有场景都来自 CMU 团队的文化 / 语言背景</span>——90 个场景是否能代表全人类社交？显然不能，这是 Sotopia 下一步扩展的重点方向之一（跨文化 / 跨语言社交）。
+        <br><br>
+        所以结论是：<strong>90 场景够做"诊断"，但不够做"训练数据池"</strong>——要训练社交智能，就得用 S4 的场景生成能力 + 衍生工作（π / RL）。
+      </div>
+    </div>
+
+    <div class="callout callout-key" style="margin-top:24px;">
+      <div class="callout-title">📌 一句话记住本篇</div>
+      Sotopia = <span class="hl-pink">LLM 社交智能的"磅秤"</span>——CMU LTI 用 90 个带目标冲突的社交场景 × 40 个角色档案 × 七维 SOTOPIA-EVAL 评分，首次把"LLM 的社交能力"<strong>量化成可比的数字</strong>；S4 进一步把它做成 pip 可装、Web UI 可用的<span class="hl-green">通用社交仿真平台</span>；与 Smallville / Concordia / AgentSociety 共同构成"拟真 - 通用 - 议题 - 评估"四象限生态。
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 38 · Sotopia: Interactive Evaluation for Social Intelligence in Language Agents · arXiv:2310.11667 · ICLR 2024 Spotlight · CMU LTI · 2023.10</p>
+  <p style="margin-top:8px;">SOTOPIA-S4 · NAACL 2025 Demo · arXiv:2504.16122 · <a href="https://github.com/sotopia-lab/sotopia" target="_blank">github.com/sotopia-lab/sotopia</a></p>
+  <p style="margin-top:8px;"><a href="../index1.html">← 返回导航中心</a></p>
+</div>
+
+</body>
+</html>
