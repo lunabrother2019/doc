@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读25：ExpeL + ERL — 跨轨迹经验反思的两代演化</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .subtitle-pair { font-size: 15px; color: var(--accent); margin-top: 6px; margin-bottom: 10px; }
+    .hero .subtitle-pair strong { color: var(--cyan); }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 14px; }
+    .hero .paper-ref + .paper-ref { margin-left: 6px; }
+    .hero .paper-ref a { color: inherit; }
+    .github-badge { display:inline-block; margin-top:10px; font-size:13px; padding:6px 14px; border-radius:8px; background:rgba(52,211,153,0.12); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
+    .github-badge.disabled { background:rgba(139,149,165,0.1); color:var(--muted); border:1px dashed var(--muted); }
+    .github-badge a { color: inherit; }
+    .github-badge + .github-badge { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-family: "JetBrains Mono","Courier New",monospace; font-size: 13px; color: var(--cyan); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td.col-expel { color: #c4b5fd; }
+    tbody td.col-erl { color: #7dd3fc; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+    .col-box.expel { border-left: 4px solid var(--accent); }
+    .col-box.erl { border-left: 4px solid var(--cyan); }
+    .col-box h4 { margin-top: 0; }
+    .col-box.expel h4 { color: var(--accent); }
+    .col-box.erl h4 { color: var(--cyan); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre-wrap; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; font-size: 14.5px; margin-bottom: 8px; }
+    .faq-item .a { font-size: 14px; color: var(--text); line-height: 1.8; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .footer a { color: var(--blue); }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>ExpeL + ERL — 跨轨迹经验反思的两代演化 <span class="personal-badge">后加</span></h1>
+  <p class="subtitle-pair"><strong>ExpeL</strong> (AAAI 2024) × <strong>ERL</strong> (arXiv 2026.03) — 对照阅读</p>
+  <p class="sub">两篇论文围绕同一个问题展开：<strong>LLM Agent 如何把多条过往轨迹的经验沉淀为可复用的知识</strong>？ExpeL 给出"聚合式 insights"范式，ERL 则反向走"保留细节 + 检索式 heuristics"路径。它们共同构成 Reflection 支柱下"跨轨迹子路线"的两代演化。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2308.10144" target="_blank">ExpeL · arXiv:2308.10144</a> · AAAI 2024</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL · arXiv:2603.24639</a> · 2026.03</div>
+  </div>
+  <div style="margin-top:10px;">
+    <div class="github-badge"><a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">💻 GitHub: LeapLabTHU/ExpeL</a></div>
+    <div class="github-badge disabled">📄 ERL 暂无公开代码</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 为什么要配对读</a>
+    <a href="#sec3">3. ExpeL 深剖</a>
+    <a href="#sec4">4. ERL 深剖</a>
+    <a href="#sec5">5. 头对头对比</a>
+    <a href="#sec6">6. 演化论点</a>
+    <a href="#sec7">7. 与小镇联系</a>
+    <a href="#sec8">8. 位置与 FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="10-reflexion.html">10 Reflexion</a>
+  <a href="14-voyager.html">14 Voyager</a>
+  <a href="19-generative-agents.html">19 Smallville</a>
+  <a href="02-reflection-bank.html">02 Reflection Bank</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>一句话定位</h2>
+    </div>
+
+    <div class="two-col">
+      <div class="col-box expel">
+        <h4>ExpeL — "把经验池熬成规则手册"</h4>
+        <p>在训练任务上让 ReAct agent 自己跑 → 成功 / 失败轨迹进 experience pool → 用 LLM 离线反思 → 产出一批自然语言 <strong>insights</strong>（通用规则）→ 推理时检索相似轨迹 + 拼接所有 insights 注入 prompt。<span class="hl">无需参数更新，纯 in-context learning</span>。</p>
+        <div class="stat-row" style="margin:12px 0 0;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent);font-size:20px;">AAAI 2024</div><div class="stat-label">pp. 19632-19642</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--blue);font-size:20px;">gpt-3.5-turbo</div><div class="stat-label">0613</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:20px;">4</div><div class="stat-label">benchmark</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--pink);font-size:20px;">LeapLab</div><div class="stat-label">清华</div></div>
+        </div>
+      </div>
+
+      <div class="col-box erl">
+        <h4>ERL — "一条轨迹一条启发，按相关性取用"</h4>
+        <p>反思 trajectory + outcome → 生成 <strong>heuristics</strong>（保留 granular 细节的启发）进池 → 测试时让 LLM 对每条 heuristic 给"任务相关性分"→ top-k 注入 context。相对 ExpeL 的核心改动：<span class="hl">单次轨迹即可提取、不做跨任务聚合</span>。</p>
+        <div class="stat-row" style="margin:12px 0 0;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:20px;">56.1%</div><div class="stat-label">Gaia2 成功率</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--yellow);font-size:20px;">+7.8%</div><div class="stat-label">vs ReAct</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--cyan);font-size:20px;">1</div><div class="stat-label">条轨迹即可</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--orange);font-size:20px;">2026.03</div><div class="stat-label">arXiv v2</div></div>
+        </div>
+      </div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;">ExpeL 基准：ALFWorld / WebShop / HotpotQA / FEVER。ERL 基准：Gaia2（Search 和 Execution splits），文中对比超过 ExpeL、AutoGuide 等。</p>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>为什么要配对读这两篇</h2>
+    </div>
+
+    <p>在 Reflection 支柱下，反思的"时间跨度"有三个层次：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>层次</th><th>代表工作</th><th>边界</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Intra-step</strong>（单步内）</td><td>CoT / Inner Monologue</td><td>一次前向中的自我推理</td></tr>
+          <tr><td><strong>Intra-task</strong>（单任务多 trial）</td><td><a href="10-reflexion.html">Reflexion</a></td><td>同一任务失败 → 反思 → 重试，反思只在本任务生命周期内有效</td></tr>
+          <tr><td><strong>Inter-task</strong>（跨任务）</td><td><span style="color:var(--accent);">ExpeL</span> / <span style="color:var(--cyan);">ERL</span> / AutoGuide</td><td>把历史任务的经验沉淀下来，跨任务复用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">这两篇正是"跨任务反思"子路线的两代代表</div>
+      ExpeL (2023.08) 是第一代：把多条轨迹<strong>熬成</strong>一份通用 insights（类似"蒸馏"）。ERL (2026.03) 是第二代：发现"熬煮会丢失细节"，回归到<strong>保留每条轨迹的独特启发 + 检索时按相关性筛选</strong>。你会看到这是一个非常典型的"先聚合、后发现聚合有损、再回到检索"的循环——和信息检索领域从 topic model 走向 dense retrieval 的历史几乎同构。
+    </div>
+
+    <p>在本研究库的概念图里，两篇共享 "R4 跨轨迹反思" 节点，这个放在同一个节点的决定本身就是在暗示它们是同一范畴内的演化对，而不是两个正交的工作。</p>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>ExpeL 深度剖析</h2>
+    </div>
+
+    <h3>3.1 Experience pool — 文本版的 Replay Buffer</h3>
+    <p>ExpeL 的第一步是让一个 ReAct agent 在<strong>训练任务集</strong>上反复跑（成功 / 失败都记录）。每条轨迹进 pool 的形式大致是：</p>
+    <div class="formula"><span class="label">experience entry (简化)</span>{
+  task_id: "alfworld-023",
+  trajectory: "Thought 1: ... Action 1: ... Observation 1: ...",
+  outcome: "success" | "fail",
+  reward: 0.0 ~ 1.0
+}</div>
+    <p>作者明确把这类比 <strong>Lin 1992 的 Replay Buffer</strong>（强化学习经典的 off-policy 存储），区别是：Lin 存的是 (s, a, r, s') 张量，ExpeL 存的是自然语言 trace。<span class="hl">相同的思想、不同的底层表征</span>。</p>
+
+    <h3>3.2 Insight extraction — 离线反思出"通用规则"</h3>
+    <p>这是 ExpeL 最关键的一步。作者设计了一个 <code>COMPARE</code> 与 <code>SUCCESS</code> 两类操作的 prompt：</p>
+    <ul>
+      <li><strong>COMPARE</strong>：喂给 LLM 一对 (success trajectory, fail trajectory)（同任务 / 同类任务），问"为什么失败、应该怎么改"→ 产出一条 insight。</li>
+      <li><strong>SUCCESS</strong>：喂给 LLM 多条成功 trajectory，问"它们共同的成功模式是什么"→ 产出一条 insight。</li>
+    </ul>
+    <p>Insight 是一句或几句自然语言，类似：<em>"In WebShop tasks, always check product options before adding to cart."</em> 所有提取出来的 insights 会进一步经过 <code>ADD / EDIT / DOWNVOTE / UPVOTE / REMOVE</code> 五个操作的"维护循环"——这是 ExpeL 一个容易被忽视的细节，insights 池不是静态追加，而是像 wiki 一样被持续编辑。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">这一步为什么是"离线"而非推理时</div>
+      ExpeL 刻意把反思放在训练阶段做完、把 insights 冻结下来，推理时只做检索和拼接。好处是推理延迟低；代价是<strong>对新分布的适应性差</strong>——你没有机制在看到测试任务后再产出新 insight。这正是 ERL 要攻击的点之一。
+    </div>
+
+    <h3>3.3 推理阶段 — 双路检索</h3>
+    <p>给定一个新任务 <code>task_test</code>，ExpeL 做两件事：</p>
+    <ol>
+      <li><strong>相似轨迹检索</strong>：从 experience pool 里基于任务描述 embedding 取 top-k（论文里一般 k=2-3）相似的成功轨迹，作为"few-shot 示范"。</li>
+      <li><strong>Insights 全量注入</strong>：把所有 insights（通常几十条，token 开销可控）全部拼到 system prompt。</li>
+    </ol>
+    <p>这是"示范 + 规则"的双管齐下。作者做了 ablation：insights-only 和 trajectories-only 都不如双路，说明两者是<strong>互补信息</strong>——trajectories 提供具体动作序列的模仿目标，insights 提供高层决策原则。</p>
+
+    <h3>3.4 跨域迁移实验</h3>
+    <p>ExpeL 最有趣的一组实验是 <strong>cross-task transfer</strong>：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>源任务</th><th>目标任务</th><th>关系</th><th>是否有提升</th></tr></thead>
+        <tbody>
+          <tr><td>HotpotQA</td><td>FEVER</td><td>多跳问答 → 事实核查</td><td>有，insights 可迁移</td></tr>
+          <tr><td>ALFWorld</td><td>WebShop</td><td>家居规划 → 网购导航</td><td>部分迁移（通用规则迁得好）</td></tr>
+          <tr><td>WebShop</td><td>ALFWorld</td><td>反向</td><td>弱</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>结论：<span class="hl">高层 insights（"先验证再执行""遇到不确定时 backtrack"）能跨域，具体 trajectory 不能</span>。这个发现反过来也在说：如果 insights 抽象得足够高，它们对具体新任务的"颗粒度指引"就不够了——这是 ERL 要解决的张力。</p>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">4</div>
+      <h2>ERL 深度剖析</h2>
+    </div>
+
+    <h3>4.1 Heuristics pool — 不是 insights</h3>
+    <p>ERL 刻意不叫 insights。原因是：它产出的每条知识单元<strong>更长、更具体、包含原始上下文</strong>。一条 heuristic 可能包含"任务类型、失败时的关键 action 片段、修正建议"，不像 ExpeL insight 那样压缩为一句通用规则。</p>
+
+    <div class="formula"><span class="label">heuristic entry (示意)</span>{
+  task_signature: "search + date filter",
+  observed_failure_pattern: "agent ignored the year constraint in query",
+  suggested_strategy: "explicitly parse temporal constraints before issuing search",
+  source_trajectory_digest: "...",
+  original_outcome: "fail -> success after fix"
+}</div>
+
+    <h3>4.2 单轨迹抽取 — ExpeL 做不到的</h3>
+    <p>ExpeL 的 COMPARE 需要 (success, fail) <strong>配对</strong>，SUCCESS 需要<strong>多条成功轨迹</strong>，这意味着必须有量。ERL 的提取 prompt 针对<strong>单条轨迹 + 其 outcome</strong> 就能工作：LLM 直接被问"这条轨迹揭示了什么可复用的启发"，产出一条 heuristic。</p>
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">这里的权衡</div>
+      单轨迹抽取的代价是："启发"的普适性更弱，容易 overfit 到这一条轨迹的具体情境。ERL 的设计哲学是：<strong>不在抽取阶段强求普适，把筛选的活交给后续 relevance scoring</strong>——让"什么时候用哪条启发"留到测试时动态决定。
+    </div>
+
+    <h3>4.3 Relevance scoring + top-k 注入</h3>
+    <p>测试时，给定新任务，ERL 让 LLM 对 pool 里<strong>每条</strong>（或经粗召回后的候选）heuristic 打一个 relevance 分，取 top-k（论文里一般 k=3-5）注入 context。这是和 ExpeL "insights 全量拼接"的根本区别：</p>
+    <ul>
+      <li>ExpeL：pool 里所有 insights 一次全塞，假设它们都是通用规则，互不干扰。</li>
+      <li>ERL：pool 大了之后全塞装不下（heuristics 单条更长），且很多 heuristic 对当前任务是噪声 → 必须<strong>检索</strong>。</li>
+    </ul>
+
+    <h3>4.4 Gaia2 基准 — 比 ExpeL 年代的基准更难</h3>
+    <p>ERL 主战场是 Gaia2（GAIA 基准的第二代），分为：</p>
+    <ul>
+      <li><strong>Search split</strong>：需要调用搜索工具、多源信息整合。</li>
+      <li><strong>Execution split</strong>：需要跨工具执行复杂计算 / 操作。</li>
+    </ul>
+    <p>论文报告 ERL 在 Gaia2 上达到 <span class="hl">56.1% 成功率，比 ReAct baseline 提升 7.8 个百分点</span>，同时高于 ExpeL 和 AutoGuide 的复现结果。注意：这是 ERL 自己复现 baseline 的数字，ExpeL 原论文不在 Gaia2 上评过——所以需要客观看待这个对比（见 FAQ）。</p>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>头对头对比表</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>维度</th><th style="color:var(--accent);">ExpeL</th><th style="color:var(--cyan);">ERL</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>学习素材</td><td class="col-expel">experience pool（需多条训练轨迹）</td><td class="col-erl">单条轨迹 + outcome 即可</td></tr>
+          <tr><td>产物名称</td><td class="col-expel">insights（自然语言规则）</td><td class="col-erl">heuristics（保留细节的启发）</td></tr>
+          <tr><td>产物抽象程度</td><td class="col-expel">高度聚合（"一句话规则"）</td><td class="col-erl">granular（保留任务签名、失败模式、上下文片段）</td></tr>
+          <tr><td>训练样本要求</td><td class="col-expel">多条，含成功 / 失败配对</td><td class="col-erl">单条即可</td></tr>
+          <tr><td>推理时注入策略</td><td class="col-expel">top-k 相似轨迹 + <strong>全部</strong> insights</td><td class="col-erl"><strong>top-k 相关</strong> heuristics</td></tr>
+          <tr><td>检索信号</td><td class="col-expel">任务 embedding 相似度</td><td class="col-erl">LLM-as-judge 打 relevance 分</td></tr>
+          <tr><td>细节丢失风险</td><td class="col-expel">聚合时不可避免地丢失</td><td class="col-erl">保留 granular，细节不丢</td></tr>
+          <tr><td>噪声 / 无关信息风险</td><td class="col-expel">低（insights 都是通用规则）</td><td class="col-erl">较高（依赖 relevance 打分的准确性）</td></tr>
+          <tr><td>推理延迟</td><td class="col-expel">低（只检索轨迹，insights 固定）</td><td class="col-erl">更高（每次要做 heuristic 相关性评估）</td></tr>
+          <tr><td>发表</td><td class="col-expel">AAAI 2024</td><td class="col-erl">arXiv 2026.03</td></tr>
+          <tr><td>基底模型</td><td class="col-expel">gpt-3.5-turbo-0613</td><td class="col-erl">更现代的 LLM（论文给 Gaia2 的主实验）</td></tr>
+          <tr><td>代码</td><td class="col-expel">有：<a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a></td><td class="col-erl">暂未找到公开仓库</td></tr>
+          <tr><td>典型基准</td><td class="col-expel">ALFWorld / WebShop / HotpotQA / FEVER</td><td class="col-erl">Gaia2 (Search + Execution)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">一个判别方法</div>
+      如果你的场景里 <strong>训练任务多、规则稳定、延迟敏感</strong>（如 ALFWorld 这种 sim 环境大批跑），ExpeL 风格更合适。如果 <strong>任务分布异构、单任务就珍贵、需要保留上下文细节</strong>（如 Gaia2 这种 tool use 场景），ERL 风格更合适。
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>关键演化论点</h2>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">论点 1 ：insights vs heuristics 是 LLM agent 经验复用的两种范式</div>
+      它们不是"孰优孰劣"的关系，而是"压缩 vs 保留"的两端。ExpeL 开创了 post-hoc 抽取高层规则的压缩路径；ERL 反向回到保留原始轨迹细节 + 检索筛选的非压缩路径。这两条路都有存在价值——它们服务于不同的任务分布特性和 token budget 约束。
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">论点 2 ：这是一次隐含的 "bitter lesson" 复现</div>
+      Sutton 的 bitter lesson 说：<em>"那些把人类先验塞进去的方法，长期会被让机器自己搜索 / 学习的方法打败。"</em> ExpeL 的"聚合出通用规则"本质是一种<strong>特征工程</strong>——人为设计了"insight 必须是高抽象度通用规则"这个先验。ERL 放弃了这个先验，让检索自己决定该用什么——这是从 compression 走向 retrieval 的标志性一步。在更早的 NLP 史上，这对应从 LDA topic model 到 dense retrieval 的演化。
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">论点 3 ：但 ERL 不是终点</div>
+      保留细节 + 检索的路径也有边界：pool 无限增长时，relevance scoring 本身成了瓶颈（要给 N 条 heuristic 打分）。下一代可能的演化方向是：<strong>hierarchical heuristics</strong>（粗召回 → 精筛） / <strong>graph-indexed heuristics</strong>（像 A-MEM 那样加语义边）/ <strong>self-compressing heuristics</strong>（池过大时触发"二次蒸馏"，回到一个带选择性的 insights 层）。事实上 24 号综述里列的 "Memory-R1" 和 "Memory+RL 联合优化"就是在做这件事。
+    </div>
+  </div>
+
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">7</div>
+      <h2>与 Generative Agents / 斯坦福小镇的联系</h2>
+    </div>
+
+    <h3>7.1 Reflection 的范围之别</h3>
+    <p>小镇的 reflection 是：<strong>当 memory stream 中近期记忆的 importance 累计超过阈值，触发反思，抽取 higher-level insight 写回 memory stream</strong>。形式上和 ExpeL 非常像——都是"从一堆观察中抽取一条高层规则"。但范围不同：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>反思的时间跨度</th><th>反思的主体</th><th>产物去向</th></tr></thead>
+        <tbody>
+          <tr><td>Smallville Reflection</td><td>intra-character（单 agent 的生命周期内）</td><td>单个 agent</td><td>写回自己的 memory stream</td></tr>
+          <tr><td>Reflexion</td><td>intra-task（同任务的多 trial）</td><td>单 agent × 单任务</td><td>下轮 trial 的 prompt</td></tr>
+          <tr><td><span style="color:var(--accent);">ExpeL / ERL</span></td><td>inter-task（跨任务、跨分布）</td><td>通常是"系统级"（一个 agent 在训练任务集上跑完得到）</td><td>共享的 insights / heuristics pool</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>7.2 Relevance 打分的同源</h3>
+    <p>小镇的记忆检索公式是 <code>score = Recency × Importance × Relevance</code>，其中 Relevance 来自当前 query 与 memory 的 embedding 相似度。ERL 的 heuristic relevance scoring 虽然换成了 LLM-as-judge，但<strong>功能位置完全一致</strong>——都是"给候选记忆 / 启发打分，只取最相关的注入"。两者都认识到：记忆 / 经验池会膨胀，必须有打分机制决定用哪些。</p>
+
+    <div class="sv-link">
+      如果把小镇的 Memory Stream 理解为"<strong>一个 agent 一生的 experience pool</strong>"，那么小镇的 reflection 就是<strong>个人版 ExpeL</strong>——不跨任务、但跨事件。ExpeL 把这个机制从"一个 agent 内"放大到"训练任务集上"，本质是把时间维度的经验累积换成了任务维度的经验累积。ERL 再进一步，承认聚合会丢信息、回到基于检索的调用——这正好也呼应了小镇<strong>没有把 raw memory 扔掉</strong>的设计：反思出 insight 后，原始记忆还在 stream 里可检索。小镇在 2023 年用一个耦合的打分公式把两层都做了，ExpeL / ERL 在 2024-2026 把它们拆成了正交的设计选择。
+    </div>
+
+    <h3>7.3 与 Voyager 的对照</h3>
+    <p><a href="14-voyager.html">Voyager</a>（Minecraft 里的终身学习 agent）也有"经验库"的概念，但它的产物是<strong>可执行 JavaScript 技能函数</strong>，不是自然语言规则。映射关系：</p>
+    <ul>
+      <li><strong>Voyager skill library</strong> ≈ ExpeL insights（跨任务沉淀、可检索复用），但形式是代码。</li>
+      <li>Voyager 的"技能可直接执行"带来了一个 ExpeL / ERL 都没有的优势：<strong>可验证</strong>——代码在环境里跑出结果，对就对、错就错。ExpeL insights 对不对，只能靠下游任务成功率间接验证。</li>
+      <li>但 Voyager 的代价是只能用于"动作可代码化"的环境（Minecraft 的离散 API），在 QA / Web browsing 这类任务里就不适用——这正是 ExpeL / ERL 的地盘。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec8">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">8</div>
+      <h2>在本研究库中的位置 & FAQ</h2>
+    </div>
+
+    <h3>8.1 Cross-ref 地图</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>对比对象</th><th>关系</th><th>要点</th></tr></thead>
+        <tbody>
+          <tr><td><a href="10-reflexion.html">10 Reflexion</a></td><td>上游 / 同支柱</td><td>Reflexion 循环内反思（单任务），ExpeL / ERL 跨任务；前者是后者的"单任务特例"。</td></tr>
+          <tr><td><a href="14-voyager.html">14 Voyager</a></td><td>同思路、不同表征</td><td>Voyager 的技能是可执行代码，ExpeL / ERL 的是自然语言规则 / 启发。</td></tr>
+          <tr><td>AutoGuide</td><td>ERL 文中对比 baseline</td><td>把反思出的 guideline 组织成决策树；ERL 的 heuristic + relevance scoring 比它灵活。</td></tr>
+          <tr><td><a href="02-reflection-bank.html">02 Reflection Bank</a></td><td>dual-loop 架构近亲</td><td>同样是"把反思沉淀到一个 bank 里复用"，路径相近但侧重 dual-loop 的优化流程。</td></tr>
+          <tr><td><a href="19-generative-agents.html">19 Smallville</a></td><td>个体版 / 事件级</td><td>小镇 reflection 是 intra-character 版 ExpeL，跨事件不跨任务。</td></tr>
+          <tr><td>24 号 Memory Survey（待加）</td><td>分类学归属</td><td>在功能维度属 <strong>Experiential Memory</strong>，形式维度属 <strong>Token-level（自然语言）</strong>，dynamics 阶段属 <strong>检索驱动</strong>。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>8.2 FAQ — 澄清常见误解</h3>
+
+    <div class="faq-item">
+      <div class="q">Q1：ExpeL 和 Reflexion 区别是什么？不都是反思吗？</div>
+      <div class="a">反思的<strong>时间跨度</strong>不同。Reflexion 是：在<strong>同一个任务</strong>里失败 → 反思 → 重新尝试；反思只在本任务的多个 trial 之间传递，任务结束后不保留。ExpeL 是：在<strong>一批训练任务</strong>里跑完，把所有经验离线反思成一个 insights pool，这个 pool 被<strong>后续所有新任务</strong>共享。一个是 intra-task 循环，一个是 inter-task 知识沉淀。Reflexion 解决"给我第二次机会"，ExpeL 解决"别让前人的失败白费"。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：ERL 真的超越 ExpeL 吗？对比公平吗？</div>
+      <div class="a">需要谨慎。ERL 报告的 "+7.8% vs ReAct, 超 ExpeL" 是<strong>在 Gaia2 基准、用 ERL 团队自己复现的 ExpeL 上</strong>得到的。ExpeL 原论文根本没在 Gaia2 上评（那时 Gaia2 还没出），所以这是 "ERL 把 ExpeL 方法迁移到 Gaia2 后跑出的结果 vs ERL 自己"。这不等于 "ExpeL 在它的主场（ALFWorld / WebShop）也输"。更严谨的说法是：<span class="hl">在 Gaia2 这种异构 tool use 场景下，保留 granular 细节 + 检索式调用 优于 聚合式规则</span>——这和 ExpeL 原来的主场特性（ALFWorld 的高度结构化任务）刚好反过来，结论合情合理，但不能简单推广为"ERL 全面超越 ExpeL"。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q3：跨轨迹经验 和 memory stream 的边界在哪里？它们不都是"存历史"吗？</div>
+      <div class="a">关键看<strong>"谁拥有"和"存什么"</strong>。Memory stream（小镇）属于<strong>单个 agent</strong>，存的是<strong>原始事件观察</strong>（"在公园看到 Klaus 和 Maria 争吵"），是 character-centric 的自传体记忆。跨轨迹经验池（ExpeL / ERL）属于<strong>系统 / 一类 agent</strong>，存的是<strong>反思产物</strong>（"遇到工具调用失败时应该 X"），是 skill-centric 的程序性知识。两者完全可以共存：一个 agent 同时有自己的 memory stream（记我是谁、我经历了什么）和一个共享的 experience pool（记该怎么解决任务）——事实上 MetaGPT、CAMEL 这类多 agent 系统的记忆设计正在往这个方向走。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q4：我该先读哪一篇？</div>
+      <div class="a">如果你对 <strong>方法论原型</strong>感兴趣（"跨轨迹反思这个 idea 怎么来的"），先读 ExpeL——它有更完整的消融、更清晰的 Replay Buffer 类比、更好的基准覆盖、还有开源代码。如果你关心<strong>当前 SOTA 的做法</strong>（"现在 Gaia2 上什么工作有效"），先读 ERL——它是对前者的精确修正，能直接看到"ExpeL 哪一步被改了、为什么"。理想顺序是：<strong>ExpeL → ERL → 回头读 ExpeL 的 limitation 讨论</strong>，你会发现 ERL 正好在回应那些 limitation。</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  深度解读25 &middot; ExpeL (AAAI 2024) + ERL (arXiv 2026.03) &middot; 跨轨迹经验反思对照<br>
+  ExpeL arXiv:2308.10144 · GitHub: <a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a> &middot; ERL arXiv:2603.24639<br>
+  <a href="../index1.html">← 返回导航中心</a> &middot; 本页由 AI 辅助生成，仅供学术研究参考
+</div>
+</body>
+</html>
