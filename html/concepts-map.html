@@ -683,13 +683,15 @@ graph TB
     <span class="title"><a href="https://arxiv.org/abs/2310.01848" target="_blank">自我反思局限性 (ICLR 2024)</a></span>
     <div class="keywords"><span>90%确认性</span><span>纠错仅2%</span><span>分水岭</span></div>
     <div class="note">发现没有外部反馈时，LLM 自我反思几乎无效，迫使领域转向外部批评机制</div>
+    <a class="dd-link" href="deep-dive/28-self-correct-limits.html">深度解读 →</a>
   </div>
 
   <div class="card card-ref">
     <span class="pillar-tag tag-ref">Reflection</span>
     <span class="title"><a href="https://arxiv.org/abs/2305.14325" target="_blank">MAD 多智能体辩论</a></span>
     <div class="keywords"><span>多Agent批评</span><span>共识达成</span></div>
-    <div class="note">多个 Agent 互相批评对方答案达成共识，绕过自我反思的确认性偏差</div>
+    <div class="note">多个 Agent 互相批评对方答案达成共识，绕过自我反思的确认性偏差。MAD + MAR 合并对照。</div>
+    <a class="dd-link" href="deep-dive/27-mad-mar.html">深度解读 →</a>
   </div>
 
   <div class="card card-ref">
@@ -735,15 +737,18 @@ graph TB
   <div class="card card-plan">
     <span class="pillar-tag tag-plan">Planning</span>
     <span class="title"><a href="https://arxiv.org/abs/2307.07924" target="_blank">ChatDev / MetaGPT</a></span>
-    <div class="keywords"><span>角色分工</span><span>PM/架构师/程序员</span></div>
-    <div class="note">多个 Agent 分别扮演不同角色协作完成任务，将规划分布到组织架构中</div>
+    <div class="keywords"><span>角色分工</span><span>PM/架构师/程序员</span><span>SOP vs Waterfall</span></div>
+    <div class="note">多个 Agent 分别扮演不同角色协作完成任务，将规划分布到组织架构中。ChatDev 走 Waterfall 自由对话，MetaGPT 走 SOP 结构化 artifact，代表两种路线。</div>
+    <a class="dd-link" href="deep-dive/22-metagpt.html">深度解读 22 MetaGPT →</a>
+    <a class="dd-link" href="deep-dive/23-chatdev.html" style="margin-left:8px;">深度解读 23 ChatDev →</a>
   </div>
 
   <div class="card card-plan">
     <span class="pillar-tag tag-plan">Planning</span>
-    <span class="title"><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">具身智能 (CVPR 2025)</a></span>
-    <div class="keywords"><span>MLLM</span><span>World Model</span><span>物理感知</span></div>
-    <div class="note">MLLM + World Model 双驱动：语言推理 + 物理感知，走向实体世界的规划</div>
+    <span class="title"><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">GEA 具身智能 (CVPR 2025)</a></span>
+    <div class="keywords"><span>MLLM</span><span>统一 Action Tokenizer</span><span>CALVIN 90%</span><span>Apple+GT</span></div>
+    <div class="note">Szot et al. 提出 Generalist Embodied Agent：统一的多体具化动作标记器跨越不同 embodiment，SFT 220 万轨迹 + 在线 RL，CALVIN/Habitat/Procgen 三基准达 specialist 水平。</div>
+    <a class="dd-link" href="deep-dive/29-gea-embodied.html">深度解读 →</a>
   </div>
 
   <!-- Action -->
@@ -787,7 +792,8 @@ graph TB
     <span class="pillar-tag tag-multi">Multi-Agent</span>
     <span class="title"><a href="https://arxiv.org/abs/2512.20845" target="_blank">MAR 多角色反思 (2024)</a></span>
     <div class="keywords"><span>Persona多样性</span><span>异构Agent</span><span>多视角批判</span></div>
-    <div class="note">不同 Persona 从不同视角批判失败推理，跨越反思与多Agent两个支柱</div>
+    <div class="note">不同 Persona 从不同视角批判失败推理，跨越反思与多Agent两个支柱。MAD + MAR 合并对照。</div>
+    <a class="dd-link" href="deep-dive/27-mad-mar.html">深度解读 →</a>
   </div>
 
   <!-- External Methodology (collapsible) -->

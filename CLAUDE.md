@@ -40,12 +40,15 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/22-24` — 3 multi-agent & memory-survey deep-dives (all "后加"): MetaGPT SOP 流水线, ChatDev Waterfall 瀑布, Memory in the Age of AI Agents 综述
 - `html/deep-dive/25-expel-erl.html` — trilogy deep-dive (all "后加"): ExpeL insights pool (AAAI 2024) + AutoGuide context-aware guidelines (NeurIPS 2024) + ERL heuristics pool (arXiv 2026.03), three-gen evolution of 跨轨迹经验反思: 聚合→条件→检索
 - `html/deep-dive/26-cross-attention-retrieval.html` — Cross-Attention 检索 (Hong & He, Frontiers in Psychology 2025): trainable ACAN network replaces Smallville's hand-tuned Recency×Importance×Relevance scoring formula
+- `html/deep-dive/27-mad-mar.html` — paired (both "后加"): MAD Multi-Agent Debate (Du et al. 2023) + MAR Persona Diversity (2024), debate-style reflection evolution
+- `html/deep-dive/28-self-correct-limits.html` — "后加": LLMs Cannot Self-Correct Reasoning Yet (Huang et al., ICLR 2024) — the pivotal paper that turned the reflection field toward external critique
+- `html/deep-dive/29-gea-embodied.html` — "后加": GEA Generalist Embodied Agent (Szot et al., CVPR 2025, Apple + Georgia Tech) — unified multi-embodiment action tokenizer
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 25). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 29). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

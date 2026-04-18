@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读29：GEA — 从多模态 LLM 到通用具身 Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.tag-org { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: var(--yellow); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--cyan); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.accent .stat-val { color: var(--accent); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 14px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(34,211,238,0.15); color: var(--cyan); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+    .arch-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .arch-box .arch-title { font-size: 13px; font-weight: 700; color: var(--cyan); margin-bottom: 6px; }
+    .arch-box .arch-body { font-size: 13px; color: var(--text); line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>GEA — 从多模态 LLM 到通用具身 Agent：方法与经验 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：Apple × Georgia Tech 的 <strong>GEA (Generalist Embodied Agent)</strong> 通过<strong>统一的 action tokenizer</strong> 将机械臂关节角、移动基底速度、游戏按键等异构动作空间压成同一套 token 词表，再用 <span class="hl">220 万条轨迹</span>做 SFT + 在线 RL，最终一个模型同时拿下 CALVIN 操纵、Habitat 导航、Procgen 视频游戏三大 benchmark，达到"接近或超越 specialist"的里程碑。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://openaccess.thecvf.com/content/CVPR2025/papers/Szot_From_Multimodal_LLMs_to_Generalist_Embodied_Agents_Methods_and_Lessons_CVPR_2025_paper.pdf" target="_blank">CVPR 2025</a> · Szot et al. · 2025</div>
+    <div class="paper-ref tag">Embodied Agent / VLA</div>
+    <div class="paper-ref tag-org">Apple + Georgia Tech</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref" style="background:rgba(139,149,165,0.1);border-color:rgba(139,149,165,0.3);color:var(--muted);">📄 代码未明确开源</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 为什么值得读</a>
+    <a href="#sec3">3. GEA 架构</a>
+    <a href="#sec4">4. 两阶段训练</a>
+    <a href="#sec5">5. 实验与结果</a>
+    <a href="#sec6">6. 与小镇的联系</a>
+    <a href="#sec7">7. 位置 / 未来方向</a>
+    <a href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">Cross-ref</span>
+  <a href="./08-react.html">08 · ReAct</a>
+  <a href="./09-inner-monologue.html">09 · Inner Monologue</a>
+  <a href="./14-voyager.html">14 · Voyager</a>
+  <a href="./17-agent-society.html">17 · AgentSociety</a>
+  <span class="cr-personal">后加专题</span>
+</div>
+
+<div class="container">
+
+<!-- ============================== SECTION 1 ============================== -->
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num">1</div><h2>一句话定位：让一个 LLM 同时会"拧螺丝、走迷宫、打游戏"</h2></div>
+
+  <p>
+    GEA (Generalist Embodied Agent) 把"通用"三个字从语言拉进了<strong>物理动作空间</strong>。
+    它不再是"一个机械臂模型 + 一个导航模型 + 一个游戏模型"的拼盘，而是<span class="hl">一个多模态 LLM backbone 驱动多个 embodiment</span>。
+    关键创新是<strong>统一 action tokenizer</strong>：无论动作是连续的 7-DoF 关节角，还是离散的 WASD 按键，都被编码成同一套 token，让 transformer 用同样的 next-token prediction 来学习。
+  </p>
+
+  <div class="stat-row">
+    <div class="stat-box pink">
+      <div class="stat-val">2.2M</div>
+      <div class="stat-label">SFT 轨迹数</div>
+    </div>
+    <div class="stat-box green">
+      <div class="stat-val">90%</div>
+      <div class="stat-label">CALVIN 操纵成功率</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val">83%</div>
+      <div class="stat-label">Habitat 导航成功率</div>
+    </div>
+    <div class="stat-box yellow">
+      <div class="stat-val">44%</div>
+      <div class="stat-label">Procgen 专家分数</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="stat-val">9</div>
+      <div class="stat-label">作者人数</div>
+    </div>
+    <div class="stat-box accent">
+      <div class="stat-val">Apple + GT</div>
+      <div class="stat-label">机构组合</div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话版</div>
+    用<span class="hl-pink">统一的动作 tokenizer</span> + <span class="hl-cyan">220 万轨迹 SFT</span> + <span class="hl-green">在线 RL 去偏</span>，让一个多模态 LLM 同时精通"机械臂 / 导航 / 游戏"三类截然不同的具身任务，并在三项 benchmark 上接近或超越 specialist 模型。
+  </div>
+</section>
+
+<!-- ============================== SECTION 2 ============================== -->
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num">2</div><h2>为什么这篇值得读：小镇停在文本世界，物理世界需要自己的"GPT"</h2></div>
+
+  <h3>动机一：小镇的 Agent 只会说话，机器人需要"手"</h3>
+  <p>
+    斯坦福小镇 (arXiv:2304.03442) 把 GPT 当成"全知编剧"：Agent 想"去咖啡馆"，LLM 就输出 <code>"walk to Hobbs Cafe"</code>，模拟引擎负责让像素人物沿路径移动。这种架构在<strong>文本虚拟世界</strong>里极其优雅，但一旦把 Agent 搬到物理机械臂上，<span class="hl">"walk to"</span> 三个词根本驱动不了 7 个关节电机。
+    物理世界要的是<span class="hl-cyan">连续控制信号、毫秒级闭环、感知-动作端到端</span>——这就是 GEA 回答的问题。
+  </p>
+
+  <h3>动机二：CVPR 2025 的具身智能浪潮</h3>
+  <p>
+    2025 年前后，视觉-语言-动作 (VLA) 模型爆发：Google 的 RT-2、OpenVLA、Octo、π₀、Physical Intelligence…… 几乎每家都有自己的"基础 Agent"。GEA 的意义在于它是 Apple 官方入场、在 CVPR 发表、并且<strong>跨三个完全不同 embodiment</strong> 做横向评测——这种 breadth 在 VLA 领域少见。
+  </p>
+
+  <h3>动机三："一个模型打三项"的 generalist 野心</h3>
+  <div class="callout callout-insight">
+    <div class="callout-title">关键创新：统一 action tokenizer</div>
+    过往 VLA 模型大多只做<strong>一种 embodiment</strong>（要么机械臂，要么导航，要么游戏）。GEA 用离散化 + VQ / 分 bin 的方式把所有动作空间映射到共享 token 词表，让 LLM 把"动作"当成另一种语言来生成。
+    这是把 foundation model 的 <span class="hl-pink">scaling hypothesis</span> 延伸到具身控制的一次关键验证。
+  </div>
+
+  <h3>动机四：小镇研究者的"下一跳"</h3>
+  <p>
+    如果把 Generative Agents 的文本思考迁移到物理机器人，缺的那块拼图正是 GEA：感知→思考→<span class="hl-cyan">tokenized action</span>。读完 GEA 会更清楚"为什么小镇做不了机器人、未来怎么才能做"。
+  </p>
+</section>
+
+<!-- ============================== SECTION 3 ============================== -->
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num">3</div><h2>GEA 架构：感知 → LLM 主干 → 统一 Action Token</h2></div>
+
+  <p>
+    GEA 的整体结构可以拆成 <strong>"多模态输入 → 共享 transformer → 统一 action tokens"</strong> 三段：
+  </p>
+
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="arch-title">① 多模态观察输入</div>
+      <div class="arch-body">
+        <strong>视觉</strong>：RGB / RGB-D 图像流，过 vision encoder 转 patch tokens。<br>
+        <strong>本体感知 (proprioception)</strong>：机械臂关节角、夹爪开合、基底速度等。<br>
+        <strong>语言目标</strong>：任务描述，如 "stack the red block on blue"。<br>
+        三路都被 tokenize 成同一序列喂进 LLM。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">② 共享 LLM Transformer</div>
+      <div class="arch-body">
+        底座是预训练的多模态 LLM（继承视觉-语言能力），上面做具身任务微调。
+        一个模型承载<span class="hl">跨 embodiment</span> 的感知融合和推理，所有任务共享这个主干。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">③ 统一 Action Tokenizer</div>
+      <div class="arch-body">
+        把异构动作空间映射成同一套离散 token：<br>
+        • 连续 7-DoF 关节角 → 分 bin 离散化<br>
+        • 移动基底速度 → 速度 bin tokens<br>
+        • 游戏按键 → 直接离散动作 ID<br>
+        输出层用共享 vocabulary 做 next-action-token prediction。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">④ 执行回路</div>
+      <div class="arch-body">
+        环境反馈新观察 → 重新进入 ① → 循环。
+        训练阶段可以是 offline teacher forcing，也可以是在线 rollout。
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">和传统 VLA 的关键区别</div>
+    <ul style="margin-bottom:0;">
+      <li><strong>RT-2 / OpenVLA</strong>：主要面向机械臂，action head 针对连续关节控制特化。</li>
+      <li><strong>Octo</strong>：支持多机械臂，但仍集中在 manipulation。</li>
+      <li><span class="hl-pink">GEA</span>：action space 跨 manipulation + navigation + game，一套 tokenizer 通吃，是真正意义的 "generalist embodied"。</li>
+    </ul>
+  </div>
+
+  <h3>形式化一下：动作生成</h3>
+  <div class="formula"><span class="label">统一自回归动作建模（概念表达）：</span>
+P(a_t | o_{≤t}, g) = ∏_k P(token_k | o_{≤t}, g, token_{&lt;k})
+
+其中 a_t 被 tokenizer 拆成 K 个离散 token：
+  机械臂  : [Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper]_bin
+  导航    : [linear_vel, angular_vel]_bin
+  游戏    : [action_id]
+</div>
+
+  <p>
+    也就是说，无论动作原本是啥形式，到了 transformer 眼里都是"下一段 token"——<span class="hl-cyan">把控制问题还原成语言建模</span>。
+  </p>
+</section>
+
+<!-- ============================== SECTION 4 ============================== -->
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num">4</div><h2>两阶段训练：SFT 打底 + 在线 RL 去偏</h2></div>
+
+  <h3>Stage 1 · SFT：220 万轨迹的行为克隆</h3>
+  <p>
+    第一阶段是大规模监督微调。论文公布的数据规模是 <span class="hl">2.2M trajectories</span>，来源异构：
+  </p>
+  <ul>
+    <li><strong>人类遥操作示范</strong>：CALVIN 等 manipulation 数据集由人类控制机械臂完成任务。</li>
+    <li><strong>专家策略 rollout</strong>：在 Habitat / Procgen 上预训练的 RL specialist 生成的轨迹。</li>
+    <li><strong>模拟器脚本轨迹</strong>：带有确定性成功率的 scripted policy。</li>
+    <li><strong>混合开源具身数据</strong>：公开的具身学习数据集聚合。</li>
+  </ul>
+
+  <div class="callout callout-green">
+    <div class="callout-title">SFT 损失</div>
+    标准的 next-token prediction：<code>L_SFT = -Σ log P(token_k | history)</code>。
+    这里 "token" 包含了<span class="hl">动作 token 与可能的推理 token</span>，让模型同时学会"看到什么 → 想什么 → 做什么"。
+  </div>
+
+  <h3>Stage 2 · 在线 RL：让 policy 自己"走出分布"</h3>
+  <p>
+    SFT 有一个经典问题：<strong>分布偏移 (compounding error)</strong>。训练时每一步的输入都来自 ground-truth 轨迹，但部署时一旦第一步走偏，后续的观察就再也没在训练集里见过，错误会滚雪球。GEA 的解决办法是在 SFT 之后跑<span class="hl-cyan">在线 RL 微调</span>：
+  </p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>模拟器 rollout</strong>：让 SFT 后的 policy 在 CALVIN / Habitat / Procgen 仿真器中自主执行。</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>收集奖励</strong>：从环境拿到任务完成率 / 稀疏奖励信号。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>policy gradient 更新</strong>：对 action token 序列做策略梯度（具体算法论文对标 PPO 风格在线 RL）。</div></div>
+    <div class="pipe-step"><div class="pipe-num">4</div><div class="pipe-body"><strong>迭代</strong>：rollout → 更新 → 新 rollout，覆盖"分布外"状态。</div></div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">关键洞察</div>
+    <strong>SFT 给定基础行为技能（上限由数据决定），RL 消除分布偏移并把 policy 推到"真实执行分布"上。</strong>
+    这一两阶段范式和 LLM 对齐里的"SFT → RLHF"逻辑高度同构——只不过 GEA 的奖励不是人类偏好，而是环境成功信号。
+  </div>
+
+  <h3>这为什么是"foundation model 具身化"的关键</h3>
+  <p>
+    单纯 SFT 的 VLA 会"背过场景"但"不会救自己"；纯 RL 的机器人会"样本效率极低"；GEA 把两者串起来，让 <span class="hl-pink">大模型先迁移语义先验，再通过与环境交互修正策略</span>——这是 embodied scaling 的一条可复制配方。
+  </p>
+</section>
+
+<!-- ============================== SECTION 5 ============================== -->
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num">5</div><h2>实验与结果：一个模型打三项 benchmark</h2></div>
+
+  <h3>三大 benchmark 对比</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Benchmark</th>
+          <th>任务类型</th>
+          <th>GEA 成绩</th>
+          <th>对照</th>
+          <th>意义</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>CALVIN</strong></td>
+          <td>语言条件机械臂操纵（长时序 pick &amp; place, stack, open drawer 等）</td>
+          <td><span class="hl-green">~90% 成功率</span></td>
+          <td>基线 specialist ~80%</td>
+          <td>证明 generalist 在操纵上不输专用模型</td>
+        </tr>
+        <tr>
+          <td><strong>Habitat</strong></td>
+          <td>PointGoal / ObjectGoal 视觉导航</td>
+          <td><span class="hl-cyan">~83% 成功率</span></td>
+          <td>超过 RL 基准</td>
+          <td>证明 LLM backbone 能学空间导航</td>
+        </tr>
+        <tr>
+          <td><strong>Procgen</strong></td>
+          <td>16 款程序化 2D 视频游戏（像素输入）</td>
+          <td><span class="hl">44% 专家分数</span></td>
+          <td>相比基线提升约 20 个点</td>
+          <td>证明跨 domain 的 visual policy 泛化</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>细节一：CALVIN 的长时序操纵</h3>
+  <p>
+    CALVIN 本身就是 language-conditioned 长任务 benchmark，评测"给定一串自然语言子任务，机械臂连续完成 5 个"的能力。
+    GEA 在这里拿到 <span class="hl-green">约 90% 成功率</span>，意味着<strong>它不仅能执行单步动作，还能在任务链条中保持语义对齐</strong>。这点和小镇里 Agent 按 plan 顺序执行 task 非常像——只不过小镇在像素世界，CALVIN 在物理/仿真世界。
+  </p>
+
+  <h3>细节二：Habitat 的视觉导航</h3>
+  <p>
+    Habitat 的 <strong>PointGoal</strong> 要求 Agent 在陌生 3D 家居环境中导航到指定坐标；<strong>ObjectGoal</strong> 要求找到某类物体（"去找沙发"）。GEA <span class="hl-cyan">83%</span> 超过了专门的 RL 导航基线，说明共享 LLM 主干并不会"挤兑"空间推理能力，反而因为语义先验更强而占优。
+  </p>
+
+  <h3>细节三：Procgen 的跨 domain 视频游戏</h3>
+  <p>
+    Procgen 是 16 款程序化生成的 2D 游戏（CoinRun / StarPilot / Maze...），纯像素输入 + 离散动作。对 VLA 模型很不友好——既没有本体感知，也没有明确任务语言。GEA 的 <span class="hl">44% 专家分数</span>证明其像素→动作的映射能力迁移到了非机器人领域。
+  </p>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">核心论点</div>
+    <strong>一个模型同时达到或超越三类 specialist</strong>——这是具身 foundation model 的里程碑，意味着"embodiment 通用性"不是假命题，而是可以通过数据规模 + 统一 tokenizer + 两阶段训练来实现的工程目标。
+  </div>
+
+  <h3>消融：哪部分最关键？</h3>
+  <ul>
+    <li><strong>统一 tokenizer 的消融</strong>：如果给每个 embodiment 单独 action head，跨任务迁移能力下降。</li>
+    <li><strong>SFT-only vs SFT+RL</strong>：RL 阶段对"分布外状态"的成功率提升显著，特别是长时序任务。</li>
+    <li><strong>数据规模</strong>：220 万轨迹并非"越大越好"的线性关系，但比小规模 SFT 存在明显跃迁。</li>
+  </ul>
+</section>
+
+<!-- ============================== SECTION 6 ============================== -->
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num">6</div><h2>与斯坦福小镇的联系：文本 Agent 的"身体化"路线图</h2></div>
+
+  <h3>定位差异</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>斯坦福小镇</th><th>GEA</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Agent 形态</td><td>像素 2D 虚拟人物</td><td>机械臂 / 移动机器人 / 游戏角色</td></tr>
+        <tr><td>观察模态</td><td>文本化环境描述</td><td>多模态：图像 + proprioception + 语言</td></tr>
+        <tr><td>动作机制</td><td>LLM 输出文本 action，游戏引擎翻译</td><td>LLM 直接输出 <span class="hl-pink">action tokens</span>，驱动电机</td></tr>
+        <tr><td>Planning</td><td>LLM 自然语言推理（可读）</td><td>SFT+RL 学出的 policy（内化）</td></tr>
+        <tr><td>记忆机制</td><td>Memory Stream + Reflection</td><td>主要靠 transformer 上下文（无长期记忆设计）</td></tr>
+        <tr><td>训练方式</td><td>零训练 / 纯 prompt 工程</td><td>大规模 SFT + 在线 RL</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>关键对照：Action 模块的本质差异</h3>
+  <p>
+    小镇的 action 是<strong>语言中介</strong>的——"LLM 说走 → 引擎执行走路动画"，这种解耦让 prompt 工程成为可能，但<span class="hl">天花板就是 LLM 的文本描述粒度</span>。
+    GEA 则把 action 做成<strong>学习到的 policy</strong>，没有中间翻译，动作的时间分辨率、空间精度都能做到机器人级。
+  </p>
+
+  <div class="callout callout-key">
+    <div class="callout-title">融合想象：物理小镇</div>
+    如果要把小镇落到真实物理机器人（比如让 Klaus 用机械臂煮咖啡），需要的正是 GEA 这样的 action tokenizer。
+    融合路线可能是：
+    <ul style="margin-top:6px;margin-bottom:0;">
+      <li><strong>高层 planning</strong>：保留小镇的 LLM 自然语言推理（Memory Stream → Reflection → Plan）。</li>
+      <li><strong>低层控制</strong>：让 GEA 式的 action tokenizer 把"go to kitchen, grab cup"翻译成关节轨迹。</li>
+      <li><strong>结果</strong>：<span class="hl-cyan">既有长期记忆，又有物理执行力</span> —— 真正意义上的通用具身 Agent。</li>
+    </ul>
+  </div>
+
+  <h3>映射到 24 号综述的分类</h3>
+  <p>
+    在记忆综述 (deep-dive 24) 的三维分类中，GEA 的 policy 属于：
+  </p>
+  <ul>
+    <li><strong>Form（形式）</strong>：<span class="hl-pink">Parametric</span> —— 知识/技能内化在 transformer 权重里，不是 external vector DB。</li>
+    <li><strong>Function（功能）</strong>：<span class="hl-pink">Procedural Memory</span> —— "怎么做"（手脚并用的技能）而非"记得做过什么"。</li>
+    <li><strong>Formation（形成）</strong>：<span class="hl-pink">Offline + Online</span> —— SFT 是离线、RL 阶段有在线闭环。</li>
+  </ul>
+
+  <div class="sv-link">
+    小镇 = <strong>语义/情节记忆</strong>（Memory Stream 是 episodic，Reflection 是 semantic）；
+    GEA = <strong>程序记忆</strong>（skill 烧进权重）。两者缝合起来，才是既有"灵魂"又有"身体"的 Agent。
+  </div>
+</section>
+
+<!-- ============================== SECTION 7 ============================== -->
+<section class="section" id="sec7">
+  <div class="sec-head"><div class="sec-num">7</div><h2>位置坐标 / Cross-ref / 未来方向</h2></div>
+
+  <h3>vs 其他 deep-dive 论文</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>论文</th><th>核心手段</th><th>与 GEA 的关系</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="./14-voyager.html">Voyager (14)</a></td>
+          <td>Minecraft 中用 <strong>code as action</strong> + skill library</td>
+          <td>同样追求"终身学习 + 通用 Agent"，但 Voyager 用代码做动作（符号），GEA 用 learned token（亚符号）；虚拟 vs 物理。</td>
+        </tr>
+        <tr>
+          <td><a href="./17-agent-society.html">AgentSociety (17)</a></td>
+          <td>大规模社会仿真，上千 Agent 自然语言交互</td>
+          <td>AgentSociety 横向拓"多 Agent 社会复杂度"；GEA 纵向拓"单 Agent 身体真实度"。正交互补。</td>
+        </tr>
+        <tr>
+          <td><a href="./08-react.html">ReAct (08)</a></td>
+          <td>Thought → Action → Observation 文本循环</td>
+          <td>ReAct 的 action 是离散工具调用（文本 token）；GEA 把 action 延伸到连续控制 token。结构同形，颗粒度不同。</td>
+        </tr>
+        <tr>
+          <td><a href="./09-inner-monologue.html">Inner Monologue (09)</a></td>
+          <td>把推理"显式写出来"辅助机器人</td>
+          <td>Inner Monologue 把思考外化给机器人读；GEA 把思考<span class="hl-pink">内化到 policy</span>。从"显式 CoT + 黑盒控制器"走向"端到端 policy"。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>在 CVPR 2025 VLA 生态里的位置</h3>
+  <ul>
+    <li><strong>Generalist 维度</strong>：和 Octo / RT-X 站在同一阵营，但比它们更大幅跨越 embodiment（manipulation + navigation + games）。</li>
+    <li><strong>Foundation model 维度</strong>：继承多模态 LLM 先验，延续 RT-2 的"VLA 即 LLM"范式。</li>
+    <li><strong>训练范式维度</strong>：SFT + 在线 RL 的两阶段配方与 LLM 对齐同构，是<span class="hl">embodied RLHF</span> 的雏形。</li>
+  </ul>
+
+  <h3>未来方向</h3>
+  <div class="callout callout-green">
+    <div class="callout-title">值得追的三条线</div>
+    <ol style="margin-bottom:0;">
+      <li><strong>GEA + Memory Stream</strong>：把小镇的情节记忆机制嫁接进 GEA，让机器人"记得昨天厨房的布局"而不是每次重来。</li>
+      <li><strong>跨真实 embodiment</strong>：论文三项 benchmark 都在仿真里；下一步是在<span class="hl-pink">真机</span>（人形 / 汽车 / 无人机）验证。</li>
+      <li><strong>开源化追踪</strong>：CVPR 版本未明确披露代码权重，需要关注 Apple 后续是否跟 MLX / OpenELM 一样放出。</li>
+    </ol>
+  </div>
+
+  <h3>局限与风险</h3>
+  <ul>
+    <li><span class="hl-pink">开源不明</span>：当前 PDF 未明确模型/代码发布策略，社区复现受限。</li>
+    <li><strong>跨真机边界未验证</strong>：人形机器人、汽车、无人机等高维连续控制场景是否迁移有效尚不清楚。</li>
+    <li><strong>长期记忆缺失</strong>：GEA 的"记忆"基本是 transformer context，超出 context 窗口就忘；这是它和小镇最大的互补缺口。</li>
+    <li><strong>RL 稳定性</strong>：在线 RL 阶段对超参、仿真器采样成本敏感，复现门槛高。</li>
+  </ul>
+</section>
+
+<!-- ============================== FAQ ============================== -->
+<section class="section" id="faq">
+  <div class="sec-head"><div class="sec-num">?</div><h2>FAQ：三个最常被问到的问题</h2></div>
+
+  <div class="faq-item">
+    <div class="q">Q1. GEA 和 RT-2 / OpenVLA 到底有什么不同？</div>
+    <div class="a">
+      三者都属于"多模态 LLM 驱动具身 Agent"的 VLA 家族，但侧重点不同：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>RT-2</strong>（Google DeepMind 2023）：把视觉-语言模型微调成机械臂控制器，<span class="hl">action = 离散化末端位姿 token</span>，但集中在 manipulation。</li>
+        <li><strong>OpenVLA</strong>（Stanford/TRI 2024）：RT-2 的开源复刻 + 改进，以 Llama 为骨架、针对机械臂 benchmark（如 Bridge / RT-1）优化。</li>
+        <li><strong>GEA</strong>（Apple + GT, CVPR 2025）：真正<span class="hl-pink">跨 embodiment</span>（机械臂 + 导航 + 游戏）用同一套 tokenizer + 同一个 backbone，并引入在线 RL 阶段。广度更大、训练范式更完整。</li>
+      </ul>
+      一句话：RT-2/OpenVLA 做的是"语言模型会拧螺丝"，GEA 做的是"语言模型同时会拧螺丝、走迷宫、打游戏"。
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q2. 220 万条轨迹到底从哪来？是开源数据还是 Apple 内部？</div>
+    <div class="a">
+      论文正文描述的数据来源是<strong>多源混合</strong>，推断组成包括：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>公开 manipulation benchmark</strong>：CALVIN 自带的人类遥操作轨迹、Bridge Data、Open X-Embodiment 等开源集合。</li>
+        <li><strong>Habitat / Procgen 内置专家策略 rollout</strong>：用预训练 RL 专家在仿真器里跑出的成功轨迹。</li>
+        <li><strong>Scripted policy 轨迹</strong>：模拟器中按脚本完成任务的 demo。</li>
+        <li><strong>可能的 Apple 内部数据</strong>：论文未明确，但以 Apple 对数据披露的一贯保守，不排除有少量内部轨迹。</li>
+      </ul>
+      <span class="unconfirmed">注</span>
+      PDF 未明确每个数据源的具体占比，也未发布训练集的整体打包下载，复现时需要自行拼装。
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q3. Apple 的具身智能战略藏在哪里？</div>
+    <div class="a">
+      Apple 一贯不爱在公开场合"卖未来"，但 GEA 已经是很强的战略信号：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>硬件端</strong>：Apple 已有 Vision Pro（空间感知）、传闻中的家用机器人项目、以及长期自动驾驶探索（Project Titan 虽已调整）。GEA 这类 generalist 具身模型正好是这些硬件的"灵魂"候选。</li>
+        <li><strong>模型端</strong>：Apple 陆续开源 MLX、OpenELM、MM1 等多模态 LLM 底座，GEA 可以视为这条线向<span class="hl-pink">动作空间</span>的延伸。</li>
+        <li><strong>系统端</strong>：Apple 擅长端侧推理（M 系列芯片），具身 Agent 对"低延迟 + 隐私本地化"的需求天然契合 Apple 的工程哲学。</li>
+        <li><strong>研究端</strong>：与 Georgia Tech 合作、CVPR 发表，说明 Apple 在把具身智能研究从内部 PoC 推向学术可见度更高的阶段。</li>
+      </ul>
+      总体来看，GEA 更像 Apple 具身智能研究的一个<strong>公开展示点</strong>，背后大概率还有更大规模的内部工作。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color: var(--cyan); font-weight: 600;">← 返回索引</a>
+  <p style="margin-top: 10px;">深度解读 29 · GEA: From Multimodal LLMs to Generalist Embodied Agents · CVPR 2025 · Apple + Georgia Tech</p>
+</div>
+
+</body>
+</html>

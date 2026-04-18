@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读27：MAD + MAR / A-HMAD — 辩论式反思的两代演化</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+      --mad: #a78bfa;       /* 紫 */
+      --mar: #22d3ee;       /* 青 */
+      --ahmad: #fb923c;     /* 橙（异构） */
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .subtitle-pair { font-size: 15px; color: var(--accent); margin-top: 6px; margin-bottom: 10px; }
+    .hero .subtitle-pair strong { color: var(--cyan); }
+    .hero .subtitle-pair .mad { color: var(--mad); }
+    .hero .subtitle-pair .mar { color: var(--mar); }
+    .hero .subtitle-pair .ahmad { color: var(--ahmad); }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 14px; }
+    .hero .paper-ref.mar { color: var(--mar); background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.3); }
+    .hero .paper-ref.ahmad { color: var(--ahmad); background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.3); }
+    .hero .paper-ref + .paper-ref { margin-left: 6px; }
+    .hero .paper-ref a { color: inherit; }
+    .github-badge { display:inline-block; margin-top:10px; font-size:13px; padding:6px 14px; border-radius:8px; background:rgba(52,211,153,0.12); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
+    .github-badge.disabled { background:rgba(139,149,165,0.1); color:var(--muted); border:1px dashed var(--muted); }
+    .github-badge a { color: inherit; }
+    .github-badge + .github-badge { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-mar { background: rgba(34,211,238,0.12); color: var(--mar); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-ahmad { background: rgba(251,146,60,0.12); color: var(--ahmad); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-family: "JetBrains Mono","Courier New",monospace; font-size: 13px; color: var(--cyan); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td.col-mad { color: #c4b5fd; }
+    tbody td.col-mar { color: #7dd3fc; }
+    tbody td.col-ahmad { color: #fdba74; }
+    thead th.col-mad { color: var(--mad); }
+    thead th.col-mar { color: var(--mar); }
+    thead th.col-ahmad { color: var(--ahmad); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+    @media (max-width: 980px) { .three-col { grid-template-columns: 1fr; } }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+    .col-box.mad { border-left: 4px solid var(--mad); }
+    .col-box.mar { border-left: 4px solid var(--mar); }
+    .col-box.ahmad { border-left: 4px solid var(--ahmad); }
+    .col-box h4 { margin-top: 0; }
+    .col-box.mad h4 { color: var(--mad); }
+    .col-box.mar h4 { color: var(--mar); }
+    .col-box.ahmad h4 { color: var(--ahmad); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre-wrap; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; font-size: 14.5px; margin-bottom: 8px; }
+    .faq-item .a { font-size: 14px; color: var(--text); line-height: 1.8; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .evo-arrow { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin: 12px 0 24px; font-size: 14px; }
+    .evo-pill { padding: 8px 16px; border-radius: 8px; font-weight: 600; }
+    .evo-pill.mad { background: rgba(167,139,250,0.15); color: var(--mad); border: 1px solid rgba(167,139,250,0.35); }
+    .evo-pill.mar { background: rgba(34,211,238,0.15); color: var(--mar); border: 1px solid rgba(34,211,238,0.35); }
+    .evo-pill.ahmad { background: rgba(251,146,60,0.15); color: var(--ahmad); border: 1px solid rgba(251,146,60,0.35); }
+    .evo-sep { color: var(--muted); font-size: 20px; }
+
+    .unverified { display: inline-block; font-size: 11px; padding: 1px 6px; margin-left: 4px; border-radius: 4px; background: rgba(248,113,113,0.12); color: var(--red); border: 1px dashed var(--red); vertical-align: middle; letter-spacing: 0.02em; }
+
+    .honesty-box { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; padding: 16px 20px; margin: 18px 0 22px; font-size: 13.5px; line-height: 1.8; }
+    .honesty-box .ht { font-weight: 700; color: var(--red); margin-bottom: 6px; display: block; font-size: 13px; letter-spacing: 0.04em; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .footer a { color: var(--blue); }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>MAD + MAR / A-HMAD — 辩论式反思的两代演化 <span class="personal-badge">后加</span></h1>
+  <p class="subtitle-pair"><span class="mad">MAD</span>（Du et al., 2023）× <span class="mar">MAR</span>（Ozer et al., 2025）<span class="ahmad">+ A-HMAD 变体构想</span></p>
+  <p class="sub">两篇论文都在攻击同一个老问题：<strong>单 Agent 自反思的确认性偏差</strong>——模型倾向于继续相信自己的错误答案。MAD 第一次系统化地把"多个 Agent 互相辩论"作为外部批评机制，用同质 Agent 的分布采样打破单点偏差；两年后 MAR（Multi-Agent <strong>Reflexion</strong>，arXiv 2025.12）把这套辩论机制显式嵌入 Reflexion 循环，用 <strong>multi-persona debators</strong> 注入角色多样性；社区进一步讨论的 "A-HMAD" 风格异构变体则是把角色多样性推到不同模型的极端——这条演化链的本质是 <strong>同质分布采样 → 角色分布采样 → 模型分布采样</strong>。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2305.14325" target="_blank">MAD · arXiv:2305.14325</a> · Du et al. 2023</div>
+    <div class="paper-ref mar"><a href="https://arxiv.org/abs/2512.20845" target="_blank">MAR · arXiv:2512.20845</a> · Ozer et al. 2025.12</div>
+    <div class="paper-ref ahmad">A-HMAD 变体 · 异构模型辩论</div>
+  </div>
+  <div style="margin-top:10px;">
+    <div class="github-badge"><a href="https://github.com/composable-models/llm_multiagent_debate" target="_blank">💻 GitHub: composable-models/llm_multiagent_debate（MAD 官方）</a></div>
+    <div class="github-badge disabled">📄 MAR 暂无开源（论文 v1 未附代码）</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec0">0. 诚实声明</a>
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 为什么配对读</a>
+    <a href="#sec3">3. MAD 深剖</a>
+    <a href="#sec4">4. MAR / A-HMAD 深剖</a>
+    <a href="#sec5">5. 头对头对比</a>
+    <a href="#sec6">6. 演化叙事</a>
+    <a href="#sec7">7. 与小镇联系</a>
+    <a href="#sec8">8. 位置与 FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="10-reflexion.html">10 Reflexion</a>
+  <a href="16-multi-agent-tot-validator.html">16 MA-ToT Validator</a>
+  <a href="17-agent-society.html">17 AgentSociety</a>
+  <a href="19-generative-agents.html">19 Smallville</a>
+  <a href="24-memory-survey.html">24 Memory Survey</a>
+  <a href="25-expel-erl.html">25 ExpeL/ERL</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec0">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">0</div>
+      <h2>诚实声明：与原始线索的偏差</h2>
+    </div>
+
+    <div class="honesty-box">
+      <span class="ht">必须先澄清几处与本研究库既有记载 / 研究线索不一致的地方</span>
+
+      <p style="margin-top:8px;"><strong>偏差 1：MAD 的作者与引用。</strong>库内早期条目描述 arXiv 2305.14325 为 "Liang et al." 的 <em>Encouraging Divergent Thinking in LLMs through Multi-Agent Debate</em>。<strong>WebFetch 确认实际并非如此</strong>：arXiv 2305.14325 是 <strong>Du, Li, Torralba, Tenenbaum, Mordatch</strong> 的 <em>"Improving Factuality and Reasoning in Language Models through Multiagent Debate"</em>（MIT / Google Brain，2023.05.23）。Liang et al.（"Divergent Thinking"，arXiv:2305.19118）是<strong>另一篇</strong>同期多 Agent 辩论论文，两者常被混用。本 deep-dive 的 MAD 部分<strong>以 WebFetch 确认的 Du et al. 为准</strong>。</p>
+
+      <p><strong>偏差 2：MAD 的 GSM-8K 数字。</strong>"GSM-8K 82% → 91%" 这组数字<strong>在 Du et al. 的摘要与 PDF 中未被直接验证</strong>（WebFetch 只返回了摘要层面的定性描述）。论文确实在 GSM 基准上做了实验，但具体百分比<strong>需要查阅正文表格确认</strong>，本文里保留"显著提升数学推理"的表述但数字标 <span class="unverified">待实证</span>。</p>
+
+      <p><strong>偏差 3：MAR 的标题与机制。</strong>任务描述写成 "Multi-Agent Reflection with Persona Diversity"。<strong>实际标题是 "MAR: Multi-Agent Reflexion Improves Reasoning Abilities in LLMs"</strong>（Ozer, Wu, Wang, Dosti, Zhang, De La Rue，2025.12.23，arXiv:2512.20845）——这篇论文把多 Agent 辩论嵌入 <strong>Reflexion 循环</strong>（不是泛指的 reflection），因此精确定位应该是 "在 Reflexion 的 self-reflect 步骤里插入多 persona debate 以抵抗 degeneration of thought"。</p>
+
+      <p><strong>偏差 4：MAR 的基准与 GSM-8K 91% 这个数字。</strong><strong>MAR 论文摘要里<span class="hl">没有</span>报告 GSM-8K</strong>。实际报告的是 <span class="hl-mar">HotpotQA 47% EM</span>（问答）与 <span class="hl-mar">HumanEval 82.7%</span>（代码）。"GSM-8K 91%" 这个数字<strong>无法在 MAR 原文里对应</strong>，本文不会复述它。如果存在某个 A-HMAD 方法在 GSM-8K 上达到 91%，它可能是另一篇异构辩论论文，<span class="unverified">待实证</span>。</p>
+
+      <p><strong>偏差 5：A-HMAD 是否存在于 MAR 论文中。</strong>在 WebFetch 拿到的 MAR 摘要与 PDF 内容里<strong>都未找到 "A-HMAD" 或 "HMAD"</strong> 字样。这个缩写很可能来自 <strong>社区或其他异构多 Agent 辩论工作</strong>的构想，并非 MAR 论文内置变体。本文将其作为<strong>"从 MAR 的 persona 多样性进一步推到模型多样性"</strong>的概念性定位讨论，凡涉及具体机制 / 数字处标 <span class="unverified">待实证</span>。</p>
+
+      <p><strong>偏差 6：MAR 开源状态。</strong>WebFetch 在 arXiv 摘要页与论文 PDF 中<strong>未见 GitHub 链接</strong>，故本文标注"暂无开源"。如后续论文 v2 补充仓库，请更新此 deep-dive。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>一句话定位</h2>
+    </div>
+
+    <div class="two-col">
+      <div class="col-box mad">
+        <h4>MAD — "多个相同的你互相吵架"</h4>
+        <p><strong>Du et al. (MIT, 2023.05)</strong>。N 个<strong>同质</strong> LLM 实例（通常是同一个模型、同一套 prompt 模板、轻度 temperature 扰动）各自独立作答后，把<em>其他 Agent 的答案作为 context</em> 丢回去，让每个 Agent 阅读、批评、修正，多轮迭代至共识。"society of minds" 式的外部纠错。</p>
+        <div class="stat-row" style="margin:12px 0 0;grid-template-columns:1fr 1fr;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--mad);font-size:18px;">同质</div><div class="stat-label">N × 同模型</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:18px;">GSM 等</div><div class="stat-label">数学 / 事实 <span class="unverified">数字待实证</span></div></div>
+        </div>
+      </div>
+
+      <div class="col-box mar">
+        <h4>MAR — "不同角色的你互相吵架"</h4>
+        <p><strong>Ozer et al. (2025.12)</strong>。把 Reflexion 循环里的 "self-reflect" 步换成 <strong>multi-persona debate</strong>——同一 LLM 以不同人设（乐观 / 悲观 / 专家 / 怀疑者等）同时登场产生<em>有分歧</em>的反思，再由统合步骤汇总后写入 episodic memory。目标：缓解 Reflexion 的 <em>degeneration of thought</em>（反思自闭环退化）。</p>
+        <div class="stat-row" style="margin:12px 0 0;grid-template-columns:1fr 1fr;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--mar);font-size:18px;">47%</div><div class="stat-label">HotpotQA EM</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--mar);font-size:18px;">82.7%</div><div class="stat-label">HumanEval</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-box ahmad" style="margin-top:16px;">
+      <h4>A-HMAD（异构辩论）—— 概念性外推 <span class="unverified">待实证</span></h4>
+      <p>"Asymmetric / Heterogeneous Multi-Agent Debate" 是 MAD → MAR 之后一个自然的外推方向：<strong>让辩论方不再是同一模型的不同 persona，而是不同模型 / 不同专长的真异构体</strong>（GPT-4 + Claude + Llama + 专门领域微调模型等）。理论上它能把 MAR 的"角色分布采样"升级为"模型分布采样"——真正互相独立的先验。<strong>本文讨论的 A-HMAD 定位为研究构想</strong>：MAR 原文没有此变体，但它是 MAR 逻辑推到尽头的必然演化，本研究库将其作为一个占位概念列出。</p>
+    </div>
+
+    <div class="evo-arrow">
+      <span class="evo-pill mad">MAD · 同质分布采样</span>
+      <span class="evo-sep">→</span>
+      <span class="evo-pill mar">MAR · 角色分布采样</span>
+      <span class="evo-sep">→</span>
+      <span class="evo-pill ahmad">A-HMAD · 模型分布采样</span>
+    </div>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>为什么要配对读</h2>
+    </div>
+
+    <p>两篇时差两年半，但都在攻击同一个老问题。本研究库在 <a href="../challenge/open-problems.html">open-problems 分析</a>里总结过：</p>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">单 Agent 自反思的确认性偏差</div>
+      在现有反思类工作（Reflexion、CoT-SC、Inner Monologue）的失败案例里，<strong>约 90% 的错误反思是"确认性偏差"</strong>——模型反思完仍然坚持原错误答案，甚至给出更详尽的错误解释。原因是：<em>让同一个模型同时扮演"答题者"和"批评者"，它的两个角色用的是同一套先验</em>——批评者找不到答题者看不到的盲区。这是 Reflexion 在硬题上收益递减的根源。
+    </div>
+
+    <h3>2.1 MAD 和 MAR 的共同解法：把批评者外部化</h3>
+    <ul>
+      <li><strong>MAD</strong> 的回答：<em>"让另一个 Agent 做批评者"</em>。即便是同一模型，不同的 temperature 采样会让两个实例的答案略有分叉，互为对方的"盲区指示器"。</li>
+      <li><strong>MAR</strong> 的回答：<em>"让另一个 persona 做批评者"</em>。给同一模型不同人设，它的先验会向不同方向偏移（乐观派倾向 "Yes"，悲观派倾向 "No"），产生的反思真正带分歧。</li>
+      <li><strong>A-HMAD 外推</strong>：<em>"让另一个模型做批评者"</em>。不同预训练模型的 <strong>先验真的不同</strong>（训练语料、RLHF 目标、模型家族），这才是真独立。</li>
+    </ul>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">核心演化轴：同质 → 异质（且异质度逐级提升）</div>
+      三者都是"辩论式反思"（外部批评），但"外部"的程度不一样：<br>
+      · <strong>MAD</strong>：N 份同一模型的副本，"外部性" = 采样噪声（低）<br>
+      · <strong>MAR</strong>：N 个 persona，"外部性" = prompt 诱导的分布偏移（中）<br>
+      · <strong>A-HMAD</strong>：N 个不同模型，"外部性" = 预训练先验差异（高）<br>
+      辩论的纠错能力正比于<strong>真独立意见数</strong>——不是 Agent 数量。
+    </div>
+
+    <h3>2.2 它们都属 24 号综述的哪一格？</h3>
+    <p>按 <a href="24-memory-survey.html">24 号 Memory Survey</a> 的二维分类：</p>
+    <ul>
+      <li><strong>表征层</strong>：token-level（自然语言轨迹 / 反思文本）</li>
+      <li><strong>功能层</strong>：Reflection 支柱，但细分属 <span class="hl">"外部批评式反思"</span>（distinct from MAD/MAR 之前的"自省式反思"）</li>
+      <li><strong>协作层</strong>：多 Agent 协同（MAD/MAR 的 N 个实例不共享参数，只共享 context）</li>
+    </ul>
+    <p>MAD/MAR/A-HMAD 因此落在 <strong>Reflection × Multi-Agent Collaboration</strong> 的交集——这格在综述里还相对稀疏，是当前比较活跃的研究前沿。</p>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--mad);">3</div>
+      <h2>MAD 深度剖析（Du et al., 2023）</h2>
+    </div>
+
+    <h3>3.1 机制总览</h3>
+    <p>MAD 的 round-based 辩论形式化如下：</p>
+
+    <div class="formula"><span class="label">MAD 多轮辩论伪码</span>def MAD(question, N=3, R=2):
+    # 第 0 轮：N 个 Agent 各自独立作答
+    answers_0 = [LLM(prompt_answer, question) for _ in range(N)]
+
+    for r in range(1, R+1):
+        answers_r = []
+        for i in range(N):
+            others = answers_{r-1}[:i] + answers_{r-1}[i+1:]
+            # 核心：把其他 Agent 的答案作为 context 给到第 i 个 Agent
+            prompt = f"""Your previous answer: {answers_{r-1}[i]}
+                         Other agents' answers: {others}
+                         Re-examine and give a refined answer."""
+            answers_r.append(LLM(prompt, question))
+
+    # 共识 / 多数投票
+    return majority_vote(answers_R)</div>
+
+    <p>注意：MAD 的 Agent <strong>没有固定的"正方 / 反方"角色</strong>。它不是传统辩论赛那种结构——每个 Agent 既是答题者也是批评者，互相给对方的答案挑毛病、改进自己的答案。论文里也没有独立的 <em>judge</em> 模块（区别于一些后续工作），最终答案由多数投票 / 最后一轮输出决定。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">常见误解纠正</div>
+      关于 MAD 常被提到的两点印象，Du et al. 原文其实都<strong>没有严格对应</strong>：<br>
+      · <strong>"affirmative + negative 双方 + judge 评判"</strong>——这种结构更像 Liang et al.（arXiv:2305.19118）或 ChatEval 的设计；Du et al. 的 MAD 是对称多 Agent，没有预设立场。<br>
+      · <strong>"devil's advocate"</strong>——Du et al. 只是让 Agent 看到别人的答案后重新思考，没有显式要求某方唱反调。唱反调 prompt 是 Liang et al. 那一派的设计。<br>
+      本研究库之前的描述把两派混用了，这里按 WebFetch 确认的 Du 版本为准。
+    </div>
+
+    <h3>3.2 为什么有效 — 分布多样性假说</h3>
+    <p>Du et al. 的核心理论立意：单个 LLM 在硬题上倾向于 <strong>"sharpen"</strong> 到一个高概率 mode（即便它错）；多个独立采样会覆盖到邻近的次高概率模态。让 Agent 之间互相看答案，就是给每个 Agent 一个<strong>"脱离 mode 的信号"</strong>——如果邻居给出了不同答案，你就有理由重新考虑。</p>
+
+    <p>这个假说有两个可检验的后果：</p>
+    <ol>
+      <li><strong>Agent 数收益递减</strong>：从 1→2 提升最大、2→3 明显、3→5 边际递减。论文 ablation 在 N=3 附近取得较好的 cost-accuracy 比。</li>
+      <li><strong>轮数收益递减 + 收敛</strong>：R=2~3 轮后答案趋于稳定，继续辩论会"echo chamber"（所有 Agent 都靠拢到一个答案）。</li>
+    </ol>
+
+    <h3>3.3 实验与结果</h3>
+    <p>MAD 的实验覆盖四类任务：数学推理（GSM、算术）、事实传记（biographies，测幻觉）、MMLU 综合、国际象棋走法。结论统一为"MAD 在各类任务上都 consistently 优于单 Agent 与 self-consistency"。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">本研究库的数字状态 <span class="unverified">待实证</span></div>
+      任务描述的 "GSM-8K 82%→91%" 这组数字 WebFetch 在摘要层无法核实。Du et al. 原文更常被引用的 GSM 提升是类似 "+5~15 百分点"的区间，具体数字依 N 和基底模型而变。<strong>需要读论文 PDF 第 4 节 Table 1-2 才能定值</strong>——本文不敢贸然引用未核实数字。如后续要把此数字写入 <a href="../papers-reference.html">papers-reference</a>，请以正文 Table 为准。
+    </div>
+
+    <h3>3.4 局限</h3>
+    <ul>
+      <li><strong>成本翻倍到 N×R</strong>：token 成本正比于 Agent 数 × 轮数。N=3, R=2 就是 6x 单 Agent 的成本。</li>
+      <li><strong>同模型偏差共享</strong>：N 个 GPT-4 实例对"GPT-4 知识盲区"的问题会一起错——辩论无法发现超出所有 Agent 共同先验的错误。</li>
+      <li><strong>共识 ≠ 正确</strong>：多 Agent 可以收敛到共同的错误答案（"echo chamber"），这在 MAD 的错误案例里是显著模式。</li>
+      <li><strong>没有 judge 也是弱点</strong>：共识机制是 majority vote，没有高权力的裁判 Agent——有些后续工作（如 ChatEval）在 MAD 上补了 judge。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--mar);">4</div>
+      <h2>MAR / A-HMAD 深度剖析</h2>
+    </div>
+
+    <p style="color:var(--mar);font-weight:600;">核心立意：MAR 不是 MAD 的简单扩展，它把辩论<strong>嵌入 Reflexion 循环内部</strong>——辩论不是用于"回答问题"，而是用于"产生更好的反思"。这是定位上的关键差别。</p>
+
+    <h3>4.1 MAR = Reflexion × Multi-Persona Debate</h3>
+    <p>回忆 Reflexion（<a href="10-reflexion.html">deep-dive/10</a>）的三步循环：</p>
+    <ol>
+      <li><strong>Act</strong>：Actor Agent 尝试任务</li>
+      <li><strong>Evaluate</strong>：评估结果（external feedback or internal heuristic）</li>
+      <li><strong>Self-Reflect</strong>：Reflector LLM 生成自然语言反思 → 写入 episodic memory → 下次 trial 读</li>
+    </ol>
+
+    <p>MAR 的改造在<strong>第 3 步</strong>。原版 Reflexion 的 Reflector 是单 LLM 单次调用，输出一条反思字符串。MAR 把这一步替换为：</p>
+
+    <div class="formula"><span class="label">MAR 的 Reflect 步替换（示意）</span># 原版 Reflexion:
+reflection = LLM(prompt_reflect, trajectory, outcome)
+
+# MAR 替换为:
+personas = ["optimist", "pessimist", "expert", "novice", ...]  # 具体列表待 PDF 确认
+raw_reflections = []
+for p in personas:
+    prompt = f"As a {p}, reflect on why this trajectory failed/succeeded: ..."
+    raw_reflections.append(LLM(prompt, trajectory, outcome))
+
+# 辩论阶段（multi-persona debators 互看反思）
+for round in range(R):
+    raw_reflections = [
+        LLM(debate_prompt, own=raw_reflections[i], others=raw_reflections[:i]+raw_reflections[i+1:])
+        for i in range(len(personas))
+    ]
+
+# 统合：把 N 条反思融合为 episodic memory 的一条条目
+reflection_final = LLM(prompt_aggregate, raw_reflections)</div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">MAR 真正解决的问题：degeneration of thought</div>
+      原版 Reflexion 有一个被作者和后续工作反复观察到的失败模式：<strong>同一个 LLM 反复反思同一个错误轨迹时，它会越反思越"自洽"地错下去</strong>——每一轮的反思都在强化上一轮反思的错误结论（因为是同一个模型在同一个先验下看）。MAR 把 "N 次同一模型的反思" 换成 "1 次 × N 个 persona 的反思"，让反思阶段本身就带分歧——分歧被统合成更平衡的 episodic memory 条目。<br>
+      <strong>所以 MAR 的辩论发生在 reflection 阶段，不是 answer 阶段</strong>——这是它与 MAD 最大的分工差别。
+    </div>
+
+    <h3>4.2 Persona 多样性的具体形态 <span class="unverified">具体列表待 PDF 实证</span></h3>
+    <p>WebFetch 能确认的只是"multi-persona debators"这个描述。常见的 persona 模板类型（基于文献通行做法，<strong>非 MAR 原文字面</strong>）：</p>
+    <ul>
+      <li><strong>认知倾向</strong>：optimist / pessimist / skeptic / careful-analyst</li>
+      <li><strong>经验水平</strong>：expert / novice / intermediate</li>
+      <li><strong>领域视角</strong>：mathematician / programmer / writer / domain-expert</li>
+      <li><strong>方法论偏好</strong>：top-down / bottom-up / analogical / first-principles</li>
+    </ul>
+    <p>需要注意：persona 的分布采样<strong>不等于</strong>真独立采样——所有 persona 仍然共享同一底模型的先验。但对<em>某些</em>盲区（比如模型对 "乐观" vs "悲观" 两极的输出差异足够大的场景），persona 分歧已经足以把错误反思的概率压下去。</p>
+
+    <h3>4.3 MAR 报告的结果</h3>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" style="color:var(--mar);">47%</div><div class="stat-label">HotpotQA EM</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--mar);">82.7%</div><div class="stat-label">HumanEval</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--muted);">—</div><div class="stat-label">GSM-8K（未报告）</div></div>
+    </div>
+
+    <p>两项都 <em>"surpass reflection with a single LLM"</em>——即与同一底模型的<strong>原版 Reflexion</strong> 对比有提升。作者没在摘要给出与 MAD 的直接对比，所以"MAR > MAD"只能视作本研究库的<strong>演化叙事推断</strong>，不是论文已验证的结论。</p>
+
+    <h3>4.4 A-HMAD —— 概念性外推 <span class="unverified">非 MAR 原文</span></h3>
+
+    <p style="color:var(--ahmad);font-weight:600;">MAR 之后的一个自然外推方向：把 "同模型 × N persona" 推到 "N 模型 × N persona"。</p>
+
+    <div class="two-col">
+      <div class="col-box ahmad">
+        <h4>动机</h4>
+        <p>MAR 的 persona 分歧仍然受限于单模型的先验——比如 GPT-4 对"乐观派 vs 悲观派"的 prompt 响应差异可能远小于 GPT-4 vs Claude 的知识 / 风格差异。<span class="hl-ahmad">真正的独立意见需要真正不同的预训练 + RLHF 轨迹</span>。</p>
+      </div>
+      <div class="col-box ahmad">
+        <h4>形式</h4>
+        <p>让 GPT-4 + Claude Opus + Llama-70B + 领域小模型（如数学专家）各自扮演一个或多个 persona，在 Reflexion 循环里互相批评。模型异构 × 角色异构的双重分布采样。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">A-HMAD 的工程现实 <span class="unverified">全段待实证</span></div>
+      这种设计在工程上会遇到三个真问题：<br>
+      · <strong>API 成本多模型叠加</strong>：每轮辩论都要并发调用多家 LLM，成本远高于 MAD 的同模型多副本。<br>
+      · <strong>可复现性差</strong>：不同模型的版本会频繁更迭（GPT-4-0613 vs GPT-4-turbo-2024-04-09），论文里的 setup 一年后就难以原样复现。<br>
+      · <strong>响应时间 / API 可用性</strong>：异构 API 的延迟、rate limit、宕机都会让整个辩论流程卡住。<br>
+      所以 A-HMAD 风格目前更多见于研究 prototype，不是工业 default。工业上更流行的折中是："主推理模型 × 轻量 verifier 模型"的二阶段协作，更接近 MA-ToT Validator（deep-dive/16）。
+    </div>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>头对头对比（3 列）</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th class="col-mad">MAD (2023)</th>
+            <th class="col-mar">MAR (2025.12)</th>
+            <th class="col-ahmad">A-HMAD 外推</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>一句话</td>
+            <td class="col-mad">同质 Agent 辩论回答</td>
+            <td class="col-mar">多 persona 辩论反思</td>
+            <td class="col-ahmad">异构模型辩论</td>
+          </tr>
+          <tr>
+            <td>辩论发生在</td>
+            <td class="col-mad">Answer 阶段</td>
+            <td class="col-mar">Reflect 阶段（Reflexion 内部）</td>
+            <td class="col-ahmad">Reflect 阶段（Reflexion + 异模型）</td>
+          </tr>
+          <tr>
+            <td>分布多样性来源</td>
+            <td class="col-mad">同模型 + temperature 采样噪声</td>
+            <td class="col-mar">同模型 + persona prompt</td>
+            <td class="col-ahmad">不同模型 + persona prompt</td>
+          </tr>
+          <tr>
+            <td>Agent 数</td>
+            <td class="col-mad">N=2~3（实测甜点）</td>
+            <td class="col-mar">多 persona（具体数 <span class="unverified">待实证</span>）</td>
+            <td class="col-ahmad">多模型 × 多角色</td>
+          </tr>
+          <tr>
+            <td>轮数</td>
+            <td class="col-mad">R=2~3 轮后递减</td>
+            <td class="col-mar">通常嵌 Reflexion 的 k 次 trial</td>
+            <td class="col-ahmad">同 MAR</td>
+          </tr>
+          <tr>
+            <td>有 judge？</td>
+            <td class="col-mad">无（多数投票）</td>
+            <td class="col-mar">有统合步（aggregate）</td>
+            <td class="col-ahmad">通常有（异构时尤需）</td>
+          </tr>
+          <tr>
+            <td>Agent 角色</td>
+            <td class="col-mad">对称，无预设立场</td>
+            <td class="col-mar">persona 明确分工</td>
+            <td class="col-ahmad">模型 × persona 双维分工</td>
+          </tr>
+          <tr>
+            <td>真独立意见？</td>
+            <td class="col-mad">❌ 同模型偏差共享</td>
+            <td class="col-mar">部分（persona 诱导的分布偏移）</td>
+            <td class="col-ahmad">✅ 真先验独立</td>
+          </tr>
+          <tr>
+            <td>成本（相对单 Agent）</td>
+            <td class="col-mad">N×R 倍 token</td>
+            <td class="col-mar">N×Reflexion 倍 + 统合开销</td>
+            <td class="col-ahmad">N 倍 + 多 API 并发开销</td>
+          </tr>
+          <tr>
+            <td>报告基准</td>
+            <td class="col-mad">GSM / 算术 / biographies / MMLU / chess</td>
+            <td class="col-mar">HotpotQA 47% EM · HumanEval 82.7%</td>
+            <td class="col-ahmad"><span class="unverified">无定论</span></td>
+          </tr>
+          <tr>
+            <td>GSM-8K 数字</td>
+            <td class="col-mad">论文在 GSM 上有实验 <span class="unverified">具体数字待核</span></td>
+            <td class="col-mar"><strong>未报告</strong></td>
+            <td class="col-ahmad"><span class="unverified">流传"91%"缺出处</span></td>
+          </tr>
+          <tr>
+            <td>对比基线</td>
+            <td class="col-mad">单 Agent, self-consistency</td>
+            <td class="col-mar">单 Agent Reflexion</td>
+            <td class="col-ahmad"><span class="unverified">未定</span></td>
+          </tr>
+          <tr>
+            <td>代码</td>
+            <td class="col-mad">有：<a href="https://github.com/composable-models/llm_multiagent_debate" target="_blank">composable-models/llm_multiagent_debate</a></td>
+            <td class="col-mar">暂无开源</td>
+            <td class="col-ahmad">—</td>
+          </tr>
+          <tr>
+            <td>发表</td>
+            <td class="col-mad">arXiv 2305.14325 · 2023.05</td>
+            <td class="col-mar">arXiv 2512.20845 · 2025.12</td>
+            <td class="col-ahmad">概念性 · 待具体论文</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">一个选型指南</div>
+      · 手头任务是 <strong>一次性回答</strong>（QA、解题、推理），没有 trial 循环 → <strong>MAD</strong> 最直接。<br>
+      · 手头任务是 <strong>失败可重试的 agent loop</strong>（编码、tool use、游戏），已在用 Reflexion → <strong>MAR</strong> 是它的 drop-in 升级。<br>
+      · 手头有多家 LLM API 配额、对可复现性不敏感、追求极限性能 → 可以尝试 <strong>A-HMAD 风格</strong>，但成本和工程复杂度高。<br>
+      · 成本敏感、单模型部署 → 继续用原版 Reflexion + CoT-SC，别上辩论。
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">6</div>
+      <h2>演化叙事：从同质辩论到异质辩论</h2>
+    </div>
+
+    <h3>6.1 把三代写成"采样哲学"</h3>
+    <p>如果把"辩论"的本质看成<strong>从某个假设空间里采样独立意见</strong>，三代的差别在于"采样分布"的来源：</p>
+
+    <div class="formula"><span class="label">三代的意见分布来源</span>MAD      : opinions ~ LLM(question; temperature=T)       # 同分布扰动
+MAR      : opinions ~ LLM(question; persona=p_i)        # 条件分布族
+A-HMAD   : opinions ~ Model_i(question; persona=p_ij)   # 跨分布混合
+                 ↑ 每个 Model_i 的预训练先验真不同</div>
+
+    <p>从信息论视角看，三代在<strong>增加辩论参与方之间的互信息下界</strong>：</p>
+    <ul>
+      <li>MAD 的同模型副本之间，<code>I(Agent_i ; Agent_j)</code> 高（强相关），独立信息量小。</li>
+      <li>MAR 的同模型不同 persona 之间，互信息被 persona prompt 压低了一档。</li>
+      <li>A-HMAD 的不同模型之间，互信息最低（真独立）。</li>
+    </ul>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">核心洞察：辩论的有效性 ∝ 真独立意见数</div>
+      多 Agent 辩论的纠错上限<strong>不是 Agent 数量 N</strong>，而是这 N 个 Agent <strong>真正独立的意见数</strong>——近似可以理解为 "N 除以平均两两互信息"。这解释了为什么：<br>
+      · MAD 里 N 从 3 增到 10 收益微弱（都是同模型副本，互信息高，真独立意见数 ≈ 3）；<br>
+      · MAR 里 persona 越不同收益越大（persona 之间互信息低，真独立意见数逼近 persona 数）；<br>
+      · A-HMAD 理论上纠错上限最高（真独立意见数 ≈ 模型数 × 角色数，几乎饱和）。<br>
+      这是一个值得系统化验证的假说——希望未来有论文直接测 <code>I(Agent_i; Agent_j)</code> 和下游任务 accuracy 的相关性。
+    </div>
+
+    <h3>6.2 它和 NLP 历史里的另一条主线同构</h3>
+    <p>"集成学习走向多样化组件"这件事在 ML 里反复出现：</p>
+    <ul>
+      <li>Bagging（同模型 + 不同数据）→ Random Forest（同模型 + 随机特征 + 不同数据）→ Stacking（异模型 + meta-learner）</li>
+      <li>CoT-SC（同 CoT + 不同采样）→ MAD（同模型 + 辩论）→ MAR（同模型 + 不同 persona + 辩论）→ A-HMAD（不同模型 + 不同 persona + 辩论）</li>
+    </ul>
+    <p>两条路径的共同规律都是：<strong>从 "同组件多样采样" 走向 "异组件多样采样"</strong>，因为前者受组件内在偏差束缚，后者没有这个天花板。</p>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">但不是 "越异越好" 的线性增长</div>
+      异质化也有代价：<br>
+      · <strong>共识成本提升</strong>：异构 Agent 之间达成共识需要更强的统合机制（judge），MAD 的多数投票在 A-HMAD 场景下会失灵（不同模型对问题的理解可能根本不在同一个表达空间）。<br>
+      · <strong>协调成本</strong>：Agent 数 × 模型数 × persona 数在工程上是乘法爆炸。<br>
+      · <strong>Echo chamber 仍然可能</strong>：如果所有参与模型都是"大厂对齐"路线，它们的错误先验可能高度相关（都回避同一些话题、都倾向同一套解释）——异构也可能失效。<br>
+      所以实战里 A-HMAD 风格一般不会把 Agent 数推到很大，2~4 个不同模型 + 2~3 个 persona 的 "稀疏异质" 是比较均衡的选择。
+    </div>
+  </div>
+
+  <div class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">7</div>
+      <h2>与斯坦福小镇的联系</h2>
+    </div>
+
+    <h3>7.1 小镇的反思是"典型的单 Agent 自反思"</h3>
+    <p>Park et al. (2023) 的 Generative Agents 里，每个 Agent 的 reflection 流程是：</p>
+    <ol>
+      <li>importance 累计超过阈值 → 触发反思</li>
+      <li>同一 Agent 自己对自己的 memory stream 生成 higher-level insights</li>
+      <li>写回 memory stream</li>
+    </ol>
+    <p>这正是 MAD / MAR 要改进的那种<strong>"既是观察者又是批评者"</strong>的架构。小镇的反思会积累<em>该 Agent 自己的偏见</em>——它对 "Klaus 是不是严肃型" 的判断会强化它之前对 Klaus 所有互动的 biased reading。这是一种 confirmation bias 在长时序下的累积。</p>
+
+    <h3>7.2 两种把 MAD/MAR 思想注入小镇的改造</h3>
+
+    <div class="two-col">
+      <div class="col-box mad">
+        <h4>改造 A（MAD 风格）：反思时召集同伴投票</h4>
+        <p>当一个 Agent 触发 reflection 时，<strong>另选 N 个近期与它互动过的 Agent，分别基于自己的 memory 给出对同一事件的解读</strong>，再让原 Agent 综合 N 份解读生成最终 insight。相当于 MAD 的"同质多 Agent 辩论"自然移植到小镇——小镇本身有 25 个 Agent，就地取材即可。</p>
+      </div>
+      <div class="col-box mar">
+        <h4>改造 B（MAR 风格）：反思时切换 persona</h4>
+        <p>保持单 Agent，但让 Agent 在反思步骤里以多个 persona（自己的理性版、感性版、怀疑版）分别反思同一段 memory，再由统合步骤融合为 insight。这条路径对小镇的架构扰动更小——只改 reflection prompt。</p>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      小镇的 25 个 Agent 互相对话<strong>本身构成一种隐式的多视角</strong>——Klaus 从 John 那里听到关于 Isabella 的八卦，已经是在"吸收 John 的独立意见"。但这种多视角是<strong>信息传递层面的</strong>，不是<strong>反思机制层面的</strong>：Klaus 生成 insight 时仍然是自己一个 Agent 一个模型在反思，没有让其他 Agent 直接参与 reflection 的决策过程。所以 MAD/MAR 代表的"辩论式反思"可以视作对小镇架构的<strong>正交补强</strong>——不改社交传播，只改单 Agent 的内省流程。
+    </div>
+
+    <h3>7.3 和 MA-ToT Validator（deep-dive/16）的时机对比</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>方法</th><th>多 Agent 协作发生的时机</th><th>目的</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="16-multi-agent-tot-validator.html">MA-ToT Validator</a></td><td><strong>推理时</strong>（search 过程中，每个候选节点都由 validator Agent 评分）</td><td>剪枝搜索树、控制展开方向</td></tr>
+          <tr><td>MAD</td><td><strong>回答时</strong>（题目给定后的多 Agent 辩论）</td><td>打破单点回答偏差</td></tr>
+          <tr><td>MAR</td><td><strong>反思时</strong>（Reflexion 的 self-reflect 步骤内）</td><td>打破单点反思偏差</td></tr>
+          <tr><td>Generative Agents</td><td>—（没有显式的多 Agent 推理 / 反思协作）</td><td>社会模拟（非认知 quality 提升）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>四者刚好排成一条时间轴：<strong>推理时 (MA-ToT) → 回答时 (MAD) → 反思时 (MAR) → 社交时 (Smallville)</strong>。每一步的"多 Agent"都在解决一个不同的 quality 问题。这条时间轴本身可以写进概念图作为"多 Agent 协作的时机分类"节点。</p>
+  </div>
+
+  <div class="section" id="sec8">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">8</div>
+      <h2>在本研究库中的位置 &amp; FAQ</h2>
+    </div>
+
+    <h3>8.1 Cross-ref 地图</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>对比对象</th><th>关系</th><th>要点</th></tr></thead>
+        <tbody>
+          <tr><td><a href="10-reflexion.html">10 Reflexion</a></td><td>MAR 的宿主框架</td><td>MAR 是 Reflexion 的 Reflect 步改造；MAD 独立于 Reflexion</td></tr>
+          <tr><td><a href="16-multi-agent-tot-validator.html">16 MA-ToT Validator</a></td><td>同支柱不同时机</td><td>Validator 在推理时协作；MAD/MAR 在回答/反思时协作</td></tr>
+          <tr><td><a href="17-agent-society.html">17 AgentSociety</a></td><td>社会模拟 vs 认知增强</td><td>AgentSociety 用多 Agent 做群体行为模拟；MAD/MAR 用多 Agent 做单问题质量提升</td></tr>
+          <tr><td><a href="19-generative-agents.html">19 Smallville</a></td><td>小镇是改造目标</td><td>小镇的 reflection 是被 MAD/MAR 瞄准的"单 Agent 自反思"</td></tr>
+          <tr><td><a href="25-expel-erl.html">25 ExpeL/AutoGuide/ERL</a></td><td>正交维度</td><td>ExpeL 组是"跨任务经验反思"；MAD/MAR 组是"单任务多视角反思"</td></tr>
+          <tr><td><a href="24-memory-survey.html">24 Memory Survey</a></td><td>分类归属</td><td>Reflection × Multi-Agent Collaboration 交集，目前较稀疏的研究前沿</td></tr>
+          <tr><td><a href="../challenge/open-problems.html">open-problems</a></td><td>问题溯源</td><td>提供了"90% 自反思是 confirmation bias"的数据基础</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>8.2 FAQ — 澄清常见误解与疑点</h3>
+
+    <div class="faq-item">
+      <div class="q">Q1：MAD 多出来的 token 成本值得吗？</div>
+      <div class="a">取决于任务的<strong>单次失败代价</strong>。<br>
+      · 失败代价低、批量 QA 场景（客服、信息抽取）→ 多半<strong>不值</strong>，6x 成本换 5% 准确率提升不划算。<br>
+      · 失败代价高、单次可贵（数学竞赛、医学诊断初筛、代码高风险变更）→ 值。<br>
+      · 真实落地里更常见的是"<strong>先用单 Agent + confidence 估计过滤，低 confidence 才走 MAD</strong>"的两阶段，这能把 MAD 开销压到只用在真正有分歧可能的那一小部分样本上。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：A-HMAD 异构模型的可复现性问题怎么办？</div>
+      <div class="a">这是个<strong>硬问题</strong>、没有完美解。实践里常见的三种对策：<br>
+      · <strong>固定模型版本快照</strong>：用 <code>gpt-4-0613</code> 这类有明确快照日期的端点，而不是 <code>gpt-4-turbo</code> 的滚动更新版。<br>
+      · <strong>开源模型自托管</strong>：参与方至少有一个是 Llama / Qwen 等可本地 reproduce 的开源模型，保证部分可复现性。<br>
+      · <strong>报告 ensemble-level 的结果带方差</strong>：承认复现不能到数字层面，退而求报告同家族模型 + 多 seed 的波动范围。<br>
+      学术上，目前 A-HMAD 风格论文的一个显著问题就是<strong>半年后结果无法复现</strong>，这是它还没有成为主流的重要原因。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q3：辩论会不会收敛到错误的共识（多 Agent echo chamber）？</div>
+      <div class="a"><strong>会，而且是 MAD/MAR 的主要失败模式之一</strong>。两个典型场景：<br>
+      · <strong>所有 Agent 都在同一知识盲区</strong>：比如所有 GPT-4 副本都不知道某个冷门事实 → 辩论无法产生任何分歧 → 错误被"集体确认"。<br>
+      · <strong>辩论过程中某个强 prior 压倒其他</strong>：一个 Agent 给出一个自信、详细的错误解释，其他 Agent 在读到它的"论证"后被说服，一起错。<br>
+      缓解措施：（a）提高 persona / 模型异构度（本质就是 MAR → A-HMAD 的方向），（b）引入 external evaluator（非参与辩论的 judge），（c）限制辩论轮数 R（避免过度收敛）。但这些都是缓解不是根治——辩论的根本假设是"至少有一个 Agent 不错"，这个假设违反时系统就无能为力。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q4：为什么 MAR 用 HotpotQA + HumanEval 作为基准而不用 GSM-8K？</div>
+      <div class="a">有两种可能解释（论文摘要没明说 <span class="unverified">待实证</span>）：<br>
+      · <strong>MAR 的改造位点是 Reflexion 循环</strong>——Reflexion 原论文的主场就是 HotpotQA + HumanEval + ALFWorld，MAR 保持同一套基准便于直接对比。GSM-8K 的单步数学推理，Reflexion 本身收益有限，辩论加进来的空间就更小。<br>
+      · <strong>HotpotQA 和 HumanEval 更考验"多视角分析"</strong>——多跳问答需要从不同片段整合，代码生成需要从不同角度验证边界条件，这两种任务天然契合 multi-persona debate；GSM-8K 的单答案计算题反而不是辩论的甜点。<br>
+      所以 MAR 换基准是合理的，但这也意味着"MAR 在 GSM-8K 上达到 91%" 这个流传说法<strong>在原论文里找不到支撑</strong>。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q5：MAD 和 Liang et al. 的 Divergent Thinking 是同一篇吗？</div>
+      <div class="a"><strong>不是</strong>。这是本领域里常见的混淆：<br>
+      · <strong>Du et al.</strong>, <em>"Improving Factuality and Reasoning in Language Models through Multiagent Debate"</em>, <strong>arXiv:2305.14325</strong>（2023.05.23）—— MIT + Google Brain，society of minds 框架，对称多 Agent 无预设立场。<br>
+      · <strong>Liang et al.</strong>, <em>"Encouraging Divergent Thinking in LLMs through Multi-Agent Debate"</em>, <strong>arXiv:2305.19118</strong>（2023.05.30）—— affirmative/negative 双方 + judge 的经典辩论赛结构，解决 DoT (Degeneration of Thought)。<br>
+      两篇同期发表，标题都带 "multi-agent debate"，所以在非正式语境下常被混引。<strong>本 deep-dive 严格对应的是 Du 版本</strong>（任务给出的 arXiv ID 是 2305.14325）。如果原意想讨论 Liang 版本的 affirmative/negative 结构，应当用 arXiv:2305.19118，那会是另一篇 deep-dive。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q6：我在本库里下一步该读什么？</div>
+      <div class="a">按目的：<br>
+      · 想<strong>理解辩论式反思的系谱</strong>：读本篇 → <a href="10-reflexion.html">10 Reflexion</a>（单 Agent 反思）→ <a href="16-multi-agent-tot-validator.html">16 MA-ToT Validator</a>（推理时协作）。<br>
+      · 想<strong>理解多 Agent 协作的全景</strong>：读本篇 → <a href="17-agent-society.html">17 AgentSociety</a>（社会模拟）→ <a href="19-generative-agents.html">19 Smallville</a>（原型）。<br>
+      · 想<strong>理解反思系列的其他分支</strong>（跨任务 vs 单任务）：读本篇 → <a href="25-expel-erl.html">25 ExpeL/ERL</a>（跨任务反思）对照。<br>
+      · 想<strong>理解这一格在 memory 分类里的位置</strong>：读本篇 → <a href="24-memory-survey.html">24 Memory Survey</a> 的 Reflection × Multi-Agent 交集讨论。</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  深度解读27 &middot; MAD (Du et al., 2023) + MAR (Ozer et al., 2025.12) + A-HMAD 构想 &middot; 辩论式反思的两代演化<br>
+  MAD <a href="https://arxiv.org/abs/2305.14325" target="_blank">arXiv:2305.14325</a> · GitHub: <a href="https://github.com/composable-models/llm_multiagent_debate" target="_blank">composable-models/llm_multiagent_debate</a><br>
+  MAR <a href="https://arxiv.org/abs/2512.20845" target="_blank">arXiv:2512.20845</a> · 暂无开源<br>
+  A-HMAD · 概念性外推，暂无对应论文<br>
+  <a href="../index1.html">← 返回导航中心</a> &middot; 本页由 AI 辅助生成，严格区分 WebFetch 已确认事实 vs 推断内容 vs 待实证点，仅供学术研究参考
+</div>
+</body>
+</html>

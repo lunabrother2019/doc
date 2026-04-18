@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读28：LLMs Cannot Self-Correct — 反思领域的"转向"论文</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #3a1418 0%, #0f1117 50%, #1b1340 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--red); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.tag-red { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
+    .hero .paper-ref.tag-gray { background: rgba(139,149,165,0.08); border-color: rgba(139,149,165,0.3); color: var(--muted); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--red); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); }
+    .callout-orange { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td.up { color: var(--green); font-weight: 600; }
+    tbody td.down { color: var(--red); font-weight: 600; }
+    tbody td.same { color: var(--muted); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.red { border-color: rgba(248,113,113,0.3); }
+    .stat-box.red .stat-val { color: var(--red); }
+    .stat-box.orange .stat-val { color: var(--orange); }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .timeline { position: relative; padding: 10px 0 10px 20px; margin: 18px 0 24px; border-left: 2px solid var(--border); }
+    .timeline-item { position: relative; padding: 10px 0 10px 22px; }
+    .timeline-item::before { content: ""; position: absolute; left: -29px; top: 18px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 3px solid var(--accent); }
+    .timeline-item.anchor::before { background: var(--red); border-color: var(--red); width: 18px; height: 18px; left: -31px; top: 16px; }
+    .timeline-item .date { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .timeline-item .title { font-size: 14px; color: var(--text); font-weight: 600; margin: 2px 0; }
+    .timeline-item .desc { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .timeline-item.anchor .title { color: var(--red); }
+
+    .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 18px 0 22px; }
+    .bd-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .bd-card .bd-title { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 10px; letter-spacing: .03em; }
+    .bd-bar { height: 22px; display: flex; border-radius: 5px; overflow: hidden; margin-bottom: 8px; background: var(--bg3); font-size: 11px; font-weight: 700; color: #0f1117; }
+    .bd-bar span { display: flex; align-items: center; justify-content: center; transition: opacity .2s; }
+    .bd-bar span.nc { background: var(--muted); }
+    .bd-bar span.ci { background: var(--red); }
+    .bd-bar span.ic { background: var(--green); }
+    .bd-bar span.ii { background: var(--orange); }
+    .bd-legend { font-size: 11px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+    .bd-legend span i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LLMs Cannot Self-Correct Reasoning Yet — 反思领域的"转向"论文 <span class="personal-badge">后加</span></h1>
+  <p class="sub">Jie Huang, Xinyun Chen et al. 用冷冰冰的数字证明：让 LLM 在没有外部反馈的情况下"自己反思自己"，<strong>准确率往往不升反降</strong>。这篇论文把整个反思研究社区的风向从"相信 intrinsic self-correction"强行扭向"必须引入外部信号 / 外部批评者"，成为 MAD / Reflexion / ExpeL / A-HMAD 等后续工作反复引用的"反面锚点"。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2310.01798" target="_blank">arXiv:2310.01798</a></div>
+    <div class="paper-ref tag">ICLR 2024</div>
+    <div class="paper-ref tag-red">引用爆炸 · Turning-Point Paper</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref tag-gray">📄 实证研究，无代码</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 问题设置</a>
+    <a href="#sec3">3. 实验设计</a>
+    <a href="#sec4">4. 关键发现</a>
+    <a href="#sec5">5. 理论解释</a>
+    <a href="#sec6">6. 领域转向</a>
+    <a href="#sec7">7. 小镇联系 + FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../cot-reflexion-map.html">CoT × Reflexion 图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="10-reflexion.html">Reflexion</a>
+  <a href="02-dual-loop-reflection.html">Dual-Loop</a>
+  <a href="25-expel-erl.html">ExpeL/ERL</a>
+  <a href="27-mad-mar.html">MAD/MAR</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- Section 1 -->
+  <section class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>一句话定位 &amp; 关键数字</h2>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 一句话总结（反直觉警告）</div>
+      本文在 GSM8K / CommonsenseQA / HotpotQA 三大推理基准上严格对照了"初答"与"自反思后答"的准确率，结论毫不含糊：<span class="hl-red">在没有外部反馈（oracle label / 单元测试 / 工具执行结果）时，LLM 的 intrinsic self-correction 不仅无效，往往还会让结果变差</span>。GPT-3.5 / GPT-4 / GPT-4-Turbo / Llama-2 四款模型、多组 feedback prompt、两轮反思 —— 全部复现同一现象。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box red">
+        <div class="stat-val">75.9 → 74.7</div>
+        <div class="stat-label">GSM8K GPT-3.5 初答 → 2轮自反思后（<span class="hl-red">-1.2pp</span>）</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">95.5 → 89.0</div>
+        <div class="stat-label">GSM8K GPT-4 初答 → 2轮自反思后（<span class="hl-red">-6.5pp</span>）</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">75.8 → 41.8</div>
+        <div class="stat-label">CommonsenseQA GPT-3.5 崩盘（<span class="hl-red">-34pp</span>）</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">62.0 → 36.5</div>
+        <div class="stat-label">GSM8K Llama-2 崩盘（<span class="hl-red">-25.5pp</span>）</div>
+      </div>
+      <div class="stat-box yellow">
+        <div class="stat-val">74.7%</div>
+        <div class="stat-label">GSM8K GPT-3.5 "不改"比例（confirmation）</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">~2%</div>
+        <div class="stat-label">"改错→改对"净收益（GPT-3.5 GSM8K，8.8%−11.6%=-2.8pp）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">90.5%</div>
+        <div class="stat-label">GPT-4 GSM8K 不改比例（越强模型越"自恋"）</div>
+      </div>
+      <div class="stat-box cyan">
+        <div class="stat-val">2</div>
+        <div class="stat-label">最大反思轮数（更多轮只会更糟）</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      注：论文精确引用量 <span class="unconfirmed">截至 2026.04 &lt;待实证&gt;</span>，但从 MAD / AutoGuide / Reflexion 后续版本 / ExpeL / A-HMAD 全部把此文列为 Related Work 核心引用的情况看，实际已是反思方向必引。
+    </p>
+
+    <div class="callout callout-key">
+      <div class="callout-title">本文的历史坐标</div>
+      发表于 2023.10（arXiv v1）、正式中稿 ICLR 2024。它在时间上恰好卡在 Reflexion (2023.03)、Self-Refine (2023.03)、RCI (2023.03)、MAD (2023.05) 等"反思浪潮"的巅峰之后，像一盆冷水浇醒社区：**之前被热捧的自反思效果，很大一部分来自评测里隐藏的 oracle 标签，而非 LLM 真的学会了自我批判**。
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>问题设置：什么叫"自反思"，分几种</h2>
+    </div>
+
+    <h3>2.1 作者对 self-correction 的严谨定义</h3>
+    <p>论文把整个"自反思"领域拆成两个显著不同的 setting，之前的工作混用它们是造成结论混乱的根源：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:18%">名称</th>
+            <th style="width:30%">定义</th>
+            <th style="width:26%">反馈来源</th>
+            <th style="width:26%">典型代表</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="hl-pink">Intrinsic Self-Correction</span></td>
+            <td>LLM 仅凭自身能力判断初答对错并给出修正 —— 不能看标准答案、不能调工具、不能跑测试</td>
+            <td>模型内部知识</td>
+            <td>Self-Refine (Madaan 2023)、原始 Reflexion prompt-only、多数 Agent 里的 "reflection" 环节</td>
+          </tr>
+          <tr>
+            <td><span class="hl-green">External Self-Correction</span></td>
+            <td>反思时引入外部信号（单元测试、执行结果、oracle 标签、其他模型、检索工具）</td>
+            <td>外部世界 / 另一模型 / oracle</td>
+            <td>Self-Debug、CRITIC、Reflexion + unit test、RCI with oracle、MAD 辩论</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">💡 为什么必须区分这两者</div>
+      作者发现 RCI (Kim 2023) 与 Reflexion (Shinn 2023) 宣称"自反思提升 7% / 15%"的结果，都<span class="hl">隐式依赖 oracle label</span> —— 即实验里偷偷用"已知答案对不对"来决定是否继续反思循环。一旦抽掉这个信号，LLM 自己根本不知道何时该停，最终效果反而变差。<strong>论文的核心贡献就是把这层窗户纸捅破</strong>。
+    </div>
+
+    <h3>2.2 核心论点（本文三条实验章节的支柱）</h3>
+    <ul>
+      <li><strong>§3 &mdash;</strong> 去掉 oracle 后，intrinsic self-correction 在所有推理任务上都让准确率下降；</li>
+      <li><strong>§4 &mdash;</strong> Multi-Agent Debate 的"提升"本质上只是 Self-Consistency 多样本投票的变体，<span class="hl">同等采样预算下还不如直接 majority voting</span>；</li>
+      <li><strong>§5 &mdash;</strong> Self-Refine 宣称的"反思让 CommonGen-Hard 从 44→67%"的涨幅，实际是因为<span class="hl">初始 prompt 写得太差</span>（没告诉模型"要覆盖所有概念"）。把这句话加到初始 prompt，一次就 81.8%，再做反思反而降到 75.1%。</li>
+    </ul>
+
+    <div class="callout callout-orange">
+      <div class="callout-title">⚠️ 实验评估三大陷阱（作者总结的 Table 1）</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>Oracle Leak</strong>（RCI、Reflexion）：用标准答案隐式指导"何时停"</li>
+        <li><strong>Compute Unfair</strong>（MAD）：自反思用了 3-9 次采样，对照组却只用 1 次 —— 不公平</li>
+        <li><strong>Prompt Starve</strong>（Self-Refine）：初始 prompt 写得潦草，反思 prompt 却塞满具体要求，涨幅来自 prompt 设计差异而非反思机制</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">3</div>
+      <h2>实验设计</h2>
+    </div>
+
+    <h3>3.1 数据集</h3>
+    <div class="breakdown">
+      <div class="bd-card">
+        <div class="bd-title">GSM8K</div>
+        <p style="font-size:13px;">小学数学应用题，1,319 道测试题。RCI (Kim 2023) 在此宣称反思提升 7%。本文用完整测试集（GPT-3.5）或 200 题抽样（其它模型）。</p>
+      </div>
+      <div class="bd-card">
+        <div class="bd-title">CommonsenseQA</div>
+        <p style="font-size:13px;">多选常识推理，dev 集 1,221 题。RCI 宣称反思提升 15%。多选任务的陷阱在于<strong>错项往往"看起来也挺合理"</strong>，容易被反思 prompt 带偏。</p>
+      </div>
+      <div class="bd-card">
+        <div class="bd-title">HotpotQA</div>
+        <p style="font-size:13px;">开放域多跳问答，本文用 Reflexion 原文的 100 题子集，closed-book 设置，exact match 评测。样本小，作者自己提示"统计可能不够稳"。</p>
+      </div>
+    </div>
+
+    <h3>3.2 测试模型与参数</h3>
+    <ul>
+      <li><strong>GPT-3.5-Turbo</strong>（gpt-3.5-turbo-0613，temperature=1）</li>
+      <li><strong>GPT-4</strong>（2023/08/29 接入，temperature=1）</li>
+      <li><strong>GPT-4-Turbo</strong>（gpt-4-1106-preview，temperature=0）</li>
+      <li><strong>Llama-2-70b-chat</strong>（temperature=0）</li>
+    </ul>
+
+    <h3>3.3 三步 Prompting 流程（复刻 RCI / Reflexion）</h3>
+    <div class="card">
+      <ol>
+        <li><strong>Step 1 (Initial):</strong> 让模型直答，得到结果 A₀ —— 同时作为 Standard Prompting 基线</li>
+        <li><strong>Step 2 (Feedback):</strong> 把 A₀ 喂回模型，提示 "Review your previous answer and find problems with your answer."</li>
+        <li><strong>Step 3 (Refine):</strong> 基于反思文本让模型重写答案，得到 A₁；重复最多 2 轮，得到 A₂</li>
+      </ol>
+    </div>
+
+    <p>Feedback prompt 作者试了三套变体（论文 Table 5/6），包括：</p>
+    <ul>
+      <li>"Assume that this answer could be either correct or incorrect. Review the answer carefully and report any serious problems you find."</li>
+      <li>"Review your previous answer and determine whether it's correct. If wrong, find the problems with your answer."</li>
+      <li>"Verify whether your answer is correct, and provide an explanation."</li>
+    </ul>
+    <p>—— <span class="hl-red">三种措辞下，所有模型所有数据集全部降分或持平，没有一个例外</span>。</p>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">4</div>
+      <h2>关键发现 — 数字说话</h2>
+    </div>
+
+    <h3>4.1 Intrinsic Self-Correction 完整对照表</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>设置</th>
+            <th>API 调用数</th>
+            <th>GSM8K</th>
+            <th>CommonsenseQA</th>
+            <th>HotpotQA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="3"><strong>GPT-3.5</strong></td>
+            <td>Standard Prompting</td>
+            <td>1</td>
+            <td>75.9</td>
+            <td>75.8</td>
+            <td>26.0</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 1)</td>
+            <td>3</td>
+            <td class="down">75.1 (−0.8)</td>
+            <td class="down">38.1 (−37.7)</td>
+            <td class="down">25.0 (−1.0)</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 2)</td>
+            <td>5</td>
+            <td class="down">74.7 (−1.2)</td>
+            <td class="down">41.8 (−34.0)</td>
+            <td class="same">25.0 (−1.0)</td>
+          </tr>
+          <tr>
+            <td rowspan="3"><strong>GPT-4</strong></td>
+            <td>Standard Prompting</td>
+            <td>1</td>
+            <td>95.5</td>
+            <td>82.0</td>
+            <td>49.0</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 1)</td>
+            <td>3</td>
+            <td class="down">91.5 (−4.0)</td>
+            <td class="down">79.5 (−2.5)</td>
+            <td class="same">49.0 (0)</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 2)</td>
+            <td>5</td>
+            <td class="down">89.0 (−6.5)</td>
+            <td class="down">80.0 (−2.0)</td>
+            <td class="down">43.0 (−6.0)</td>
+          </tr>
+          <tr>
+            <td rowspan="3"><strong>GPT-4-Turbo</strong></td>
+            <td>Standard Prompting</td>
+            <td>1</td>
+            <td>91.5</td>
+            <td>84.0</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 1)</td>
+            <td>3</td>
+            <td class="down">88.0 (−3.5)</td>
+            <td class="down">81.5 (−2.5)</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 2)</td>
+            <td>5</td>
+            <td class="down">90.0 (−1.5)</td>
+            <td class="down">83.0 (−1.0)</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td rowspan="3"><strong>Llama-2-70b-chat</strong></td>
+            <td>Standard Prompting</td>
+            <td>1</td>
+            <td>62.0</td>
+            <td>64.0</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 1)</td>
+            <td>3</td>
+            <td class="down">43.5 (−18.5)</td>
+            <td class="down">37.5 (−26.5)</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Self-Correct (round 2)</td>
+            <td>5</td>
+            <td class="down">36.5 (−25.5)</td>
+            <td class="down">36.5 (−27.5)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 反直觉观察：模型越弱，反思破坏力越强</div>
+      Llama-2 在 GSM8K 从 62% 干到 36.5%，<span class="hl-red">两轮反思直接砍掉四成正确答案</span>。这个现象非常关键：弱模型无法可靠判断"自己对不对"，反思 prompt 就像让盲人修改试卷，修一次错一次。反观 GPT-4 / GPT-4-Turbo 虽然也降，但幅度小 —— 因为它们更"固执"，90.5% 的答案根本不改。
+    </div>
+
+    <h3>4.2 改动方向的拆解（论文 Figure 1 — 反思领域的"那张图"）</h3>
+    <p>作者把两轮反思后的答案按以下四类统计（这张图在社区被反复引用）：</p>
+
+    <div class="breakdown">
+      <div class="bd-card">
+        <div class="bd-title">GSM8K · GPT-3.5</div>
+        <div class="bd-bar">
+          <span class="nc" style="flex:74.7">74.7%</span>
+          <span class="ci" style="flex:11.6">11.6</span>
+          <span class="ic" style="flex:8.8">8.8</span>
+          <span class="ii" style="flex:4.9">4.9</span>
+        </div>
+        <div class="bd-legend">
+          <span><i style="background:var(--muted)"></i>不改</span>
+          <span><i style="background:var(--red)"></i>对→错</span>
+          <span><i style="background:var(--green)"></i>错→对</span>
+          <span><i style="background:var(--orange)"></i>错→错</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px;margin-bottom:0;">净收益 = 8.8 − 11.6 = <span class="hl-red">−2.8pp</span></p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">CommonsenseQA · GPT-3.5</div>
+        <div class="bd-bar">
+          <span class="nc" style="flex:42.8">42.8%</span>
+          <span class="ci" style="flex:39.8">39.8</span>
+          <span class="ic" style="flex:7.6">7.6</span>
+          <span class="ii" style="flex:9.8">9.8</span>
+        </div>
+        <div class="bd-legend">
+          <span><i style="background:var(--muted)"></i>不改</span>
+          <span><i style="background:var(--red)"></i>对→错</span>
+          <span><i style="background:var(--green)"></i>错→对</span>
+          <span><i style="background:var(--orange)"></i>错→错</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px;margin-bottom:0;">净收益 = <span class="hl-red">−32pp</span>；多选场景崩溃</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">GSM8K · GPT-4</div>
+        <div class="bd-bar">
+          <span class="nc" style="flex:90.5">90.5%</span>
+          <span class="ci" style="flex:5.0">5.0</span>
+          <span class="ic" style="flex:1.0">1.0</span>
+          <span class="ii" style="flex:3.5">3.5</span>
+        </div>
+        <div class="bd-legend">
+          <span><i style="background:var(--muted)"></i>不改</span>
+          <span><i style="background:var(--red)"></i>对→错</span>
+          <span><i style="background:var(--green)"></i>错→对</span>
+          <span><i style="background:var(--orange)"></i>错→错</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px;margin-bottom:0;">净收益 ≈ <span class="hl-red">−4pp</span>；GPT-4 更"倔"但依然亏</p>
+      </div>
+
+      <div class="bd-card">
+        <div class="bd-title">GSM8K · Llama-2</div>
+        <div class="bd-bar">
+          <span class="nc" style="flex:16.5">16.5%</span>
+          <span class="ci" style="flex:40.0">40.0</span>
+          <span class="ic" style="flex:8.0">8.0</span>
+          <span class="ii" style="flex:35.5">35.5</span>
+        </div>
+        <div class="bd-legend">
+          <span><i style="background:var(--muted)"></i>不改</span>
+          <span><i style="background:var(--red)"></i>对→错</span>
+          <span><i style="background:var(--green)"></i>错→对</span>
+          <span><i style="background:var(--orange)"></i>错→错</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px;margin-bottom:0;">只有 16.5% 不改；改动几乎必毁</p>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title">📊 "90% confirmation / ~2% 真纠错"这句话的出处拆解</div>
+      <ul style="margin-bottom:0;">
+        <li>GPT-4 在 GSM8K 上 <span class="hl">90.5% 不改</span> —— 这就是常被引用的"90% 是 confirmation bias"；</li>
+        <li>少数改动中，<span class="hl-red">对→错 (11.6%) 几乎总是大于 错→对 (8.8%)</span>；</li>
+        <li>真正的"净纠错率" = (错→对) − (对→错)，在 GSM8K GPT-3.5 为 −2.8pp，在 GPT-4 为 −4pp —— 意味着<strong>每 100 个反思操作里，真正"能纠错的净收益"接近于零甚至为负</strong>；</li>
+        <li>"只有 ~2% 真纠错"是对"错→对"这一个 cell 的近似表述（GSM8K GPT-4 = 1.0%，GSM8K GPT-3.5 = 8.8%，均值小）。</li>
+      </ul>
+    </div>
+
+    <h3>4.3 Oracle 消融：揭露"涨幅"的真相</h3>
+    <p>论文 Table 2 同时报告了"如果偷偷用 oracle label 决定何时停"的结果 —— 这正是之前 RCI / Reflexion 的实验设定：</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>模型</th><th>设置</th><th>GSM8K</th><th>CommonsenseQA</th><th>HotpotQA</th></tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="2">GPT-3.5</td><td>Standard</td><td>75.9</td><td>75.8</td><td>26.0</td></tr>
+          <tr><td>Self-Correct (<strong>Oracle</strong>)</td><td class="up">84.3 (+8.4)</td><td class="up">89.7 (+13.9)</td><td class="up">29.0 (+3.0)</td></tr>
+          <tr><td rowspan="2">GPT-4</td><td>Standard</td><td>95.5</td><td>82.0</td><td>49.0</td></tr>
+          <tr><td>Self-Correct (<strong>Oracle</strong>)</td><td class="up">97.5 (+2.0)</td><td class="up">85.5 (+3.5)</td><td class="up">59.0 (+10.0)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">🔍 "Oracle 涨幅"的本质</div>
+      有 oracle 时 GPT-3.5 的 CSQA 确实从 75.8→89.7，+13.9pp。但这个 14 点根本不是"反思的功劳"，而是 <span class="hl">oracle 当裁判的功劳</span> —— 每轮反思后用标准答案判断是否正确，若对就停、若错就再改。这种设定<strong>与真实部署场景完全不符</strong>（真实场景本来就没有标准答案）。一旦去掉 oracle，CSQA 直接掉成 41.8%。
+    </div>
+
+    <h3>4.4 Multi-Agent Debate ≠ Self-Correction</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>方法</th><th>#responses</th><th>GSM8K (GPT-3.5)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Standard Prompting</td><td>1</td><td>76.7</td></tr>
+          <tr><td>Self-Consistency</td><td>3</td><td>82.5</td></tr>
+          <tr><td><strong>Multi-Agent Debate (round 1, Du 2023)</strong></td><td>6</td><td>83.2</td></tr>
+          <tr><td>Self-Consistency</td><td>6</td><td class="up">85.3</td></tr>
+          <tr><td><strong>Multi-Agent Debate (round 2)</strong></td><td>9</td><td>83.0</td></tr>
+          <tr><td>Self-Consistency</td><td>9</td><td class="up">88.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>等采样预算下，<span class="hl-red">MAD 反而不如最朴素的 Self-Consistency 多数投票</span>。作者直接下结论：MAD 的"提升"本质是"多采样+多轮投票"，与"辩论"或"批判"无关。</p>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">5</div>
+      <h2>为什么会这样 — 理论解释</h2>
+    </div>
+
+    <h3>5.1 作者的直观解释（§3.3 Intuitive Explanation）</h3>
+    <div class="callout callout-key">
+      <div class="callout-title">📐 论文原文思路（改写）</div>
+      <p>如果模型本身对齐良好，初始 prompt 写得合理，那么 <strong>A₀ 就已经是"给定 prompt + 解码算法"下的最优响应</strong>。此时把反思 prompt 塞回去，本质上是<span class="hl">在输入分布上做了一个有偏扰动</span> —— 新输出会被优化去拟合"原问题 + 反思提示"这个组合，而不是原问题本身。在推理任务上，这种扰动不带来新信息，只会把输出从最优点推离。</p>
+    </div>
+
+    <h3>5.2 三个结构性原因</h3>
+    <ol>
+      <li><strong>LLM 没有可靠的"真值检测器"</strong>：反思 prompt 让模型"判断自己对不对"，而<strong>判断对错本身就是比解题更难的任务</strong>。如果模型真能检测自己错误，它当初解题时就不会犯。</li>
+      <li><strong>反思 prompt 只是触发更多 token，不是新信息源</strong>：模型的分布没变、权重没变、知识库没变，"反思"只是在已知分布内重新采样一次。信息论上不可能凭空增加正确信号。</li>
+      <li><strong>确认性偏差 / Sycophancy</strong>：LLM 有很强的倾向去维护自己已经给出的答案（尤其 GPT-4 的 90.5% 不改率），或者反过来被反思 prompt 的"你可能错了"引导去 <em>推翻一个实际上正确的答案</em>（Llama-2 / GPT-3.5 CSQA 的崩盘就是这个机制）。两种模式都使得"真纠错"概率极低。</li>
+    </ol>
+
+    <h3>5.3 与 Kahneman 双系统思维的类比 <span class="unconfirmed">解读，非论文原意</span></h3>
+    <p>反思被社区寄予厚望的深层原因是对人类"System 2 慢思考"的类比 —— 人一旦停下来想第二遍，经常能发现错误。但本文暗示：<strong>LLM 的"第二遍"并没有切换到更慎重的推理模式，只是在同一个分布里多采样一次</strong>。这也是为什么后续工作转向"<a href="11-tree-of-thoughts.html">ToT</a> 搜索 + 外部 verifier"或"<a href="10-reflexion.html">Reflexion + unit test</a>"才真正 work —— 它们<strong>引入了分布之外的信号</strong>。</p>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">6</div>
+      <h2>这篇论文之后的领域转向（本 deep-dive 的核心价值）</h2>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">🧭 本文最深远的贡献不在实验本身，而在于它逼迫了后续工作分化为四条救援路径</div>
+      任何在 2024 年以后还在做"反思 / 批判 / 自我修正"方向的论文，几乎都必须在引言里明确回应 Huang et al. (2023)：要么引入外部信号，要么引入外部批评者，要么证明自己不是在做 intrinsic self-correction。
+    </div>
+
+    <h3>6.1 救援路径一：引入外部信号（Reflexion 派）</h3>
+    <p>Reflexion 在本文批评下的"合法化"路径是：把 reflection 与 <strong>unit test / 任务环境返回值</strong> 绑定。例如代码生成任务，每次反思前先跑测试 —— 这不再是 intrinsic，而是 external。见 <a href="10-reflexion.html">deep-dive/10 · Reflexion</a>。</p>
+
+    <h3>6.2 救援路径二：引入外部批评者（MAD / Debate 派）</h3>
+    <p>既然单个 LLM 判断不了自己对错，那就让<strong>另一个 LLM</strong>（甚至异构模型）来判。核心假设是"两个模型的错误不完全相关"，见 <a href="27-mad-mar.html">deep-dive/27 · MAD + A-HMAD + MAR</a>。值得注意的是：本文 §4 已经针对原版同构 MAD 给出反证（不如 Self-Consistency），所以 <strong>MAD 后续工作被迫走向异构化 / 角色化</strong>。</p>
+
+    <h3>6.3 救援路径三：跨轨迹经验抽取（ExpeL / AutoGuide 派）</h3>
+    <p>既然单个 trajectory 内的 reflection 无效，那就<strong>跨 episode / 跨 task 抽取规律</strong>，让反思变成离线的"经验蒸馏"而非在线的"我这次错没错"。见 <a href="25-expel-erl.html">deep-dive/25 · ExpeL/ERL</a>。</p>
+
+    <h3>6.4 救援路径四：元认知 / 分层反思（Dual-Loop 派）</h3>
+    <p>把反思拆成"关于具体答案的快反思"+"关于反思策略本身的慢反思"两层，用第二层补偿第一层的不可靠性。见 <a href="02-dual-loop-reflection.html">deep-dive/02 · Dual-Loop Reflection Bank</a>。</p>
+
+    <h3>6.5 时间线：从 2310.01798 之后的连锁反应</h3>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="date">2023.03</div>
+        <div class="title">反思浪潮巅峰</div>
+        <div class="desc">Self-Refine (Madaan)、RCI (Kim)、<a href="10-reflexion.html">Reflexion (Shinn)</a> 在同月涌现，社区普遍认为"让 LLM 反思自己"是通用解法。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2023.05</div>
+        <div class="title">MAD 登场</div>
+        <div class="desc">Du et al. 提出 Multi-Agent Debate，同样被当作"自反思升级版"热捧。</div>
+      </div>
+      <div class="timeline-item anchor">
+        <div class="date">2023.10（本篇）</div>
+        <div class="title">🚨 arXiv:2310.01798 LLMs Cannot Self-Correct Reasoning Yet</div>
+        <div class="desc">Huang et al. 用三大 benchmark × 四个模型 × 三组 prompt 全面反证 intrinsic self-correction 有效性，并指出 MAD 实为 Self-Consistency。社区风向突变。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2024.03</div>
+        <div class="title">本文正式中稿 ICLR 2024（v2）</div>
+        <div class="desc">同月起 ExpeL / AutoGuide / ERL 相继出现，共同特征：把"反思"从"单轨迹内"挪到"跨轨迹"。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2024.春</div>
+        <div class="title">异构辩论复兴</div>
+        <div class="desc">A-HMAD / MAR 用不同模型 / 不同 prompt 角色组成辩论组，避开本文 §4 的同构性批评。见 <a href="27-mad-mar.html">deep-dive/27</a>。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2024.夏</div>
+        <div class="title">Reflexion 2.0 / Self-Debug 生态化</div>
+        <div class="desc">新一代工作明确强调"外部反馈通道"（测试、环境、工具执行），intrinsic 路线几乎消失。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2024.下半年</div>
+        <div class="title">元认知 / 双回路反思</div>
+        <div class="desc"><a href="02-dual-loop-reflection.html">Dual-Loop Reflection Bank</a> 等工作显式引用本文，用"分层 + 外部经验库"结构规避 intrinsic 陷阱。</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">2025</div>
+        <div class="title">本文成标准"反面锚点"</div>
+        <div class="desc">凡是做反思 / 批判 / 自修正的论文，引言必提 Huang et al. (2023) 并声明自己用了外部信号。</div>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title">📌 一句话概括"转向"</div>
+      本文把反思领域的口号从 <s style="color:var(--muted);">"Let the LLM reflect on itself"</s> 改写成 <span class="hl-green">"Never let an LLM reflect without an external anchor"</span>。
+    </div>
+  </section>
+
+  <!-- Section 7 -->
+  <section class="section" id="sec7">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">7</div>
+      <h2>与斯坦福小镇的联系 + FAQ</h2>
+    </div>
+
+    <h3>7.1 小镇 reflection 机制的"隐患"</h3>
+    <p>斯坦福小镇（<a href="19-generative-agents.html">Park et al. 2023</a>）的 Reflection 模块在结构上恰好是 <strong>intrinsic self-correction 的一种应用</strong>：</p>
+    <ul>
+      <li>触发条件：最近记忆的 importance 累计超阈值；</li>
+      <li>反思流程：取出最近 100 条记忆 → <strong>让 LLM 自己提问"这些记忆反映了什么？"→ LLM 自己回答</strong> → 把答案作为高层 insight 存回记忆流；</li>
+      <li>关键：<span class="hl-red">没有外部信号、没有 ground truth、没有另一个 critic</span>。</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">🚨 本文对小镇的隐含批评</div>
+      如果把 Huang et al. 的结论原封不动搬到小镇 reflection，那么 <strong>90% 的 reflection 可能都在"确认已有的 persona 印象"，只有极小比例真正生成新洞见</strong>。这意味着：
+      <ul style="margin-bottom:0;margin-top:8px;">
+        <li>agent 的高层 insight 很大程度是<strong>对低层记忆倾向的放大</strong>，而非对其的批判性整合；</li>
+        <li>在多 agent 长期模拟中，这种"自我强化"会让 persona 逐渐固化，<strong>偏差被递归放大</strong>；</li>
+        <li>这与<a href="../challenge/user-simulation-challenges.html">用户模拟挑战笔记</a>中讨论的"大规模模拟放大偏差"现象形成直接呼应。</li>
+      </ul>
+    </div>
+
+    <div class="sv-link">
+      Stanford Smallville 的 reflection 从未被严格 A/B 过 "做反思 vs 不做反思"对行为质量的影响。本文给社区留下了一个悬而未决的问题：<strong>如果把小镇 reflection 关掉，agent 行为会不会反而更"正常"？</strong> <span class="unconfirmed">至今未见公开复现实验 &lt;待实证&gt;</span> —— 这正是<a href="../challenge/user-simulation-challenges.html">用户模拟挑战</a>笔记中列为 P0 的核心未解问题之一。
+    </div>
+
+    <h3>7.2 对"人类行为模拟"研究的影响</h3>
+    <ul>
+      <li><strong>persona 漂移风险：</strong>reflection 既是小镇的亮点，也是偏差放大器。人类视角的反思需要社会反馈（别人的反应）校正；小镇 reflection 只与自己对话，更接近"囚笼独白"；</li>
+      <li><strong>规模化评测困难：</strong>当你在一千个 agent 身上跑千日模拟，每个 agent 的 reflection 若带 ~3% 系统性偏倚，总体偏差呈指数累积 —— 本文的实证数据给"百万 agent 仿真"提供了一个冷静的警告；</li>
+      <li><strong>改造方向：</strong>给小镇 reflection 补上"外部锚点"有多种做法：(a) 让<em>邻居 agent</em> 审视该 reflection（异构 critic）；(b) 用小镇的"环境真值"——如日程表、经济数字——做 reflection 校验；(c) 把跨 episode 的经验库（ExpeL 式）叠加到 persona 层面。</li>
+    </ul>
+
+    <h3>7.3 FAQ 三问</h3>
+
+    <div class="faq-item">
+      <div class="q">Q1：那 Reflexion 为什么还能 work？这和本文结论不矛盾吗？</div>
+      <div class="a">
+        完全不矛盾，<strong>Reflexion 在 code / task 设置下 work 的本质是外部信号参与</strong>。原始 Reflexion 论文里，每次"反思"触发点都是<span class="hl">一段 trajectory 执行失败（env 返回 reward=0）或单元测试失败</span>。模型不是凭空"反思自己可能错了"，而是被环境明确告诉"你刚才那条路走不通"。这在本文术语里属于 external self-correction，本文<strong>从未否定这种情形</strong>。Huang et al. 批评的是 Shinn et al. 2023 在评测时用 oracle label 决定"何时停"的部分 —— 那个环节确实有问题。但 Reflexion 的核心机制（外部失败信号 → 语言化反思）仍然被社区视为有效模板。见 <a href="10-reflexion.html">deep-dive/10</a>。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：这是否意味着反思就是无用的？我还要不要在我的 Agent 里加反思环节？</div>
+      <div class="a">
+        <strong>Intrinsic 反思无用，External 反思仍有效。</strong>实操建议：
+        <ul style="margin-bottom:0;margin-top:6px;">
+          <li><strong>不要</strong>写"请检查你刚才的回答对不对"这种裸反思 prompt，按本文数据这行代码大概率让你的 agent 变差；</li>
+          <li><strong>要</strong>在反思环节绑定<strong>任何形式的外部信号</strong>：单元测试、工具执行结果、另一个模型的评分、用户反馈、环境 reward、retrieval 到的相关事实；</li>
+          <li><strong>可以</strong>把反思做成"跨 episode 经验抽取"（ExpeL 式），让反思产出不是"这次答案改不改"而是"下次类似情况的策略"；</li>
+          <li><strong>警惕</strong>多选 / 分类任务里的反思 —— 本文 CSQA 数据显示这类任务最容易被反思 prompt 带偏（GPT-3.5 CSQA 崩 34pp）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q3：小镇的 reflection 也会有这问题吗？Park et al. 后续有没有回应？</div>
+      <div class="a">
+        <strong>极有可能有，但 Park et al. 原版论文没有做 A/B 对照</strong>。小镇 reflection 是"在小镇定性评测"范式下提出的（人类评估员看 agent 言行觉得自然），从未被用"有 reflection vs 无 reflection 下的 benchmark 准确率"这种硬指标度量。本文的结论暗示：<strong>小镇 reflection 生成的高层 insight 很可能有大比例是 confirmation bias 式的 persona 自我巩固</strong>，而不是新洞见。这个猜想没有被严格实证过，是本库<a href="../challenge/open-problems.html">开放问题</a>列表中的 P0 项。相关讨论见 <a href="../challenge/validation-gap.html">验证鸿沟</a> 与 <a href="../challenge/user-simulation-challenges.html">用户模拟挑战</a>两篇 challenge 笔记。
+      </div>
+    </div>
+
+    <div class="callout callout-key" style="margin-top:24px;">
+      <div class="callout-title">📌 一句话记住本篇</div>
+      LLMs Cannot Self-Correct Reasoning Yet = <span class="hl-red">Intrinsic 反思在推理任务上是系统性有害的</span>；<span class="hl">想让反思 work，必须绑定任何形式的外部锚点（测试、工具、它模、跨轨迹经验）</span>。这篇论文不是否定反思，而是<strong>给整个反思研究领域重新划定了正当性边界</strong>。
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 28 · Large Language Models Cannot Self-Correct Reasoning Yet · ICLR 2024</p>
+  <p style="margin-top:8px;"><a href="../index1.html">← 返回导航中心</a></p>
+</div>
+
+</body>
+</html>
