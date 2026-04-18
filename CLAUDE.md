@@ -31,14 +31,14 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/index1.html` — navigation hub with learning path (concepts → study guide → papers → deep dives)
 - `html/concepts-map.html` — 3-tab interactive concept maps (5 pillars, Top 15 concepts, full evolution)
 - `html/study-guide.html` — 3-track unified learning center (core architecture, multi-agent frontier, MetaGPT vs ChatDev)
-- `html/papers-reference.html` — 95-paper reference with 3 views (分类手册 / 卡片浏览 / 表格视图), includes "个人补充" category for user-added papers
+- `html/papers-reference.html` — 96-paper reference with 3 views (分类手册 / 卡片浏览 / 表格视图), includes "个人补充" category for user-added papers
 - `html/architecture-study.html` — 6-tab Agent architecture study (Claude Code source analysis, competitive analysis, implementation plan)
 - `html/cot-reflexion-map.html` — CoT × Reflexion relationship concept map (Mermaid graph, timeline, 4-layer architecture, Smallville mapping)
 - `html/deep-dive/01-06` — 6 paper deep-dive analyses (01-03 original, 04-06 user-added with "后加" badge)
 - `html/deep-dive/07-17` — 11 CoT/Reflexion series deep-dives (all with "后加" badge): CoT, ReAct, Inner Monologue, Reflexion, ToT, Plan-and-Solve, LATS, Voyager, CAMEL, Multi-Agent ToT Validator, AgentSociety
 - `html/deep-dive/18-21` — 4 memory-focused deep-dives (HiAgent, Generative Agents 原始论文, A-MEM, MemoryOS)
 - `html/deep-dive/22-24` — 3 multi-agent & memory-survey deep-dives (all "后加"): MetaGPT SOP 流水线, ChatDev Waterfall 瀑布, Memory in the Age of AI Agents 综述
-- `html/deep-dive/25-expel-erl.html` — paired deep-dive (both "后加"): ExpeL insights pool (AAAI 2024) + ERL heuristics pool (arXiv 2026.03), evolution of 跨轨迹经验反思
+- `html/deep-dive/25-expel-erl.html` — trilogy deep-dive (all "后加"): ExpeL insights pool (AAAI 2024) + AutoGuide context-aware guidelines (NeurIPS 2024) + ERL heuristics pool (arXiv 2026.03), three-gen evolution of 跨轨迹经验反思: 聚合→条件→检索
 
 ## Paper Addition Workflow
 
@@ -49,7 +49,7 @@ When the user mentions a paper (by name, link, or description), always perform t
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker
    - **卡片浏览**: Add an `rl-card` with `data-cat="personal"` and `rl-personal-badge`
-   - Paper number continues from the current max (currently 95)
+   - Paper number continues from the current max (currently 96)
 
 3. **Concept Map** — Add a node to the "外围方法论启发" subgraph in `html/concepts-map.html` Tab 1's Mermaid diagram. Use pink style (`stroke:#f472b6, color:#f9a8d4`) and append `★后加` to the node label to distinguish from original nodes. Add edges to relevant existing concepts. Also add a paper card with pink dashed border in the cards section below the diagram.
 

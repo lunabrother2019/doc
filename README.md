@@ -8,7 +8,7 @@
 
 1. **锚点**：`html/deep-dive/19-generative-agents.html` — 原论文深度解读
 2. **全景**：`html/concepts-map.html` — 五支柱 × Top 15 概念 × 全演化图（3 Tab 可切换）
-3. **论文索引**：`html/papers-reference.html` — 95 篇论文 3 视图（分类手册 / 卡片浏览 / 表格）
+3. **论文索引**：`html/papers-reference.html` — 96 篇论文 3 视图（分类手册 / 卡片浏览 / 表格）
 4. **深度解读**：`html/deep-dive/01-24` — 24 篇按主题分组的详读笔记
 5. **挑战笔记**：`html/challenge/` — 自产思考（工程 gap / 验证鸿沟 / 开放问题）
 
@@ -19,7 +19,7 @@
 ├── html/
 │   ├── index1.html              # 导航中心
 │   ├── concepts-map.html        # 概念图 3 Tab
-│   ├── papers-reference.html    # 95 篇论文索引
+│   ├── papers-reference.html    # 96 篇论文索引
 │   ├── cot-reflexion-map.html   # CoT × Reflexion 专题关系图
 │   ├── architecture-study.html  # Agent 架构学习（Claude Code 源码分析）
 │   ├── study-guide.html         # 学习中心（3 Track）

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>深度解读25：ExpeL + ERL — 跨轨迹经验反思的两代演化</title>
+  <title>深度解读25：ExpeL / AutoGuide / ERL — 跨轨迹经验反思的三代演化</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -11,6 +11,7 @@
       --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
       --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
       --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+      --autoguide: #34d399;
     }
     html { scroll-behavior: smooth; }
     body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
@@ -19,8 +20,11 @@
     .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
     .hero .subtitle-pair { font-size: 15px; color: var(--accent); margin-top: 6px; margin-bottom: 10px; }
     .hero .subtitle-pair strong { color: var(--cyan); }
-    .hero .sub { color: var(--muted); font-size: 14px; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+    .hero .subtitle-pair .ag { color: var(--autoguide); }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
     .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 14px; }
+    .hero .paper-ref.ag { color: var(--autoguide); background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); }
+    .hero .paper-ref.erl { color: var(--cyan); background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.3); }
     .hero .paper-ref + .paper-ref { margin-left: 6px; }
     .hero .paper-ref a { color: inherit; }
     .github-badge { display:inline-block; margin-top:10px; font-size:13px; padding:6px 14px; border-radius:8px; background:rgba(52,211,153,0.12); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
@@ -53,6 +57,7 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
     .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-ag { background: rgba(52,211,153,0.12); color: var(--autoguide); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
     code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-family: "JetBrains Mono","Courier New",monospace; font-size: 13px; color: var(--cyan); }
 
     .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
@@ -60,6 +65,7 @@
     .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
     .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
     .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-autoguide { background: rgba(52,211,153,0.08); border-left: 3px solid var(--autoguide); }
     .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
     .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
 
@@ -71,20 +77,28 @@
     tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
     tbody tr:last-child td { border-bottom: none; }
     tbody td.col-expel { color: #c4b5fd; }
+    tbody td.col-autoguide { color: #86efac; }
     tbody td.col-erl { color: #7dd3fc; }
+    thead th.col-expel { color: var(--accent); }
+    thead th.col-autoguide { color: var(--autoguide); }
+    thead th.col-erl { color: var(--cyan); }
 
     .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
     .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
     .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
     .stat-box .stat-label { font-size: 12px; color: var(--muted); }
 
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+    @media (max-width: 980px) { .three-col { grid-template-columns: 1fr; } }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
     @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
     .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
     .col-box.expel { border-left: 4px solid var(--accent); }
+    .col-box.autoguide { border-left: 4px solid var(--autoguide); }
     .col-box.erl { border-left: 4px solid var(--cyan); }
     .col-box h4 { margin-top: 0; }
     .col-box.expel h4 { color: var(--accent); }
+    .col-box.autoguide h4 { color: var(--autoguide); }
     .col-box.erl h4 { color: var(--cyan); }
 
     .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre-wrap; overflow-x: auto; }
@@ -96,6 +110,26 @@
 
     .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
     .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .timeline { position: relative; margin: 24px 0 28px; padding: 20px 0 20px 28px; border-left: 2px solid var(--border); }
+    .timeline-item { position: relative; margin-bottom: 20px; padding-left: 18px; }
+    .timeline-item::before { content: ""; position: absolute; left: -35px; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--bg); }
+    .timeline-item.expel::before { background: var(--accent); }
+    .timeline-item.autoguide::before { background: var(--autoguide); }
+    .timeline-item.erl::before { background: var(--cyan); }
+    .timeline-item .tl-date { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+    .timeline-item .tl-title { font-size: 15px; font-weight: 600; margin: 4px 0 6px; }
+    .timeline-item.expel .tl-title { color: var(--accent); }
+    .timeline-item.autoguide .tl-title { color: var(--autoguide); }
+    .timeline-item.erl .tl-title { color: var(--cyan); }
+    .timeline-item .tl-body { font-size: 13.5px; color: var(--text); }
+
+    .evo-arrow { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin: 12px 0 24px; font-size: 14px; }
+    .evo-pill { padding: 8px 16px; border-radius: 8px; font-weight: 600; }
+    .evo-pill.expel { background: rgba(167,139,250,0.15); color: var(--accent); border: 1px solid rgba(167,139,250,0.35); }
+    .evo-pill.autoguide { background: rgba(52,211,153,0.15); color: var(--autoguide); border: 1px solid rgba(52,211,153,0.35); }
+    .evo-pill.erl { background: rgba(34,211,238,0.15); color: var(--cyan); border: 1px solid rgba(34,211,238,0.35); }
+    .evo-sep { color: var(--muted); font-size: 20px; }
 
     .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
     .footer a { color: var(--blue); }
@@ -109,15 +143,17 @@
 <body>
 
 <div class="hero">
-  <h1>ExpeL + ERL — 跨轨迹经验反思的两代演化 <span class="personal-badge">后加</span></h1>
-  <p class="subtitle-pair"><strong>ExpeL</strong> (AAAI 2024) × <strong>ERL</strong> (arXiv 2026.03) — 对照阅读</p>
-  <p class="sub">两篇论文围绕同一个问题展开：<strong>LLM Agent 如何把多条过往轨迹的经验沉淀为可复用的知识</strong>？ExpeL 给出"聚合式 insights"范式，ERL 则反向走"保留细节 + 检索式 heuristics"路径。它们共同构成 Reflection 支柱下"跨轨迹子路线"的两代演化。</p>
+  <h1>ExpeL / AutoGuide / ERL — 跨轨迹经验反思的三代演化 <span class="personal-badge">后加</span></h1>
+  <p class="subtitle-pair"><strong>ExpeL</strong> (AAAI 2024) × <span class="ag">AutoGuide</span> (NeurIPS 2024) × <strong>ERL</strong> (arXiv 2026.03) — 三代对照</p>
+  <p class="sub">三篇论文围绕同一个问题展开：<strong>LLM Agent 如何把多条过往轨迹的经验沉淀为可复用的知识</strong>？ExpeL 给出"聚合式 insights"范式——一锅乱炖通用规则；AutoGuide 提出"情境化 guidelines"——IF-THEN 条件分发；ERL 再反向走"保留细节 + 检索式 heuristics"路径。三代刚好构成 Reflection 支柱下"跨轨迹子路线"从 <strong>聚合 → 条件 → 检索</strong> 的完整演化。</p>
   <div style="margin-top:16px;">
     <div class="paper-ref"><a href="https://arxiv.org/abs/2308.10144" target="_blank">ExpeL · arXiv:2308.10144</a> · AAAI 2024</div>
-    <div class="paper-ref"><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL · arXiv:2603.24639</a> · 2026.03</div>
+    <div class="paper-ref ag"><a href="https://arxiv.org/abs/2403.08978" target="_blank">AutoGuide · arXiv:2403.08978</a> · NeurIPS 2024</div>
+    <div class="paper-ref erl"><a href="https://arxiv.org/abs/2603.24639" target="_blank">ERL · arXiv:2603.24639</a> · 2026.03</div>
   </div>
   <div style="margin-top:10px;">
     <div class="github-badge"><a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">💻 GitHub: LeapLabTHU/ExpeL</a></div>
+    <div class="github-badge disabled">📄 AutoGuide 暂无开源（搜索中）</div>
     <div class="github-badge disabled">📄 ERL 暂无公开代码</div>
   </div>
 </div>
@@ -125,13 +161,14 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="#sec1">1. 一句话定位</a>
-    <a href="#sec2">2. 为什么要配对读</a>
+    <a href="#sec2">2. 为什么要三代同读</a>
     <a href="#sec3">3. ExpeL 深剖</a>
-    <a href="#sec4">4. ERL 深剖</a>
-    <a href="#sec5">5. 头对头对比</a>
-    <a href="#sec6">6. 演化论点</a>
-    <a href="#sec7">7. 与小镇联系</a>
-    <a href="#sec8">8. 位置与 FAQ</a>
+    <a href="#sec4">4. AutoGuide 深剖</a>
+    <a href="#sec5">5. ERL 深剖</a>
+    <a href="#sec6">6. 三代头对头对比</a>
+    <a href="#sec7">7. 演化论点（聚合→条件→检索）</a>
+    <a href="#sec8">8. 与小镇联系</a>
+    <a href="#sec9">9. 位置与 FAQ</a>
   </div>
 </nav>
 
@@ -143,6 +180,7 @@
   <a href="14-voyager.html">14 Voyager</a>
   <a href="19-generative-agents.html">19 Smallville</a>
   <a href="02-reflection-bank.html">02 Reflection Bank</a>
+  <a href="24-memory-survey.html">24 Memory Survey</a>
   <span class="cr-personal">后加</span>
 </div>
 
@@ -154,37 +192,50 @@
       <h2>一句话定位</h2>
     </div>
 
-    <div class="two-col">
+    <div class="three-col">
       <div class="col-box expel">
         <h4>ExpeL — "把经验池熬成规则手册"</h4>
-        <p>在训练任务上让 ReAct agent 自己跑 → 成功 / 失败轨迹进 experience pool → 用 LLM 离线反思 → 产出一批自然语言 <strong>insights</strong>（通用规则）→ 推理时检索相似轨迹 + 拼接所有 insights 注入 prompt。<span class="hl">无需参数更新，纯 in-context learning</span>。</p>
-        <div class="stat-row" style="margin:12px 0 0;">
-          <div class="stat-box"><div class="stat-val" style="color:var(--accent);font-size:20px;">AAAI 2024</div><div class="stat-label">pp. 19632-19642</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--blue);font-size:20px;">gpt-3.5-turbo</div><div class="stat-label">0613</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:20px;">4</div><div class="stat-label">benchmark</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--pink);font-size:20px;">LeapLab</div><div class="stat-label">清华</div></div>
+        <p>训练任务上让 ReAct agent 自己跑 → 成功 / 失败轨迹进 experience pool → LLM 离线反思 → 产出一批自然语言 <strong>insights</strong>（通用规则）→ 推理时检索相似轨迹 + 拼接<strong>所有</strong> insights。<span class="hl">无需参数更新，一锅乱炖式注入</span>。</p>
+        <div class="stat-row" style="margin:12px 0 0;grid-template-columns:1fr 1fr;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent);font-size:18px;">AAAI 2024</div><div class="stat-label">2024.03</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:18px;">4 bench</div><div class="stat-label">ALFWorld 等</div></div>
+        </div>
+      </div>
+
+      <div class="col-box autoguide">
+        <h4>AutoGuide — "情境匹配才激活"</h4>
+        <p>把 trajectory 切片 → Context Identification Module 给每个片段打情境标签 → Guideline Extraction Module 对每个情境抽出 <strong>IF-THEN</strong> guideline → 推理时按 context 匹配，<strong>只激活相关规则</strong>。<span class="hl-ag">从无条件规则走向条件分发</span>。</p>
+        <div class="stat-row" style="margin:12px 0 0;grid-template-columns:1fr 1fr;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--autoguide);font-size:18px;">NeurIPS 24</div><div class="stat-label">2024.11</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--blue);font-size:18px;">WebArena</div><div class="stat-label">+ embodied</div></div>
         </div>
       </div>
 
       <div class="col-box erl">
         <h4>ERL — "一条轨迹一条启发，按相关性取用"</h4>
-        <p>反思 trajectory + outcome → 生成 <strong>heuristics</strong>（保留 granular 细节的启发）进池 → 测试时让 LLM 对每条 heuristic 给"任务相关性分"→ top-k 注入 context。相对 ExpeL 的核心改动：<span class="hl">单次轨迹即可提取、不做跨任务聚合</span>。</p>
-        <div class="stat-row" style="margin:12px 0 0;">
-          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:20px;">56.1%</div><div class="stat-label">Gaia2 成功率</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--yellow);font-size:20px;">+7.8%</div><div class="stat-label">vs ReAct</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--cyan);font-size:20px;">1</div><div class="stat-label">条轨迹即可</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--orange);font-size:20px;">2026.03</div><div class="stat-label">arXiv v2</div></div>
+        <p>反思 trajectory + outcome → <strong>heuristics</strong>（保留 granular 细节）进池 → 测试时 LLM 对每条 heuristic 打 relevance 分 → top-k 注入。<span class="hl">单轨迹即可、不做跨任务聚合、检索优先</span>。</p>
+        <div class="stat-row" style="margin:12px 0 0;grid-template-columns:1fr 1fr;">
+          <div class="stat-box"><div class="stat-val" style="color:var(--green);font-size:18px;">56.1%</div><div class="stat-label">Gaia2</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--orange);font-size:18px;">2026.03</div><div class="stat-label">arXiv v2</div></div>
         </div>
       </div>
     </div>
 
-    <p style="color:var(--muted);font-size:13px;">ExpeL 基准：ALFWorld / WebShop / HotpotQA / FEVER。ERL 基准：Gaia2（Search 和 Execution splits），文中对比超过 ExpeL、AutoGuide 等。</p>
+    <div class="evo-arrow">
+      <span class="evo-pill expel">ExpeL · 聚合</span>
+      <span class="evo-sep">→</span>
+      <span class="evo-pill autoguide">AutoGuide · 条件</span>
+      <span class="evo-sep">→</span>
+      <span class="evo-pill erl">ERL · 检索</span>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;">ExpeL 基准：ALFWorld / WebShop / HotpotQA / FEVER。AutoGuide 基准：web navigation（WebArena 类）+ embodied 任务，显著超过 ExpeL。ERL 基准：Gaia2（Search 和 Execution splits），在 Gaia2 上反超 AutoGuide。</p>
   </div>
 
   <div class="section" id="sec2">
     <div class="sec-head">
       <div class="sec-num" style="background:var(--accent);">2</div>
-      <h2>为什么要配对读这两篇</h2>
+      <h2>为什么要三代同读</h2>
     </div>
 
     <p>在 Reflection 支柱下，反思的"时间跨度"有三个层次：</p>
@@ -197,17 +248,39 @@
         <tbody>
           <tr><td><strong>Intra-step</strong>（单步内）</td><td>CoT / Inner Monologue</td><td>一次前向中的自我推理</td></tr>
           <tr><td><strong>Intra-task</strong>（单任务多 trial）</td><td><a href="10-reflexion.html">Reflexion</a></td><td>同一任务失败 → 反思 → 重试，反思只在本任务生命周期内有效</td></tr>
-          <tr><td><strong>Inter-task</strong>（跨任务）</td><td><span style="color:var(--accent);">ExpeL</span> / <span style="color:var(--cyan);">ERL</span> / AutoGuide</td><td>把历史任务的经验沉淀下来，跨任务复用</td></tr>
+          <tr><td><strong>Inter-task</strong>（跨任务）</td><td><span style="color:var(--accent);">ExpeL</span> / <span style="color:var(--autoguide);">AutoGuide</span> / <span style="color:var(--cyan);">ERL</span></td><td>把历史任务的经验沉淀下来，跨任务复用</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="callout callout-key">
-      <div class="callout-title" style="color:var(--accent);">这两篇正是"跨任务反思"子路线的两代代表</div>
-      ExpeL (2023.08) 是第一代：把多条轨迹<strong>熬成</strong>一份通用 insights（类似"蒸馏"）。ERL (2026.03) 是第二代：发现"熬煮会丢失细节"，回归到<strong>保留每条轨迹的独特启发 + 检索时按相关性筛选</strong>。你会看到这是一个非常典型的"先聚合、后发现聚合有损、再回到检索"的循环——和信息检索领域从 topic model 走向 dense retrieval 的历史几乎同构。
+      <div class="callout-title" style="color:var(--accent);">这三篇正是"跨任务反思"子路线的三代递进</div>
+      <strong>ExpeL (2024.03)</strong> 是第一代：把多条轨迹<strong>熬成</strong>一份通用 insights（类似"蒸馏"）—— 推理时一锅全塞。<br>
+      <strong>AutoGuide (2024.11)</strong> 是第二代：发现"一锅乱炖会让无关 insight 干扰决策"，转为<strong>情境感知 IF-THEN guidelines</strong> —— 推理时按 context 匹配、条件激活。<br>
+      <strong>ERL (2026.03)</strong> 是第三代：进一步发现"条件句也会丢失轨迹细节"，回归到<strong>保留每条轨迹的独特启发 + 检索时按相关性筛选</strong>。<br>
+      你会看到这是一个非常典型的"先聚合、后发现聚合有损、再回到结构化分发、最后彻底走向检索"的递进——和信息检索领域从 topic model 走向 dense retrieval 的历史几乎同构。
     </div>
 
-    <p>在本研究库的概念图里，两篇共享 "R4 跨轨迹反思" 节点，这个放在同一个节点的决定本身就是在暗示它们是同一范畴内的演化对，而不是两个正交的工作。</p>
+    <h3>2.1 时间线与承上启下</h3>
+    <div class="timeline">
+      <div class="timeline-item expel">
+        <div class="tl-date">2024.03 · AAAI 2024</div>
+        <div class="tl-title">ExpeL — 聚合式 insights</div>
+        <div class="tl-body">Zhao et al. (清华 LeapLab)。第一个把 Replay Buffer 思想搬到文本反思上的工作。推理时把所有 insights 一并塞进 prompt，假设它们都是"普适通用规则"。</div>
+      </div>
+      <div class="timeline-item autoguide">
+        <div class="tl-date">2024.11 · NeurIPS 2024</div>
+        <div class="tl-title">AutoGuide — 情境感知 guidelines</div>
+        <div class="tl-body">Fu, Kim, Logeswaran et al.（LG AI Research 等合作）。观察到 ExpeL 把所有规则无差别注入，<strong>无关规则反而会干扰决策</strong>。提出把规则写成 <code>IF context THEN action</code>，并构造 Context Identification Module 做情境匹配——从"一锅乱炖"走向"条件分发"。</div>
+      </div>
+      <div class="timeline-item erl">
+        <div class="tl-date">2026.03 · arXiv v2</div>
+        <div class="tl-title">ERL — 检索式 heuristics</div>
+        <div class="tl-body">继续攻击：即便写成 IF-THEN，规则本身还是从多条轨迹"蒸馏"出来的；如果轨迹本身就稀少、异构（Gaia2 这种场景），蒸馏代价过高。ERL 的做法是<strong>根本不蒸馏</strong>，一条轨迹就产出一条保留原始细节的 heuristic，推理时 LLM 直接给 relevance 打分筛选。</div>
+      </div>
+    </div>
+
+    <p>在本研究库的概念图里，三篇共享 "R4 跨轨迹反思" 节点——这个放在同一个节点的决定本身就是在暗示它们是同一范畴内的演化链，而不是三个正交的工作。</p>
   </div>
 
   <div class="section" id="sec3">
@@ -236,14 +309,14 @@
 
     <div class="callout callout-insight">
       <div class="callout-title" style="color:var(--cyan);">这一步为什么是"离线"而非推理时</div>
-      ExpeL 刻意把反思放在训练阶段做完、把 insights 冻结下来，推理时只做检索和拼接。好处是推理延迟低；代价是<strong>对新分布的适应性差</strong>——你没有机制在看到测试任务后再产出新 insight。这正是 ERL 要攻击的点之一。
+      ExpeL 刻意把反思放在训练阶段做完、把 insights 冻结下来，推理时只做检索和拼接。好处是推理延迟低；代价是<strong>对新分布的适应性差</strong>——你没有机制在看到测试任务后再产出新 insight。这正是 AutoGuide / ERL 要攻击的点之一。
     </div>
 
     <h3>3.3 推理阶段 — 双路检索</h3>
     <p>给定一个新任务 <code>task_test</code>，ExpeL 做两件事：</p>
     <ol>
       <li><strong>相似轨迹检索</strong>：从 experience pool 里基于任务描述 embedding 取 top-k（论文里一般 k=2-3）相似的成功轨迹，作为"few-shot 示范"。</li>
-      <li><strong>Insights 全量注入</strong>：把所有 insights（通常几十条，token 开销可控）全部拼到 system prompt。</li>
+      <li><strong>Insights 全量注入</strong>：把所有 insights（通常几十条，token 开销可控）<strong>全部拼到 system prompt</strong>——这是"一锅乱炖"的由来，也是 AutoGuide 直接攻击的点。</li>
     </ol>
     <p>这是"示范 + 规则"的双管齐下。作者做了 ablation：insights-only 和 trajectories-only 都不如双路，说明两者是<strong>互补信息</strong>——trajectories 提供具体动作序列的模仿目标，insights 提供高层决策原则。</p>
 
@@ -259,17 +332,93 @@
         </tbody>
       </table>
     </div>
-    <p>结论：<span class="hl">高层 insights（"先验证再执行""遇到不确定时 backtrack"）能跨域，具体 trajectory 不能</span>。这个发现反过来也在说：如果 insights 抽象得足够高，它们对具体新任务的"颗粒度指引"就不够了——这是 ERL 要解决的张力。</p>
+    <p>结论：<span class="hl">高层 insights（"先验证再执行""遇到不确定时 backtrack"）能跨域，具体 trajectory 不能</span>。这个发现反过来也在说：如果 insights 抽象得足够高，它们对具体新任务的"颗粒度指引"就不够了——这正是 AutoGuide / ERL 要解决的张力。</p>
   </div>
 
   <div class="section" id="sec4">
     <div class="sec-head">
-      <div class="sec-num" style="background:var(--cyan);">4</div>
+      <div class="sec-num" style="background:var(--autoguide);">4</div>
+      <h2>AutoGuide 深度剖析</h2>
+    </div>
+
+    <p style="color:var(--autoguide);font-weight:600;">核心立意：ExpeL 的 insights 是"无条件"的——不管你当前处于哪个状态，所有规则一并注入。但现实里，<strong>大部分规则只在特定情境下才成立</strong>。AutoGuide 的贡献就是把这个"条件性"显式化。</p>
+
+    <h3>4.1 Guideline 的形式 — IF-THEN 条件句</h3>
+    <p>AutoGuide 的输出单元不叫 insight 而叫 <strong>context-aware guideline</strong>。形式大致是：</p>
+
+    <div class="formula"><span class="label">context-aware guideline (示意)</span>{
+  context: "when the user's query asks about a specific product and
+            the page shows a list of search results",
+  guideline: "first click on the product matching the exact name
+              before scrolling to read details"
+}</div>
+
+    <p>对比 ExpeL 的 insight：<em>"always check product options before adding to cart"</em> —— ExpeL 版是"任何时候都遵守"；AutoGuide 版是"只有在 {搜索结果页} 这个情境下，才执行 {先点击精确匹配}"。<span class="hl-ag">IF-THEN 让规则具备了情境触发的语义</span>，从"所有规则都在背景里闪烁"变成"只有匹配的规则亮起来"。</p>
+
+    <div class="callout callout-autoguide">
+      <div class="callout-title" style="color:var(--autoguide);">为什么"条件化"是关键进步</div>
+      在 web navigation 类任务里，一个轨迹通常跨越多个截然不同的页面状态（登录页 / 搜索结果 / 商品详情 / 购物车 / 结算）。ExpeL 的无条件规则会把"结算页面应该先检查邮箱"这种<strong>页面专属</strong>建议在"搜索页"时也塞进 prompt，污染决策。AutoGuide 的 IF-THEN 让规则只在匹配的页面状态被激活，相当于给 LLM 提供了一份"<strong>根据当前情境动态组装的小抄</strong>"。
+    </div>
+
+    <h3>4.2 两模块架构</h3>
+
+    <div class="two-col">
+      <div class="col-box autoguide">
+        <h4>Context Identification Module</h4>
+        <p>把训练 trajectory 切成片段，对每个片段识别它所处的"<strong>情境</strong>" —— 情境可以是页面类型、任务阶段、观察到的 UI 元素模式等。关键：<span class="hl-ag">情境粒度是"状态级 / 单步级"，不是"整条轨迹级"</span>。一条轨迹会跨越多个情境标签。</p>
+      </div>
+      <div class="col-box autoguide">
+        <h4>Guideline Extraction Module</h4>
+        <p>对每个（情境, 此情境下的动作片段, outcome）三元组，LLM 反思出一条 IF-THEN guideline。因为 context 已经明确，guideline 不必追求"全场景通用"，只需"此情境下有效"——这让规则更具体、更可操作。</p>
+      </div>
+    </div>
+
+    <h3>4.3 推理时 — context 匹配 → guideline 激活</h3>
+    <ol>
+      <li>当前 state（观察 / 页面 DOM / 近期 action 序列）输入 Context Identification Module → 得到当前情境标签。</li>
+      <li>在 guideline 库里筛选所有 <code>context == 当前情境</code> 的 guideline。</li>
+      <li>只把这个子集注入 prompt，作为 LLM 的"临时决策手册"。</li>
+    </ol>
+
+    <div class="callout callout-autoguide">
+      <div class="callout-title" style="color:var(--autoguide);">对比 ExpeL / ERL 的筛选机制</div>
+      <strong>ExpeL</strong>：不筛选，全塞。<br>
+      <strong>AutoGuide</strong>：按<strong>离散的 context 标签</strong>筛选（精确匹配）。<br>
+      <strong>ERL</strong>：按<strong>连续的 LLM-as-judge relevance 分数</strong>筛选（top-k）。<br>
+      AutoGuide 的筛选是"结构化条件判断"（像 rule-based retrieval），ERL 的筛选是"语义相关性排序"（像 dense retrieval）。这正是 AutoGuide → ERL 这一步演化的本质差别。
+    </div>
+
+    <h3>4.4 个体 context 粒度 — 关键设计决策</h3>
+    <p>这里有一个非常容易误读的点：<strong>AutoGuide 的 context 不是"任务级"，而是"单步级 / 状态级"</strong>。同一条 trajectory 中不同的 step 会落入不同的 context bucket：</p>
+    <ul>
+      <li>Step 3（在搜索结果页）→ context A → 激活 guideline G1</li>
+      <li>Step 7（在商品详情页）→ context B → 激活 guideline G4, G7</li>
+      <li>Step 11（在结算页）→ context C → 激活 guideline G2</li>
+    </ul>
+    <p>这意味着 guideline 是<strong>随 agent 执行过程动态切换的</strong>——agent 每走一步，激活的规则集都在变。这种"<span class="hl-ag">按状态动态组装的 prompt</span>"，比 ExpeL 整条任务用同一份 prompt 要细粒度得多。</p>
+
+    <h3>4.5 实验结果 — 大幅超过 ExpeL</h3>
+    <p>AutoGuide 主要在 web navigation 基准（WebArena 类）和 embodied 任务上评测。论文报告相比 ExpeL baseline 有<strong>显著提升</strong>，作者把这归因于：</p>
+    <ul>
+      <li>Web 任务的情境分布差异非常大（不同页面状态对应完全不同的最优策略），context 分发正好切中要害；</li>
+      <li>无关 guideline 的过滤让 LLM 更容易在正确规则上做出决策（减少注意力分散）；</li>
+      <li>Guideline 的具体度比 insight 高，对 "下一步该干什么" 提供了更直接的信号。</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">但 AutoGuide 不是终点</div>
+      AutoGuide 的瓶颈是：<strong>context 必须能被"离散标签"化</strong>。如果任务的情境是连续的、异构的、甚至是 ad-hoc 的（比如 Gaia2 那种"每条任务要调用完全不同的 tool 组合"），context identification 本身就会失准——失准后，guideline 激活错误比 ExpeL 的"全塞但无筛选"还糟糕。ERL 正是观察到这一点，干脆放弃"离散 context 匹配"，改走"连续 relevance 打分"。
+    </div>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
       <h2>ERL 深度剖析</h2>
     </div>
 
-    <h3>4.1 Heuristics pool — 不是 insights</h3>
-    <p>ERL 刻意不叫 insights。原因是：它产出的每条知识单元<strong>更长、更具体、包含原始上下文</strong>。一条 heuristic 可能包含"任务类型、失败时的关键 action 片段、修正建议"，不像 ExpeL insight 那样压缩为一句通用规则。</p>
+    <h3>5.1 Heuristics pool — 不是 insights，也不是 guidelines</h3>
+    <p>ERL 刻意不叫 insights，也不叫 guidelines。原因是：它产出的每条知识单元<strong>更长、更具体、包含原始上下文</strong>。一条 heuristic 可能包含"任务类型、失败时的关键 action 片段、修正建议"，不像 ExpeL insight 那样压缩为一句通用规则，也不像 AutoGuide guideline 那样写成规整的 IF-THEN。</p>
 
     <div class="formula"><span class="label">heuristic entry (示意)</span>{
   task_signature: "search + date filter",
@@ -279,171 +428,312 @@
   original_outcome: "fail -> success after fix"
 }</div>
 
-    <h3>4.2 单轨迹抽取 — ExpeL 做不到的</h3>
-    <p>ExpeL 的 COMPARE 需要 (success, fail) <strong>配对</strong>，SUCCESS 需要<strong>多条成功轨迹</strong>，这意味着必须有量。ERL 的提取 prompt 针对<strong>单条轨迹 + 其 outcome</strong> 就能工作：LLM 直接被问"这条轨迹揭示了什么可复用的启发"，产出一条 heuristic。</p>
+    <h3>5.2 单轨迹抽取 — ExpeL / AutoGuide 都做不到</h3>
+    <p>ExpeL 的 COMPARE 需要 (success, fail) <strong>配对</strong>，SUCCESS 需要<strong>多条成功轨迹</strong>；AutoGuide 虽然可以单轨迹切片，但切完之后的<strong>情境标签</strong>要在多条轨迹间聚类才稳定。两者都需要"量"。ERL 的提取 prompt 针对<strong>单条轨迹 + 其 outcome</strong> 就能工作：LLM 直接被问"这条轨迹揭示了什么可复用的启发"，产出一条 heuristic。</p>
     <div class="callout callout-warn">
       <div class="callout-title" style="color:var(--orange);">这里的权衡</div>
-      单轨迹抽取的代价是："启发"的普适性更弱，容易 overfit 到这一条轨迹的具体情境。ERL 的设计哲学是：<strong>不在抽取阶段强求普适，把筛选的活交给后续 relevance scoring</strong>——让"什么时候用哪条启发"留到测试时动态决定。
+      单轨迹抽取的代价是："启发"的普适性更弱，容易 overfit 到这一条轨迹的具体情境。ERL 的设计哲学是：<strong>不在抽取阶段强求普适，把筛选的活交给后续 relevance scoring</strong>——让"什么时候用哪条启发"留到测试时动态决定。这和 AutoGuide 的"抽取时就写 IF context THEN action"恰好是相反的两种哲学。
     </div>
 
-    <h3>4.3 Relevance scoring + top-k 注入</h3>
-    <p>测试时，给定新任务，ERL 让 LLM 对 pool 里<strong>每条</strong>（或经粗召回后的候选）heuristic 打一个 relevance 分，取 top-k（论文里一般 k=3-5）注入 context。这是和 ExpeL "insights 全量拼接"的根本区别：</p>
+    <h3>5.3 Relevance scoring + top-k 注入</h3>
+    <p>测试时，给定新任务，ERL 让 LLM 对 pool 里<strong>每条</strong>（或经粗召回后的候选）heuristic 打一个 relevance 分，取 top-k（论文里一般 k=3-5）注入 context。这是和前两代最根本的区别：</p>
     <ul>
-      <li>ExpeL：pool 里所有 insights 一次全塞，假设它们都是通用规则，互不干扰。</li>
-      <li>ERL：pool 大了之后全塞装不下（heuristics 单条更长），且很多 heuristic 对当前任务是噪声 → 必须<strong>检索</strong>。</li>
+      <li><strong>ExpeL</strong>：pool 里所有 insights 一次全塞，假设它们都是通用规则，互不干扰。</li>
+      <li><strong>AutoGuide</strong>：按 context 标签精确匹配，激活相关 guideline。</li>
+      <li><strong>ERL</strong>：pool 大了之后全塞装不下（heuristics 单条更长），且 context 标签本身在异构任务上不好定义 → 必须<strong>连续 relevance 打分 + top-k</strong>。</li>
     </ul>
 
-    <h3>4.4 Gaia2 基准 — 比 ExpeL 年代的基准更难</h3>
+    <h3>5.4 Gaia2 基准 — 反超 AutoGuide</h3>
     <p>ERL 主战场是 Gaia2（GAIA 基准的第二代），分为：</p>
     <ul>
       <li><strong>Search split</strong>：需要调用搜索工具、多源信息整合。</li>
       <li><strong>Execution split</strong>：需要跨工具执行复杂计算 / 操作。</li>
     </ul>
-    <p>论文报告 ERL 在 Gaia2 上达到 <span class="hl">56.1% 成功率，比 ReAct baseline 提升 7.8 个百分点</span>，同时高于 ExpeL 和 AutoGuide 的复现结果。注意：这是 ERL 自己复现 baseline 的数字，ExpeL 原论文不在 Gaia2 上评过——所以需要客观看待这个对比（见 FAQ）。</p>
+    <p>论文报告 ERL 在 Gaia2 上达到 <span class="hl">56.1% 成功率，比 ReAct baseline 提升 7.8 个百分点</span>，同时高于 ExpeL 和 <strong>AutoGuide</strong> 的复现结果。Gaia2 的任务特征（异构 tool use、context 难以离散化）正好撞在 AutoGuide 的短板上，ERL 的连续 relevance 打分因此占优。注意：这是 ERL 自己复现 baseline 的数字——所以需要客观看待这个对比（见 FAQ）。</p>
   </div>
 
-  <div class="section" id="sec5">
+  <div class="section" id="sec6">
     <div class="sec-head">
-      <div class="sec-num" style="background:var(--yellow);">5</div>
-      <h2>头对头对比表</h2>
+      <div class="sec-num" style="background:var(--yellow);">6</div>
+      <h2>三代头对头对比</h2>
     </div>
 
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>维度</th><th style="color:var(--accent);">ExpeL</th><th style="color:var(--cyan);">ERL</th></tr>
+          <tr>
+            <th>维度</th>
+            <th class="col-expel">ExpeL</th>
+            <th class="col-autoguide">AutoGuide</th>
+            <th class="col-erl">ERL</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>学习素材</td><td class="col-expel">experience pool（需多条训练轨迹）</td><td class="col-erl">单条轨迹 + outcome 即可</td></tr>
-          <tr><td>产物名称</td><td class="col-expel">insights（自然语言规则）</td><td class="col-erl">heuristics（保留细节的启发）</td></tr>
-          <tr><td>产物抽象程度</td><td class="col-expel">高度聚合（"一句话规则"）</td><td class="col-erl">granular（保留任务签名、失败模式、上下文片段）</td></tr>
-          <tr><td>训练样本要求</td><td class="col-expel">多条，含成功 / 失败配对</td><td class="col-erl">单条即可</td></tr>
-          <tr><td>推理时注入策略</td><td class="col-expel">top-k 相似轨迹 + <strong>全部</strong> insights</td><td class="col-erl"><strong>top-k 相关</strong> heuristics</td></tr>
-          <tr><td>检索信号</td><td class="col-expel">任务 embedding 相似度</td><td class="col-erl">LLM-as-judge 打 relevance 分</td></tr>
-          <tr><td>细节丢失风险</td><td class="col-expel">聚合时不可避免地丢失</td><td class="col-erl">保留 granular，细节不丢</td></tr>
-          <tr><td>噪声 / 无关信息风险</td><td class="col-expel">低（insights 都是通用规则）</td><td class="col-erl">较高（依赖 relevance 打分的准确性）</td></tr>
-          <tr><td>推理延迟</td><td class="col-expel">低（只检索轨迹，insights 固定）</td><td class="col-erl">更高（每次要做 heuristic 相关性评估）</td></tr>
-          <tr><td>发表</td><td class="col-expel">AAAI 2024</td><td class="col-erl">arXiv 2026.03</td></tr>
-          <tr><td>基底模型</td><td class="col-expel">gpt-3.5-turbo-0613</td><td class="col-erl">更现代的 LLM（论文给 Gaia2 的主实验）</td></tr>
-          <tr><td>代码</td><td class="col-expel">有：<a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a></td><td class="col-erl">暂未找到公开仓库</td></tr>
-          <tr><td>典型基准</td><td class="col-expel">ALFWorld / WebShop / HotpotQA / FEVER</td><td class="col-erl">Gaia2 (Search + Execution)</td></tr>
+          <tr>
+            <td>范式一句话</td>
+            <td class="col-expel">聚合式（一锅乱炖）</td>
+            <td class="col-autoguide">条件式（IF-THEN 分发）</td>
+            <td class="col-erl">检索式（top-k 按相关性取）</td>
+          </tr>
+          <tr>
+            <td>学习素材</td>
+            <td class="col-expel">experience pool（需多条训练轨迹）</td>
+            <td class="col-autoguide">多条轨迹 + 情境切片</td>
+            <td class="col-erl">单条轨迹 + outcome 即可</td>
+          </tr>
+          <tr>
+            <td>产物名称</td>
+            <td class="col-expel">insights（自然语言规则）</td>
+            <td class="col-autoguide">context-aware guidelines（IF-THEN）</td>
+            <td class="col-erl">heuristics（保留细节的启发）</td>
+          </tr>
+          <tr>
+            <td>产物抽象程度</td>
+            <td class="col-expel">高度聚合（"一句话规则"）</td>
+            <td class="col-autoguide">中等（规则 + 触发条件）</td>
+            <td class="col-erl">granular（保留任务签名、失败模式、上下文片段）</td>
+          </tr>
+          <tr>
+            <td>粒度</td>
+            <td class="col-expel">全局通用（所有任务共用一套）</td>
+            <td class="col-autoguide">状态级 / 单步级 context</td>
+            <td class="col-erl">轨迹级（一轨迹一条）</td>
+          </tr>
+          <tr>
+            <td>训练样本要求</td>
+            <td class="col-expel">多条，含成功 / 失败配对</td>
+            <td class="col-autoguide">多条（需聚类 context 标签）</td>
+            <td class="col-erl">单条即可</td>
+          </tr>
+          <tr>
+            <td>推理时注入策略</td>
+            <td class="col-expel">top-k 相似轨迹 + <strong>全部</strong> insights</td>
+            <td class="col-autoguide">context 匹配 → <strong>激活子集</strong></td>
+            <td class="col-erl"><strong>top-k 相关</strong> heuristics</td>
+          </tr>
+          <tr>
+            <td>筛选机制</td>
+            <td class="col-expel">无（全塞）</td>
+            <td class="col-autoguide">离散 context 标签精确匹配</td>
+            <td class="col-erl">连续 LLM-as-judge relevance 打分</td>
+          </tr>
+          <tr>
+            <td>检索信号</td>
+            <td class="col-expel">任务 embedding 相似度（仅用于检索轨迹）</td>
+            <td class="col-autoguide">Context Identification Module 输出</td>
+            <td class="col-erl">LLM 对 heuristic 直接打分</td>
+          </tr>
+          <tr>
+            <td>细节丢失风险</td>
+            <td class="col-expel">聚合时不可避免地丢失</td>
+            <td class="col-autoguide">中等（IF-THEN 仍是抽象后的）</td>
+            <td class="col-erl">保留 granular，细节不丢</td>
+          </tr>
+          <tr>
+            <td>无关信息风险</td>
+            <td class="col-expel">高（全塞，无关规则干扰）</td>
+            <td class="col-autoguide">低（条件匹配精确，但标签错分时失灵）</td>
+            <td class="col-erl">中（依赖 relevance 打分的准确性）</td>
+          </tr>
+          <tr>
+            <td>推理延迟</td>
+            <td class="col-expel">低（insights 固定）</td>
+            <td class="col-autoguide">中（context 识别 + 规则查找）</td>
+            <td class="col-erl">高（每次要对 pool 打分）</td>
+          </tr>
+          <tr>
+            <td>适用场景</td>
+            <td class="col-expel">训练任务多、规则稳定的 sim 环境</td>
+            <td class="col-autoguide">context 离散可标签化（Web / UI 流程）</td>
+            <td class="col-erl">异构 tool use、context 难以离散化</td>
+          </tr>
+          <tr>
+            <td>发表</td>
+            <td class="col-expel">AAAI 2024（2024.03）</td>
+            <td class="col-autoguide">NeurIPS 2024（2024.11）</td>
+            <td class="col-erl">arXiv 2026.03</td>
+          </tr>
+          <tr>
+            <td>基底模型</td>
+            <td class="col-expel">gpt-3.5-turbo-0613</td>
+            <td class="col-autoguide">GPT-4 / 同代现代 LLM</td>
+            <td class="col-erl">更现代的 LLM</td>
+          </tr>
+          <tr>
+            <td>代码</td>
+            <td class="col-expel">有：<a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a></td>
+            <td class="col-autoguide">暂无开源（搜索中）</td>
+            <td class="col-erl">暂未找到公开仓库</td>
+          </tr>
+          <tr>
+            <td>典型基准</td>
+            <td class="col-expel">ALFWorld / WebShop / HotpotQA / FEVER</td>
+            <td class="col-autoguide">WebArena / embodied</td>
+            <td class="col-erl">Gaia2 (Search + Execution)</td>
+          </tr>
+          <tr>
+            <td>原论文对谁反超</td>
+            <td class="col-expel">—（首发）</td>
+            <td class="col-autoguide">显著超过 ExpeL</td>
+            <td class="col-erl">在 Gaia2 上超过 ExpeL + AutoGuide</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <div class="callout callout-green">
       <div class="callout-title" style="color:var(--green);">一个判别方法</div>
-      如果你的场景里 <strong>训练任务多、规则稳定、延迟敏感</strong>（如 ALFWorld 这种 sim 环境大批跑），ExpeL 风格更合适。如果 <strong>任务分布异构、单任务就珍贵、需要保留上下文细节</strong>（如 Gaia2 这种 tool use 场景），ERL 风格更合适。
-    </div>
-  </div>
-
-  <div class="section" id="sec6">
-    <div class="sec-head">
-      <div class="sec-num" style="background:var(--pink);">6</div>
-      <h2>关键演化论点</h2>
-    </div>
-
-    <div class="callout callout-insight">
-      <div class="callout-title" style="color:var(--cyan);">论点 1 ：insights vs heuristics 是 LLM agent 经验复用的两种范式</div>
-      它们不是"孰优孰劣"的关系，而是"压缩 vs 保留"的两端。ExpeL 开创了 post-hoc 抽取高层规则的压缩路径；ERL 反向回到保留原始轨迹细节 + 检索筛选的非压缩路径。这两条路都有存在价值——它们服务于不同的任务分布特性和 token budget 约束。
-    </div>
-
-    <div class="callout callout-warn">
-      <div class="callout-title" style="color:var(--orange);">论点 2 ：这是一次隐含的 "bitter lesson" 复现</div>
-      Sutton 的 bitter lesson 说：<em>"那些把人类先验塞进去的方法，长期会被让机器自己搜索 / 学习的方法打败。"</em> ExpeL 的"聚合出通用规则"本质是一种<strong>特征工程</strong>——人为设计了"insight 必须是高抽象度通用规则"这个先验。ERL 放弃了这个先验，让检索自己决定该用什么——这是从 compression 走向 retrieval 的标志性一步。在更早的 NLP 史上，这对应从 LDA topic model 到 dense retrieval 的演化。
-    </div>
-
-    <div class="callout callout-pink">
-      <div class="callout-title" style="color:var(--pink);">论点 3 ：但 ERL 不是终点</div>
-      保留细节 + 检索的路径也有边界：pool 无限增长时，relevance scoring 本身成了瓶颈（要给 N 条 heuristic 打分）。下一代可能的演化方向是：<strong>hierarchical heuristics</strong>（粗召回 → 精筛） / <strong>graph-indexed heuristics</strong>（像 A-MEM 那样加语义边）/ <strong>self-compressing heuristics</strong>（池过大时触发"二次蒸馏"，回到一个带选择性的 insights 层）。事实上 24 号综述里列的 "Memory-R1" 和 "Memory+RL 联合优化"就是在做这件事。
+      如果你的场景里 <strong>训练任务多、规则稳定、延迟敏感</strong>（如 ALFWorld 这种 sim 环境大批跑），ExpeL 风格就够。<br>
+      如果 <strong>context 边界清晰、可离散化成有限状态</strong>（Web UI 流程、GUI 操作、嵌入式家政），用 AutoGuide 风格最划算。<br>
+      如果 <strong>任务分布异构、单任务就珍贵、需要保留上下文细节</strong>（Gaia2 这种 tool use 场景），ERL 风格更合适。
     </div>
   </div>
 
   <div class="section" id="sec7">
     <div class="sec-head">
-      <div class="sec-num" style="background:var(--green);">7</div>
-      <h2>与 Generative Agents / 斯坦福小镇的联系</h2>
+      <div class="sec-num" style="background:var(--pink);">7</div>
+      <h2>关键演化论点（聚合 → 条件 → 检索）</h2>
     </div>
 
-    <h3>7.1 Reflection 的范围之别</h3>
-    <p>小镇的 reflection 是：<strong>当 memory stream 中近期记忆的 importance 累计超过阈值，触发反思，抽取 higher-level insight 写回 memory stream</strong>。形式上和 ExpeL 非常像——都是"从一堆观察中抽取一条高层规则"。但范围不同：</p>
+    <h3>7.1 三代演化的形式化表达</h3>
+    <p>如果把"跨轨迹反思"建模成一个函数 <code>f(pool, task) → prompt</code>，三代的差别在于<strong>筛选函数的形态</strong>：</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th></th><th>反思的时间跨度</th><th>反思的主体</th><th>产物去向</th></tr></thead>
-        <tbody>
-          <tr><td>Smallville Reflection</td><td>intra-character（单 agent 的生命周期内）</td><td>单个 agent</td><td>写回自己的 memory stream</td></tr>
-          <tr><td>Reflexion</td><td>intra-task（同任务的多 trial）</td><td>单 agent × 单任务</td><td>下轮 trial 的 prompt</td></tr>
-          <tr><td><span style="color:var(--accent);">ExpeL / ERL</span></td><td>inter-task（跨任务、跨分布）</td><td>通常是"系统级"（一个 agent 在训练任务集上跑完得到）</td><td>共享的 insights / heuristics pool</td></tr>
-        </tbody>
-      </table>
+    <div class="formula"><span class="label">三代的筛选函数</span>ExpeL      : prompt = concat(all insights)            // 无筛选
+AutoGuide  : prompt = concat({g | g.context = c(state)})  // 离散条件
+ERL        : prompt = top_k({(h, score(h,task)) ∀h})     // 连续相关性</div>
+
+    <p>从函数形式看，这是一个<strong>信息检索领域经典的演化路径</strong>：无过滤 → 基于规则 / 字段的过滤 → 基于向量 / 打分的 dense retrieval。跨轨迹反思这三代刚好完整复刻了这条路径。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">论点 1：三代不是"孰优孰劣"，而是"筛选函数的复杂度递增"</div>
+      每一代都在用一种更复杂的筛选函数换取更好的精准度。ExpeL 的筛选函数是常量（不筛），AutoGuide 的是离散函数（匹配），ERL 的是连续函数（打分）。函数越复杂，拟合能力越强，但代价是计算开销和对打分器本身的依赖也越强。这和机器学习从线性模型 → 决策树 → 神经网络的演化方向一致。
     </div>
 
-    <h3>7.2 Relevance 打分的同源</h3>
-    <p>小镇的记忆检索公式是 <code>score = Recency × Importance × Relevance</code>，其中 Relevance 来自当前 query 与 memory 的 embedding 相似度。ERL 的 heuristic relevance scoring 虽然换成了 LLM-as-judge，但<strong>功能位置完全一致</strong>——都是"给候选记忆 / 启发打分，只取最相关的注入"。两者都认识到：记忆 / 经验池会膨胀，必须有打分机制决定用哪些。</p>
-
-    <div class="sv-link">
-      如果把小镇的 Memory Stream 理解为"<strong>一个 agent 一生的 experience pool</strong>"，那么小镇的 reflection 就是<strong>个人版 ExpeL</strong>——不跨任务、但跨事件。ExpeL 把这个机制从"一个 agent 内"放大到"训练任务集上"，本质是把时间维度的经验累积换成了任务维度的经验累积。ERL 再进一步，承认聚合会丢信息、回到基于检索的调用——这正好也呼应了小镇<strong>没有把 raw memory 扔掉</strong>的设计：反思出 insight 后，原始记忆还在 stream 里可检索。小镇在 2023 年用一个耦合的打分公式把两层都做了，ExpeL / ERL 在 2024-2026 把它们拆成了正交的设计选择。
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">论点 2：这是一次隐含的 "bitter lesson" 复现</div>
+      Sutton 的 bitter lesson 说：<em>"那些把人类先验塞进去的方法，长期会被让机器自己搜索 / 学习的方法打败。"</em><br>
+      · ExpeL 的"聚合出通用规则"本质是一种<strong>特征工程</strong>——人为设计了"insight 必须是高抽象度通用规则"这个先验。<br>
+      · AutoGuide 的"IF-THEN + 离散 context"仍然带有人工结构先验——假设情境可以离散化、条件可以写清楚。<br>
+      · ERL 放弃了这两个先验，让检索自己决定该用什么——这是从 compression / structure 走向 retrieval 的标志性一步。<br>
+      在更早的 NLP 史上，这对应从 LDA topic model → rule-based retrieval → dense retrieval 的演化。
     </div>
 
-    <h3>7.3 与 Voyager 的对照</h3>
-    <p><a href="14-voyager.html">Voyager</a>（Minecraft 里的终身学习 agent）也有"经验库"的概念，但它的产物是<strong>可执行 JavaScript 技能函数</strong>，不是自然语言规则。映射关系：</p>
-    <ul>
-      <li><strong>Voyager skill library</strong> ≈ ExpeL insights（跨任务沉淀、可检索复用），但形式是代码。</li>
-      <li>Voyager 的"技能可直接执行"带来了一个 ExpeL / ERL 都没有的优势：<strong>可验证</strong>——代码在环境里跑出结果，对就对、错就错。ExpeL insights 对不对，只能靠下游任务成功率间接验证。</li>
-      <li>但 Voyager 的代价是只能用于"动作可代码化"的环境（Minecraft 的离散 API），在 QA / Web browsing 这类任务里就不适用——这正是 ExpeL / ERL 的地盘。</li>
-    </ul>
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">论点 3：但 ERL 也不是终点</div>
+      保留细节 + 检索的路径也有边界：pool 无限增长时，relevance scoring 本身成了瓶颈（要给 N 条 heuristic 打分）。下一代可能的演化方向是：<strong>hierarchical heuristics</strong>（粗召回 → 精筛） / <strong>graph-indexed heuristics</strong>（像 A-MEM 那样加语义边）/ <strong>self-compressing heuristics</strong>（池过大时触发"二次蒸馏"，又回到带选择性的 insights / guidelines 层，形成闭环）。事实上 <a href="24-memory-survey.html">24 号综述</a>里列的 "Memory-R1" 和 "Memory+RL 联合优化"就是在做这件事。
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">论点 4：三代并存、非替代</div>
+      工业落地里，三代其实常常<strong>共存</strong>：ExpeL 风格做"全局准则"（不论什么任务都要遵守的几条红线）、AutoGuide 风格做"状态感知小抄"（UI / 工作流阶段触发）、ERL 风格做"细节案例库"（检索过往类似问题的 solution）。把三种表征混在一个 agent 里用，比孤立选一个往往效果更好——这也是"记忆系统"从单一形式走向 hybrid 的趋势。
+    </div>
   </div>
 
   <div class="section" id="sec8">
     <div class="sec-head">
-      <div class="sec-num" style="background:var(--blue);">8</div>
-      <h2>在本研究库中的位置 & FAQ</h2>
+      <div class="sec-num" style="background:var(--green);">8</div>
+      <h2>与 Generative Agents / 斯坦福小镇的联系</h2>
     </div>
 
-    <h3>8.1 Cross-ref 地图</h3>
+    <h3>8.1 Reflection 的范围之别</h3>
+    <p>小镇的 reflection 是：<strong>当 memory stream 中近期记忆的 importance 累计超过阈值，触发反思，抽取 higher-level insight 写回 memory stream</strong>。形式上和 ExpeL 非常像——都是"从一堆观察中抽取一条高层规则"。但更有趣的是：<span class="hl">小镇的"importance 触发"机制本身已经是一种朴素的情境感知</span>——只有"重要事件"才会触发反思，反思出的 insight 也天然携带"在什么情境下重要"的信息。AutoGuide 的 context-aware guidelines 可以看成是把这个思想<strong>跨任务化、形式化</strong>后的产物。</p>
+
     <div class="table-wrap">
       <table>
-        <thead><tr><th>对比对象</th><th>关系</th><th>要点</th></tr></thead>
+        <thead><tr><th></th><th>反思的时间跨度</th><th>反思的主体</th><th>产物去向</th><th>情境感知？</th></tr></thead>
         <tbody>
-          <tr><td><a href="10-reflexion.html">10 Reflexion</a></td><td>上游 / 同支柱</td><td>Reflexion 循环内反思（单任务），ExpeL / ERL 跨任务；前者是后者的"单任务特例"。</td></tr>
-          <tr><td><a href="14-voyager.html">14 Voyager</a></td><td>同思路、不同表征</td><td>Voyager 的技能是可执行代码，ExpeL / ERL 的是自然语言规则 / 启发。</td></tr>
-          <tr><td>AutoGuide</td><td>ERL 文中对比 baseline</td><td>把反思出的 guideline 组织成决策树；ERL 的 heuristic + relevance scoring 比它灵活。</td></tr>
-          <tr><td><a href="02-reflection-bank.html">02 Reflection Bank</a></td><td>dual-loop 架构近亲</td><td>同样是"把反思沉淀到一个 bank 里复用"，路径相近但侧重 dual-loop 的优化流程。</td></tr>
-          <tr><td><a href="19-generative-agents.html">19 Smallville</a></td><td>个体版 / 事件级</td><td>小镇 reflection 是 intra-character 版 ExpeL，跨事件不跨任务。</td></tr>
-          <tr><td>24 号 Memory Survey（待加）</td><td>分类学归属</td><td>在功能维度属 <strong>Experiential Memory</strong>，形式维度属 <strong>Token-level（自然语言）</strong>，dynamics 阶段属 <strong>检索驱动</strong>。</td></tr>
+          <tr><td>Smallville Reflection</td><td>intra-character（单 agent 的生命周期内）</td><td>单个 agent</td><td>写回自己的 memory stream</td><td>朴素（importance 门控）</td></tr>
+          <tr><td>Reflexion</td><td>intra-task（同任务的多 trial）</td><td>单 agent × 单任务</td><td>下轮 trial 的 prompt</td><td>无</td></tr>
+          <tr><td><span style="color:var(--accent);">ExpeL</span></td><td>inter-task</td><td>系统级</td><td>共享 insights pool</td><td>无</td></tr>
+          <tr><td><span style="color:var(--autoguide);">AutoGuide</span></td><td>inter-task</td><td>系统级</td><td>共享 guidelines 库（按 context 索引）</td><td><strong>有（IF-THEN）</strong></td></tr>
+          <tr><td><span style="color:var(--cyan);">ERL</span></td><td>inter-task</td><td>系统级</td><td>共享 heuristics pool（按相关性打分）</td><td>有（通过打分器）</td></tr>
         </tbody>
       </table>
     </div>
 
-    <h3>8.2 FAQ — 澄清常见误解</h3>
+    <h3>8.2 Relevance 打分的同源</h3>
+    <p>小镇的记忆检索公式是 <code>score = Recency × Importance × Relevance</code>，其中 Relevance 来自当前 query 与 memory 的 embedding 相似度。ERL 的 heuristic relevance scoring 虽然换成了 LLM-as-judge，但<strong>功能位置完全一致</strong>——都是"给候选记忆 / 启发打分，只取最相关的注入"。两者都认识到：记忆 / 经验池会膨胀，必须有打分机制决定用哪些。而 AutoGuide 的 context 匹配对应的是小镇公式里的 <code>Importance</code>——只不过小镇是"重要度触发反思"，AutoGuide 是"情境触发规则激活"。</p>
+
+    <div class="sv-link">
+      如果把小镇的 Memory Stream 理解为"<strong>一个 agent 一生的 experience pool</strong>"，那么小镇的 reflection 就是<strong>个人版 ExpeL</strong>——不跨任务、但跨事件。ExpeL 把这个机制从"一个 agent 内"放大到"训练任务集上"，本质是把时间维度的经验累积换成了任务维度的经验累积。AutoGuide 进一步把小镇"importance 触发"的情境感知思想显式化为 IF-THEN 规则；ERL 再进一步，承认聚合 / 条件化都会丢信息、回到基于检索的调用——这正好也呼应了小镇<strong>没有把 raw memory 扔掉</strong>的设计：反思出 insight 后，原始记忆还在 stream 里可检索。小镇在 2023 年用一个耦合的打分公式把三层都做了，ExpeL / AutoGuide / ERL 在 2024-2026 把它们拆成了三个正交的设计选择。
+    </div>
+
+    <h3>8.3 与 Voyager 的对照</h3>
+    <p><a href="14-voyager.html">Voyager</a>（Minecraft 里的终身学习 agent）也有"经验库"的概念，但它的产物是<strong>可执行 JavaScript 技能函数</strong>，不是自然语言规则。映射关系：</p>
+    <ul>
+      <li><strong>Voyager skill library</strong> ≈ ExpeL insights（跨任务沉淀、可检索复用），但形式是代码。</li>
+      <li>Voyager 的"技能可直接执行"带来了一个 ExpeL / AutoGuide / ERL 都没有的优势：<strong>可验证</strong>——代码在环境里跑出结果，对就对、错就错。三代自然语言规则对不对，只能靠下游任务成功率间接验证。</li>
+      <li>但 Voyager 的代价是只能用于"动作可代码化"的环境（Minecraft 的离散 API），在 QA / Web browsing 这类任务里就不适用——这正是 ExpeL / AutoGuide / ERL 的地盘。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec9">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">9</div>
+      <h2>在本研究库中的位置 & FAQ</h2>
+    </div>
+
+    <h3>9.1 Cross-ref 地图</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>对比对象</th><th>关系</th><th>要点</th></tr></thead>
+        <tbody>
+          <tr><td><a href="10-reflexion.html">10 Reflexion</a></td><td>上游 / 同支柱</td><td>Reflexion 循环内反思（单任务），三代均跨任务；前者是后者的"单任务特例"。</td></tr>
+          <tr><td><a href="14-voyager.html">14 Voyager</a></td><td>同思路、不同表征</td><td>Voyager 的技能是可执行代码，三代的是自然语言规则 / 启发 / IF-THEN。</td></tr>
+          <tr><td><a href="02-reflection-bank.html">02 Reflection Bank</a></td><td>dual-loop 架构近亲</td><td>同样是"把反思沉淀到一个 bank 里复用"，路径相近但侧重 dual-loop 的优化流程。</td></tr>
+          <tr><td><a href="19-generative-agents.html">19 Smallville</a></td><td>个体版 / 事件级</td><td>小镇 reflection 是 intra-character 版 ExpeL，importance 触发也是 AutoGuide 情境感知的朴素雏形。</td></tr>
+          <tr><td><a href="24-memory-survey.html">24 Memory Survey</a></td><td>分类学归属</td><td>三篇都属 <strong>Experiential Memory × Token-level（自然语言）</strong>；dynamics 上 ExpeL 是 <em>写入时压缩</em>、AutoGuide 是 <em>写入时结构化</em>、ERL 是 <em>读取时筛选</em>。AutoGuide 在形式上还兼属 <strong>工作记忆 × 条件规则</strong>分类。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.2 FAQ — 澄清常见误解</h3>
 
     <div class="faq-item">
-      <div class="q">Q1：ExpeL 和 Reflexion 区别是什么？不都是反思吗？</div>
-      <div class="a">反思的<strong>时间跨度</strong>不同。Reflexion 是：在<strong>同一个任务</strong>里失败 → 反思 → 重新尝试；反思只在本任务的多个 trial 之间传递，任务结束后不保留。ExpeL 是：在<strong>一批训练任务</strong>里跑完，把所有经验离线反思成一个 insights pool，这个 pool 被<strong>后续所有新任务</strong>共享。一个是 intra-task 循环，一个是 inter-task 知识沉淀。Reflexion 解决"给我第二次机会"，ExpeL 解决"别让前人的失败白费"。</div>
+      <div class="q">Q1：为什么要把 AutoGuide 塞进来？它不是比 ExpeL / ERL 老吗？</div>
+      <div class="a">时间上 AutoGuide 是 <strong>2024.11 NeurIPS 2024</strong>，正好夹在 ExpeL（2024.03 AAAI 2024）和 ERL（2026.03 arXiv）之间。如果只讲 ExpeL → ERL，会遗漏一个关键中间态：<strong>"从无条件聚合 → 条件分发"</strong>这一步是独立的范式转变，没有它就跳不到 ERL 的"连续检索"。三代同读才能看到<span class="hl">"筛选函数从 常量 → 离散 → 连续"</span>这条清晰的演化主线。</div>
     </div>
 
     <div class="faq-item">
-      <div class="q">Q2：ERL 真的超越 ExpeL 吗？对比公平吗？</div>
-      <div class="a">需要谨慎。ERL 报告的 "+7.8% vs ReAct, 超 ExpeL" 是<strong>在 Gaia2 基准、用 ERL 团队自己复现的 ExpeL 上</strong>得到的。ExpeL 原论文根本没在 Gaia2 上评（那时 Gaia2 还没出），所以这是 "ERL 把 ExpeL 方法迁移到 Gaia2 后跑出的结果 vs ERL 自己"。这不等于 "ExpeL 在它的主场（ALFWorld / WebShop）也输"。更严谨的说法是：<span class="hl">在 Gaia2 这种异构 tool use 场景下，保留 granular 细节 + 检索式调用 优于 聚合式规则</span>——这和 ExpeL 原来的主场特性（ALFWorld 的高度结构化任务）刚好反过来，结论合情合理，但不能简单推广为"ERL 全面超越 ExpeL"。</div>
+      <div class="q">Q2：三代里哪代最好？</div>
+      <div class="a">没有最好，取决于任务的 <strong>context 多样性</strong> + <strong>是否能接受检索开销</strong>：<br>
+      · 任务 context 同质、延迟敏感 → <strong>ExpeL</strong>（训练好一套通用规则，上线零开销）；<br>
+      · 任务 context 离散且边界清晰（GUI / UI 流程） → <strong>AutoGuide</strong>（IF-THEN 精准激活，效率最高）；<br>
+      · 任务异构、每条都要具体参考（Gaia2 类 tool use） → <strong>ERL</strong>（保留细节 + 相关性打分）；<br>
+      · 实战落地 → 三者<strong>组合使用</strong>最可能取得最优结果。</div>
     </div>
 
     <div class="faq-item">
-      <div class="q">Q3：跨轨迹经验 和 memory stream 的边界在哪里？它们不都是"存历史"吗？</div>
-      <div class="a">关键看<strong>"谁拥有"和"存什么"</strong>。Memory stream（小镇）属于<strong>单个 agent</strong>，存的是<strong>原始事件观察</strong>（"在公园看到 Klaus 和 Maria 争吵"），是 character-centric 的自传体记忆。跨轨迹经验池（ExpeL / ERL）属于<strong>系统 / 一类 agent</strong>，存的是<strong>反思产物</strong>（"遇到工具调用失败时应该 X"），是 skill-centric 的程序性知识。两者完全可以共存：一个 agent 同时有自己的 memory stream（记我是谁、我经历了什么）和一个共享的 experience pool（记该怎么解决任务）——事实上 MetaGPT、CAMEL 这类多 agent 系统的记忆设计正在往这个方向走。</div>
+      <div class="q">Q3：ExpeL 和 Reflexion 区别是什么？不都是反思吗？</div>
+      <div class="a">反思的<strong>时间跨度</strong>不同。Reflexion 是：在<strong>同一个任务</strong>里失败 → 反思 → 重新尝试；反思只在本任务的多个 trial 之间传递，任务结束后不保留。ExpeL（以及 AutoGuide、ERL）是：在<strong>一批训练任务</strong>里跑完，把所有经验离线反思成一个共享 pool，这个 pool 被<strong>后续所有新任务</strong>共享。一个是 intra-task 循环，一个是 inter-task 知识沉淀。Reflexion 解决"给我第二次机会"，ExpeL 系解决"别让前人的失败白费"。</div>
     </div>
 
     <div class="faq-item">
-      <div class="q">Q4：我该先读哪一篇？</div>
-      <div class="a">如果你对 <strong>方法论原型</strong>感兴趣（"跨轨迹反思这个 idea 怎么来的"），先读 ExpeL——它有更完整的消融、更清晰的 Replay Buffer 类比、更好的基准覆盖、还有开源代码。如果你关心<strong>当前 SOTA 的做法</strong>（"现在 Gaia2 上什么工作有效"），先读 ERL——它是对前者的精确修正，能直接看到"ExpeL 哪一步被改了、为什么"。理想顺序是：<strong>ExpeL → ERL → 回头读 ExpeL 的 limitation 讨论</strong>，你会发现 ERL 正好在回应那些 limitation。</div>
+      <div class="q">Q4：ERL 真的超越 ExpeL / AutoGuide 吗？对比公平吗？</div>
+      <div class="a">需要谨慎。ERL 报告的 "+7.8% vs ReAct, 超 ExpeL / AutoGuide" 是<strong>在 Gaia2 基准、用 ERL 团队自己复现的 baseline 上</strong>得到的。ExpeL 和 AutoGuide 原论文根本没在 Gaia2 上评过，所以这是 "ERL 把两种方法迁移到 Gaia2 后跑出的结果 vs ERL 自己"。这不等于 "ExpeL / AutoGuide 在它们的主场（ALFWorld / WebArena）也输"。更严谨的说法是：<span class="hl">在 Gaia2 这种异构 tool use 场景下，保留 granular 细节 + 检索式调用 优于 聚合式规则 / 离散条件匹配</span>——这和前两代原来的主场特性刚好反过来，结论合情合理，但不能简单推广为"ERL 全面超越"。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q5：AutoGuide 的"context"和 ERL 的"relevance"在概念上不是差不多吗？</div>
+      <div class="a">功能目标一样（都是"筛选出当前任务相关的规则"），但实现机制截然不同。AutoGuide 的 context 是<strong>预先定义的离散标签</strong>（比如 {搜索结果页, 商品详情页, 结算页}），规则库在 offline 就按这些标签索引，上线时是<strong>精确查表</strong>。ERL 的 relevance 是<strong>在线 LLM 打分</strong>，每来一个任务都要重算每条 heuristic 的分数，是<strong>连续空间的排序</strong>。前者快但依赖 context 可枚举，后者慢但适应任意新分布。工程上两者可以叠用：AutoGuide 做粗召回（按 context 取候选），ERL 做精排序（LLM 打分取 top-k）。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q6：我该先读哪一篇？</div>
+      <div class="a">如果你对 <strong>方法论原型</strong>感兴趣（"跨轨迹反思这个 idea 怎么来的"），先读 ExpeL——它有更完整的消融、更清晰的 Replay Buffer 类比、更好的基准覆盖、还有开源代码。<br>
+      如果你关心<strong>当前 Web / GUI 场景的 SOTA 做法</strong>，先读 AutoGuide——IF-THEN 结构清晰、在 WebArena 上的对比很直观。<br>
+      如果你关心<strong>异构 tool use 的当前做法</strong>（"现在 Gaia2 上什么工作有效"），先读 ERL。<br>
+      理想顺序是：<strong>ExpeL → AutoGuide → ERL → 回头读 ExpeL 的 limitation 讨论</strong>，你会发现每一代都在精确回应上一代的 limitation。</div>
     </div>
   </div>
 
 </div>
 
 <div class="footer">
-  深度解读25 &middot; ExpeL (AAAI 2024) + ERL (arXiv 2026.03) &middot; 跨轨迹经验反思对照<br>
-  ExpeL arXiv:2308.10144 · GitHub: <a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a> &middot; ERL arXiv:2603.24639<br>
+  深度解读25 &middot; ExpeL (AAAI 2024) + AutoGuide (NeurIPS 2024) + ERL (arXiv 2026.03) &middot; 跨轨迹经验反思三代对照<br>
+  ExpeL <a href="https://arxiv.org/abs/2308.10144" target="_blank">arXiv:2308.10144</a> · GitHub: <a href="https://github.com/LeapLabTHU/ExpeL" target="_blank">LeapLabTHU/ExpeL</a><br>
+  AutoGuide <a href="https://arxiv.org/abs/2403.08978" target="_blank">arXiv:2403.08978</a> · 暂无开源（搜索中）<br>
+  ERL <a href="https://arxiv.org/abs/2603.24639" target="_blank">arXiv:2603.24639</a> · 暂无公开代码<br>
   <a href="../index1.html">← 返回导航中心</a> &middot; 本页由 AI 辅助生成，仅供学术研究参考
 </div>
 </body>
