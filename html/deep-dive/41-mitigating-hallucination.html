@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读41：Mitigating Hallucination — RAG+推理+Agentic 三路径缓解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #0f2a3a 0%, #0f1117 50%, #2a0f1f 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero-badges { margin-top: 16px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .survey-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unverified { background: rgba(251,146,60,0.15); color: var(--orange); padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: 600; border: 1px dashed rgba(251,146,60,0.4); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td code { background: var(--bg3); color: var(--yellow); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .tier { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .tier.t1 { border-left-color: var(--green); }
+    .tier.t2 { border-left-color: var(--cyan); }
+    .tier.t3 { border-left-color: var(--pink); }
+    .tier.t4 { border-left-color: var(--orange); }
+    .tier.t5 { border-left-color: var(--red); }
+    .tier h4 { margin-top: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .pipeline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 20px 0 24px; }
+    .pipeline .step { flex: 1 1 220px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; position: relative; }
+    .pipeline .step .s-num { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: var(--pink); margin-bottom: 8px; }
+    .pipeline .step h4 { margin: 0 0 6px; }
+    .pipeline .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+    .faq-q { font-weight: 600; color: var(--cyan); margin-bottom: 10px; font-size: 15px; }
+    .faq-a { color: var(--text); font-size: 14px; line-height: 1.8; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>深度解读41：Mitigating Hallucination — RAG+推理+Agentic 三路径缓解 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：#40 综述诊断了 Agent 幻觉的 18 种成因，<strong>本篇则给出三剂"解药"</strong>——以应用为导向，把幻觉缓解归并成三条可工程化路径：<span class="hl-pink">RAG 知识接地 / Reasoning 推理强化 / Agentic 动态自验证</span>。作者的立场很清晰：幻觉不可能被彻底消除（它与创造力同源），工程目标是<strong>在可靠性与生成力之间建立可控阀门</strong>。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/html/2510.24476v1" target="_blank">arXiv 2510.24476</a> &middot; Yihan Li, Xiyuan Fu, Ghanshyam Verma, Paul Buitelaar, Mingming Liu &middot; 2025.10</div>
+    <div class="paper-ref" style="background:rgba(139,149,165,0.08);border-color:rgba(139,149,165,0.25);color:var(--muted);">📄 Application-Oriented Survey（无统一仓库，方法散见引用）</div>
+  </div>
+  <div class="hero-badges">
+    <span class="survey-badge">Survey</span>
+    <span class="survey-badge" style="background:rgba(34,211,238,0.1);color:var(--cyan);border-color:rgba(34,211,238,0.35);">arXiv 2025.10</span>
+    <span class="survey-badge" style="background:rgba(244,114,182,0.12);color:var(--pink);border-color:rgba(244,114,182,0.4);">RAG × Reasoning × Agentic</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 三路径总览</a>
+    <a href="#sec3">3. 各路径代表工作</a>
+    <a href="#sec4">4. 与40号配对：诊断 vs 解药</a>
+    <a href="#sec5">5. 对小镇仿真的应用</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="40-hallucination-survey.html">#40 幻觉综述</a>
+  <a href="07-chain-of-thought.html">CoT</a>
+  <a href="08-react.html">ReAct</a>
+  <a href="10-reflexion.html">Reflexion</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">1</div>
+      <h2>一句话定位：从"压制幻觉"转向"能力增强"的应用型三路径综述</h2>
+    </div>
+
+    <p>绝大多数早期幻觉工作走的是 <strong>"抑制/惩罚"</strong> 思路：对模型参数做正则化、对输出做过滤、对训练做 RLHF 反向引导。这类方法的副作用是——<span class="hl-pink">幻觉和创造力源自同一生成机制，压一点幻觉就压一点创造力</span>。本综述明确反对这条路，主张走 <strong>"能力增强"</strong>：</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">本综述的核心主张（原文精炼）</div>
+      <p style="margin-bottom:0;">"Instead of modifying model architectures or applying additional regularization, they strengthen LLM reliability through <strong>verifiable knowledge grounding</strong> and <strong>logical consistency constraints</strong>."<br>
+      —— 不改模型，改"使用模型的方式"：给它接真知识（RAG），给它加结构化思考（Reasoning），给它配自查闭环（Agentic）。</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">3</div>
+        <div class="stat-label">缓解路径大类</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">3</div>
+        <div class="stat-label">RAG 阶段（pre/mid/post）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">3</div>
+        <div class="stat-label">Reasoning 子路线（CoT/Tool/Symbolic）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">20+</div>
+        <div class="stat-label">代表方法（RQ-RAG / SELF-RAG / ReAct...）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">15+</div>
+        <div class="stat-label">评测基准（TruthfulQA / RAGTruth / AgentBench...）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">App</div>
+        <div class="stat-label">Application-Oriented（非方法论综述）</div>
+      </div>
+    </div>
+
+    <p>与 <a href="40-hallucination-survey.html">#40 幻觉综述</a> 的分工很清晰：</p>
+    <ul>
+      <li><strong>#40 管"病理学"</strong>：把 Agent 幻觉拆成 5 阶段 × 18 成因，诊断问题在哪里。</li>
+      <li><strong>#41（本篇）管"药典"</strong>：把缓解方法拆成 3 条路径，告诉你该吃什么药。</li>
+      <li><strong>两者互补</strong>：#40 给问题空间，#41 给解空间——配对使用，就是一本"Agent 幻觉的医生手册"。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>三路径总览：知识型 / 逻辑型 / 复合型幻觉各对一药</h2>
+    </div>
+
+    <p>本综述最关键的"分类学"贡献：把幻觉类型与缓解路径 <strong>一一对齐</strong>——不是"所有方法治所有幻觉"，而是不同药治不同病。</p>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="s-num">路径 ①</div>
+        <h4>RAG Grounding（知识接地）</h4>
+        <p style="margin-bottom:0;font-size:13px;">针对 <strong>Knowledge-based Hallucination</strong>：内部知识错误或外部信息不足。解法——在生成时从外部知识源检索真事实，把输出"钉在"可追溯的证据上。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">路径 ②</div>
+        <h4>Reasoning Enhancement（推理强化）</h4>
+        <p style="margin-bottom:0;font-size:13px;">针对 <strong>Logic-based Hallucination</strong>：事实对但推理链断。解法——结构化思考（CoT）、工具接地（Tool-Augmented）、符号化验证（Symbolic）。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="s-num">路径 ③</div>
+        <h4>Agentic Self-Verification（动态自验证）</h4>
+        <p style="margin-bottom:0;font-size:13px;">针对 <strong>Composite Hallucination</strong>：知识错 + 推理错交织。解法——自主 Agent 动态调度检索与推理循环，在冲突时触发修正。</p>
+      </div>
+    </div>
+
+    <h3>2.1 三类幻觉 × 三路径 对应表</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>幻觉类型</th><th>根因</th><th>缓解路径</th><th>核心机制</th><th>典型评测</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong style="color:var(--pink);">Knowledge-based</strong></td><td>内部知识过时/缺失/混淆</td><td>RAG Grounding</td><td>外部知识库 + 检索 + 融合</td><td>TruthfulQA, RAGTruth, FreshQA</td></tr>
+          <tr><td><strong style="color:var(--cyan);">Logic-based</strong></td><td>事实对但推理跳步/矛盾</td><td>Reasoning Enhancement</td><td>CoT 显式化 / 工具接地 / 符号验证</td><td>BIG-bench, PrOntoQA, LogicBench</td></tr>
+          <tr><td><strong style="color:var(--orange);">Composite</strong></td><td>两者交织跨模块传播</td><td>Agentic Self-Verification</td><td>Agent 动态调度 + 迭代修正闭环</td><td>AgentBench, L-MARS, InfoDeepSeek</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么这种分类比"factuality/faithfulness"更有工程价值</div>
+      <p style="margin-bottom:0;">传统二分法 <em>描述症状</em>；本综述的三分法 <em>指向处方</em>。如果你的 Agent 回答"爱因斯坦 2020 年去世"——这是知识型幻觉，上 RAG；如果回答"因为 A 所以 B，因为 B 所以 not A"——这是逻辑型幻觉，上 CoT + Symbolic 验证；如果两者兼有，用 Agent 把两个工具串起来。<span class="hl">处方化</span>使综述真正可用。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">3</div>
+      <h2>每条路径的代表工作与机制</h2>
+    </div>
+
+    <h3>3.1 路径 ① RAG Grounding：三阶段流水线</h3>
+
+    <p>综述把 RAG 拆成三个可独立优化的子阶段，每个阶段都有自己的幻觉风险与治理方法：</p>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>Pre-retrieval（检索前：理解意图）</h4>
+        <p style="margin-bottom:0;">把用户原始 query 转成更容易命中的形式。代表：<strong>Query Rewriting</strong>、<strong>RQ-RAG</strong>（refinement / decomposition / disambiguation 三种自改写）、多轮对话澄清、<strong>检索反馈</strong>（第一轮结果反过来再改 query）。</p>
+      </div>
+
+      <div class="tier t2">
+        <h4>Retrieval（检索中：找回对的证据）</h4>
+        <p style="margin-bottom:0;">稀疏 / 稠密 / 混合检索的正确组合。代表：<strong>Hybrid Retrieval (Blended RAG)</strong> lexical + semantic 信号融合 <待实证>、<strong>GraphRAG / GNN-RAG</strong> 把知识图谱纳入检索、多粒度（句/段/文档级）、<strong>Reranking</strong> 精排、<strong>WebGLM / DeepResearcher / VisRAG</strong>（跨模态）。</p>
+      </div>
+
+      <div class="tier t3">
+        <h4>Post-retrieval（检索后：融合与冲突消解）</h4>
+        <p style="margin-bottom:0;">多片段整合并处理冲突。代表：<strong>SELF-RAG</strong>（reflection tokens 决定何时引用）、<strong>LongLLMLingua</strong>（上下文压缩，避免 lost-in-the-middle）、中间层知识注入（事实保真优于简单拼 prompt）、traceability 证据链。</p>
+      </div>
+    </div>
+
+    <h3>3.2 路径 ② Reasoning Enhancement：三条互补子路线</h3>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>子路线 A：Chain-of-Thought（结构化思考）</h4>
+        <p style="margin-bottom:0;">让模型把隐式推理 <strong>外显</strong> 成步骤，每一步可被审查。代表：<strong>REFINER</strong>（迭代 refine）、<strong>Dynasor-CoT</strong>（动态调度深度）、<strong>AdaCoT / D-CoT</strong>、<strong>多路径投票</strong>。详见 <a href="07-chain-of-thought.html">#07 CoT</a> / <a href="11-tree-of-thoughts.html">#11 ToT</a>。</p>
+      </div>
+
+      <div class="tier t2">
+        <h4>子路线 B：Tool-Augmented Reasoning（工具接地）</h4>
+        <p style="margin-bottom:0;">把算术、事实查询、代码执行 <strong>外包给工具</strong>。代表：<strong>ReAct</strong>（思考+行动交替，动作绑定真实观测）、<strong>Toolformer</strong>（自监督学会调工具）、<strong>PoT</strong>（推理变代码+解释器执行）、<strong>ANSWERED</strong> <待实证>。详见 <a href="08-react.html">#08 ReAct</a>。</p>
+      </div>
+
+      <div class="tier t3">
+        <h4>子路线 C：Symbolic Reasoning（符号化验证）</h4>
+        <p style="margin-bottom:0;">把自然语言命题 <strong>翻译成形式逻辑</strong>，用规则引擎得到 <span class="hl">可证伪</span> 结论。代表：<strong>Faithful CoT</strong>、<strong>SymbCoT</strong>、<strong>ChatLogic / Logic-LM</strong>（LLM 生成逻辑表达式 + 外部 solver）。三路线中最"硬"的一路——适用面窄但正确性有数学保证。</p>
+      </div>
+    </div>
+
+    <h3>3.3 路径 ③ Agentic Self-Verification：动态编排</h3>
+
+    <p>前两条路径相对静态：RAG 固定流水线，Reasoning 固定模板。第三条路径的新意在于——<span class="hl-pink">让 Agent 自己决定何时检索、何时推理、何时回退、何时验证</span>。这是对复合幻觉（既缺知识又推理错）的正面解法。</p>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">Agentic 路径的三个核心机制</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>Dynamic Dispatch</strong>：根据任务需要动态选择"查还是算"——事实题调 RAG，推理题调 CoT，混合题交替。</li>
+        <li><strong>Iterative Loops</strong>：推理与检索冲突时触发新一轮修正（Reflexion 风格），而不是一次性输出。</li>
+        <li><strong>Cross-Verification</strong>：多 agent 互为验证者（类似 <a href="16-multi-agent-tot-validator.html">#16 MA-ToT Validator</a>）。</li>
+      </ul>
+    </div>
+
+    <p><strong>代表系统</strong>：</p>
+    <ul>
+      <li><strong>Agent-UniRAG</strong>：统一 Agent 架构动态调度 RAG</li>
+      <li><strong>Agentic Reasoning</strong>：把推理拆成工具集，agent 自行组合</li>
+      <li><strong>MA-RAG</strong>（Multi-Agent RAG）：多 agent 分工 retrieve/reason/verify</li>
+      <li><strong>HM-RAG</strong>（Hierarchical Multi-Agent RAG）：层级化 agent 组织 <待实证>：层级组织细节需查原文</li>
+    </ul>
+
+    <h3>3.4 三路径落地工具箱（速查表）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>目标</th><th>推荐组合</th><th>代表工具</th><th>难度</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>事实类问答</td><td>RAG (Hybrid) + Reranker</td><td>Blended RAG / GraphRAG</td><td>★★☆</td></tr>
+          <tr><td>数学/代码推理</td><td>CoT + PoT / Tool</td><td>ReAct / Toolformer</td><td>★★☆</td></tr>
+          <tr><td>严格逻辑校验</td><td>Symbolic + Solver</td><td>Logic-LM / SymbCoT</td><td>★★★</td></tr>
+          <tr><td>多跳知识问答</td><td>Agentic RAG（迭代）</td><td>SELF-RAG / Agent-UniRAG</td><td>★★★</td></tr>
+          <tr><td>开放探索任务</td><td>Multi-Agent + Validator</td><td>MA-RAG / DeepResearcher</td><td>★★★★</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>与 #40 幻觉综述配对：诊断 vs 解药</h2>
+    </div>
+
+    <p>#40 综述把 Agent 幻觉拆成 5 阶段 × 18 成因——它告诉我们"会在哪儿出问题"。本篇（#41）给出"出了问题该怎么办"。两篇合起来才构成完整的幻觉治理手册。</p>
+
+    <h3>4.1 #40 的"成因" ↔ #41 的"解药"映射</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#40 成因（阶段）</th>
+            <th>失败模式</th>
+            <th>#41 路径</th>
+            <th>落地方法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Reasoning · #4/#5</td><td>计划误解/逻辑谬误</td><td>Reasoning</td><td>CoT + Logic-LM / Faithful CoT</td></tr>
+          <tr><td>Execution · #6</td><td>工具描述不完整</td><td>RAG</td><td>工具文档作为可检索知识库</td></tr>
+          <tr><td>Execution · #9</td><td>任务不可解时强答</td><td>Agentic</td><td>SELF-RAG reflection tokens / 提前判可行</td></tr>
+          <tr><td>Perception · #10-11</td><td>观测失真</td><td>RAG（多模态）</td><td>VisRAG / 跨模态检索对齐</td></tr>
+          <tr><td>Memorization · #13</td><td>记忆检索失准</td><td>RAG</td><td>Hybrid + Reranker + 多粒度</td></tr>
+          <tr><td>Memorization · #15</td><td>反思/压缩失真</td><td>Agentic</td><td>写入前 self-check 一轮</td></tr>
+          <tr><td>Communication · #16</td><td>错误消息扩散</td><td>Agentic (MA Validator)</td><td>MA-RAG / MA-ToT Validator</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">配对使用的直接价值</div>
+      <p style="margin-bottom:0;">工程上遇到 Agent 出错时的决策流程：<br>
+      <strong>Step 1</strong>（用 #40）— 先定位错在哪个阶段（推理/执行/感知/记忆/通信）、哪一条成因。<br>
+      <strong>Step 2</strong>（用 #41）— 按路径对照表找解药（RAG 型 / Reasoning 型 / Agentic 型）。<br>
+      <strong>Step 3</strong>— 从该路径的代表方法里挑一个最低成本的先上。<span class="hl">"症状 → 分类 → 药物"</span> 是每一套医生手册的标配。</p>
+    </div>
+
+    <h3>4.2 本篇比 #40 更强的一点：可操作性</h3>
+    <ul>
+      <li><strong>#40 偏学术</strong>：把问题分类得极细（18 成因），但对"怎么修"只是枚举，没有优先级。</li>
+      <li><strong>#41 偏工程</strong>：三路径按"问题性质"分类，每条都给代表系统与落地工具箱。真的可以对着做选型。</li>
+      <li><strong>作者立场也不同</strong>：#41 直言"完全消除不可能"，强调 <span class="hl-pink">trade-off</span>（效率 vs 创造力 vs 可靠性），这是应用工程师更熟悉的语言。</li>
+    </ul>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">5</div>
+      <h2>对小镇/仿真的应用：三路径如何减少 agent 行为失真</h2>
+    </div>
+
+    <p>把三路径放回斯坦福小镇/用户仿真场景，可以非常清楚地对应到具体改造点。#40 综述在同主题下给出了"链 1/2/3"三种污染模式，本篇则给出对应"解药"。</p>
+
+    <h3>5.1 三条污染链 × 三路径解药</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>小镇污染链（#40）</th><th>病灶</th><th>#41 路径</th><th>改造</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>链 1：Perception → Memory → Reflection</strong></td><td>感知失真 + 记忆固化</td><td>Agentic Self-Verification</td><td>Reflection 写入前 self-check：检查是否有 memory 支撑（SELF-RAG reflection token）</td></tr>
+          <tr><td><strong>链 2：Communication → Memory → Communication</strong></td><td>多 agent 谣言传播</td><td>Multi-Agent Validator</td><td>对话引入 Validator agent（MA-RAG），用公共知识库核对第三方信息</td></tr>
+          <tr><td><strong>链 3：Planning → Execution → Memory</strong></td><td>silent success 工具幻觉</td><td>Reasoning (Tool-Augmented)</td><td>ReAct 接地：action 必须返回真观测，不让 LLM 自填</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 一个改造后的 Smallville 架构草图</h3>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① 给 Memory Stream 加 RAG Grounding</h4>
+        <p style="margin-bottom:0;">当前小镇的记忆检索是 <code>0.5·rec + 0.3·imp + 0.2·rel</code> 向量加权。按本综述，<span class="hl">单纯稠密检索会召回"看起来相关但错"的记忆</span>。改造：引入 Hybrid Retrieval（BM25 + dense + reranker），并为每条 memory 保留来源（哪一次感知/对话写入），使 traceability 可审计。</p>
+      </div>
+
+      <div class="tier t2">
+        <h4>② 给 Plan/Reflection 加 Reasoning Enhancement</h4>
+        <p style="margin-bottom:0;">当前 Reflection 是一次 LLM 调用生成高阶洞察，<strong>没有 CoT 显式化也没有验证</strong>。改造：让 Reflection 走 CoT（每一步引用具体 memory id），写入前用 Symbolic/Logic 风格检查（是否所有前提都有 memory 支持）。相当于给反思装一个<span class="hl-pink">证据审计员</span>。</p>
+      </div>
+
+      <div class="tier t3">
+        <h4>③ 给 Inter-Agent 对话加 Agentic Self-Verification</h4>
+        <p style="margin-bottom:0;">当前居民对话直接进入对方 memory。改造：每条涉及第三方的 "事实性陈述" 由独立 Validator agent 核对（MA-RAG 风格），验证通过才写入；不通过则标记为"听说"（低 importance）。这直接打断 Communication → Memory → Communication 的污染闭环。</p>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      本综述对小镇 <strong>最有价值的启示</strong>：小镇的设计初衷是 "高生成力"（让居民能涌现出有意思的社交），所以它故意少做验证。但做 <span class="hl">用户行为仿真</span> 时，目标反过来——需要仿真结果"可信"而非"有意思"。这时把本综述的三路径<strong>全部接入</strong>才合理：RAG 接真世界知识、CoT 管推理透明、Multi-Agent Validator 管谣言治理。<br>
+      换句话说：<span class="hl-pink">Generative Agents 架构天生更偏创造力，要做可信仿真必须改造成三路径都打开的版本</span>。这是把小镇从"有趣的 demo"升到"可信的实验平台"的必经路径。
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">落地优先级建议（给仿真研究者）</div>
+      <ol style="margin-bottom:0;">
+        <li><strong>最先做 RAG 接世界知识</strong>：让居民对"天气""新闻""本地事件"的感知接入真实数据源，而不是任由 LLM 编造。</li>
+        <li><strong>其次做 Tool-Augmented Action</strong>：让 walk_to / eat / talk 等动作返回真实结果（即便只是确定性规则引擎），消除 silent success。</li>
+        <li><strong>最后做 Multi-Agent Validator</strong>：成本最高但对社交模拟最关键——没有它，谣言传播实验结果不可信。</li>
+        <li><strong>Reflection 加 self-check 是高 ROI 小改</strong>：改动量很小但能堵住 Perception→Memory→Reflection 污染闭环。</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">6</div>
+      <h2>FAQ（两问）</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q1. 三路径是"三选一"还是"三合一"？实际部署应该怎么选？</div>
+      <div class="faq-a">
+        <p>综述明确建议是 <strong>三合一</strong>，但按幻觉类型 <strong>有侧重</strong>：</p>
+        <ul>
+          <li><strong>知识密集型应用</strong>（医疗问答、法律咨询、新闻摘要）：重心放 RAG，推理和 Agentic 是辅助。</li>
+          <li><strong>推理密集型应用</strong>（数学、代码、规划）：重心放 Reasoning Enhancement，RAG 偶尔补知识。</li>
+          <li><strong>开放探索/多步任务</strong>（DeepResearcher、多跳问答、仿真 agent）：必须上 Agentic Self-Verification 串起前两者。</li>
+        </ul>
+        <p>关键是不要"一条路径走到黑"。综述指出一个常见误区：<span class="hl">过度依赖 RAG 会让"检索失败本身变成新的幻觉源"</span>——知识库里没答案时，模型仍会强行"编造"基于检索结果。这时就必须用 Agentic 的 solvability check 提前识别并告知"不知道"。<待实证>：具体在哪些任务上这种退化最严重，综述未给统计。</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q2. 本综述声称"幻觉完全消除不可能"——这对做 Generative Agents 仿真意味着什么？</div>
+      <div class="faq-a">
+        <p>这个立场对仿真研究者非常关键，有两层含义：</p>
+        <p><strong>第一层（工程层）</strong>：不要追求"零幻觉 agent"，追求 <strong>可控幻觉</strong>。具体做法是把三路径装上，并且对不同场景启用不同组合——事实查询严格走 RAG，创造性对话放松到纯生成，中间态用 Agentic 动态切换。</p>
+        <p><strong>第二层（方法论层）</strong>：仿真实验要 <strong>区分"涌现行为"与"模型幻觉"</strong>。小镇里居民"编造谣言并扩散"在人类社会里真实存在——但在 LLM agent 仿真中，它可能是<span class="hl-pink">模型幻觉</span>被误认为<span class="hl-pink">社会涌现</span>。没有本综述的三路径做对照组，你没法证伪。</p>
+        <p style="margin-bottom:0;">推荐做法：做对照实验——同一 scenario 跑两次，一次开启所有三路径（guard on），一次关闭（guard off）。只有两者差异对应的行为才是 "真正由 LLM 幻觉导致的失真"；两者一致的行为才是可信的涌现仿真结果。这实际上是把本综述从"工程方法"升级为"仿真研究方法论"。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-ref" style="margin:20px auto 0;">
+    <span class="cross-ref-label">延伸阅读：</span>
+    <a href="40-hallucination-survey.html">40 · 幻觉综述（诊断篇）</a>
+    <a href="07-chain-of-thought.html">07 · CoT</a>
+    <a href="08-react.html">08 · ReAct</a>
+    <a href="10-reflexion.html">10 · Reflexion</a>
+    <a href="11-tree-of-thoughts.html">11 · ToT</a>
+    <a href="16-multi-agent-tot-validator.html">16 · MA-ToT Validator</a>
+    <a href="19-generative-agents.html">19 · Smallville</a>
+    <a href="24-memory-survey.html">24 · Memory 综述</a>
+    <span class="cr-personal">后加</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 #41 · Mitigating Hallucination — RAG+推理+Agentic 三路径缓解</p>
+  <p style="margin-top:6px;">
+    <a href="../index1.html" style="color:var(--blue);">← 返回研究索引</a>
+    &nbsp;·&nbsp;
+    <a href="../papers-reference.html#cat-personal" style="color:var(--blue);">论文库 · 个人补充</a>
+    &nbsp;·&nbsp;
+    <a href="../concepts-map.html" style="color:var(--blue);">概念地图</a>
+  </p>
+</div>
+
+</body>
+</html>

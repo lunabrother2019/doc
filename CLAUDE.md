@@ -54,12 +54,14 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/38-sotopia.html` — "后加": SOTOPIA (CMU LTI, arXiv:2310.11667, ICLR 2024) + SOTOPIA-S4 (arXiv:2504.16122) — 7-dimension social intelligence evaluation framework
 - `html/deep-dive/39-sweet-sour.html` — "后加": Sweet&Sour (arXiv:2411.02223, NeurIPS 2024) — positive-experience reflection complements Reflexion's failure-only focus; ScienceWorld benchmark
 - `html/deep-dive/40-hallucination-survey.html` — "后加": LLM-based Agents Suffer from Hallucinations: A Survey (arXiv:2509.18970, 2025) — 5-stage hallucination taxonomy, agent-specific failure modes, mitigation pathways
+- `html/deep-dive/41-mitigating-hallucination.html` — "后加": Mitigating Hallucination: RAG, Reasoning, and Agentic Systems (arXiv:2510.24476, 2025) — three pragmatic paths complementing survey 40
+- `html/deep-dive/42-megaagent.html` — "后加": MegaAgent (arXiv:2408.09955, ACL Findings 2025) — 590 auto-generated agents with dynamic task allocation, contrasts fixed-pipeline approaches (MetaGPT/ChatDev)
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 40). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 42). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker
