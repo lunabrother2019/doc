@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读49：LLM × Swarm Intelligence — 群体智能遇到多 Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2d1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .swarm-tag {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 6px;
+      background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .role-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .role { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .role.r1 { border-left-color: var(--pink); }
+    .role.r2 { border-left-color: var(--accent); }
+    .role.r3 { border-left-color: var(--blue); }
+    .role.r4 { border-left-color: var(--green); }
+    .role.r5 { border-left-color: var(--orange); }
+    .role h4 { margin-top: 0; }
+    .role .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--bg3); color: var(--muted); margin-left: 6px; }
+
+    .pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 20px 0; padding: 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; justify-content: center; }
+    .pipe-node { background: var(--bg3); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-size: 13px; text-align: center; min-width: 130px; }
+    .pipe-node .pn-role { color: var(--cyan); font-weight: 600; font-size: 12.5px; }
+    .pipe-node .pn-out { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .pipe-arrow { color: var(--accent); font-size: 18px; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .compare-col { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .compare-col.left { border-left: 3px solid var(--orange); }
+    .compare-col.right { border-left: 3px solid var(--green); }
+    .compare-col h5 { font-size: 13.5px; margin-bottom: 8px; color: var(--text); font-weight: 600; }
+    .compare-col ul { padding-left: 18px; margin: 0; }
+    .compare-col li { font-size: 13px; margin-bottom: 4px; color: var(--muted); }
+
+    .tree { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 24px; font-family: "Courier New", monospace; font-size: 13px; color: var(--text); white-space: pre; overflow-x: auto; line-height: 1.7; }
+
+    .faq-q { background: var(--bg3); padding: 10px 16px; border-radius: 8px; color: var(--accent); font-weight: 600; font-size: 14px; margin: 16px 0 8px; }
+    .faq-a { padding: 0 6px 8px 10px; font-size: 14px; color: var(--text); line-height: 1.8; }
+
+    .unverified { color: var(--orange); font-style: italic; font-size: 12.5px; background: rgba(251,146,60,0.08); border: 1px dashed rgba(251,146,60,0.4); padding: 1px 6px; border-radius: 4px; }
+
+    .three-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+    .three-grid .card { margin: 0; padding: 16px 18px; }
+    .three-grid h5 { font-size: 14px; margin-bottom: 8px; font-weight: 600; }
+    .three-grid p { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+    @media (max-width: 720px) {
+      .compare-grid { grid-template-columns: 1fr; }
+      .three-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LLM × Swarm Intelligence — 群体智能遇到多 Agent <span class="personal-badge">后加</span><span class="swarm-tag">Swarm</span></h1>
+  <p class="sub">深度解读：不再硬编码蚁群的信息素规则、鸟群的 Boids 公式 —— 让 GPT-4o 直接在 NetLogo 里给每只蚂蚁、每只鸟做"就地决策"。<br>第一次系统验证了<strong>LLM 作为非人类、非语言 swarm agent 的行为引擎</strong>能否复现涌现的群体行为。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2025.1593017/full" target="_blank">Frontiers in AI 2025 · DOI:10.3389/frai.2025.1593017</a></div>
+    <div class="paper-ref" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.25);color:#fbbf24;">Vol. 8 · 2025-05-21</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.25);color:#34d399;">NetLogo + GPT-4o toolchain</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 传统 Swarm vs LLM Agent</a>
+    <a href="#sec3">3. LLM 如何改变 Swarm</a>
+    <a href="#sec4">4. 实验：蚁群 + 鸟群</a>
+    <a href="#sec5">5. 与 17/35/46 对照</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="17-agent-society.html">17 AgentSociety</a>
+  <a href="35-opencity.html">35 OpenCity</a>
+  <a href="46-agenttorch.html">46 AgentTorch</a>
+  <a href="19-generative-agents.html">Smallville</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- ============ SECTION 1 ============ -->
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">1</div>
+      <h2>一句话定位：Swarm 的"规则"可以从代码搬进 Prompt</h2>
+    </div>
+
+    <p>传统群体智能（蚁群、粒子群、鸟群 Boids）依赖<strong>极简局部规则 + 大量个体迭代</strong> → 涌现复杂整体行为。Jimenez-Romero 等人提出了一个挑衅性的问题：<span class="hl-pink">如果把"局部规则"换成"LLM 自然语言提示"，涌现还会发生吗？</span> 答案是：会 —— 10 只 LLM 蚂蚁在 1000 步内收集到约 85 单位食物，30 只鸟中的 5 只 LLM 鸟会乖乖跟着群飞，甚至 LLM+规则<strong>混合蚂蚁</strong>的表现（95 单位）<span class="hl-green">优于</span>纯规则或纯 LLM。</p>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">一句话核心主张</div>
+      群体智能不是"规则"的专利，而是"<strong>局部信息 → 局部决策</strong>"这个闭环的专利。只要 LLM 能吃进局部信息、吐出符合物理/生态约束的动作，涌现就成立。LLM 把"swarm 规则"从写死的数学公式变成了<strong>可自然语言编辑的 prompt</strong> —— 这是 Swarm Intelligence 50 年来的第一次可编程层级跃迁。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">GPT-4o</div>
+        <div class="stat-label">作为 swarm 决策引擎</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">10 蚂蚁</div>
+        <div class="stat-label">Ant foraging，1000 步</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">30 鸟</div>
+        <div class="stat-label">25 规则 + 5 LLM，800 步</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">~95</div>
+        <div class="stat-label">混合蚂蚁食物单位（最好）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">T=0.0</div>
+        <div class="stat-label">GPT-4o temperature</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--blue);">NetLogo</div>
+        <div class="stat-label">经典 ABM 平台</div>
+      </div>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;">数据来源：Jimenez-Romero / Yegenoglu / Blum, <em>Frontiers in AI</em>, 2025。数字为论文摘要公开部分（WebFetch 摘取），部分实验细节如 5 次独立 run 的方差区间 <span class="unverified">&lt;待实证&gt;</span>（需对照原论文 Figure/Table）。</p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么是"首个"？</div>
+      作者定位为"one of the first works to use LLMs as decentralized behavioral engines for <strong>non-human and non-verbal, swarm-like agents</strong>"。关键词三个："non-human"（不是拟人 NPC）、"non-verbal"（不靠说话沟通）、"swarm"（靠局部感知 + 大量同质个体）。这和 Smallville（拟人 + 对话 + 少量个体）、AgentSociety（拟人 + 社会网络）是完全不同的方向。
+    </div>
+  </div>
+
+  <!-- ============ SECTION 2 ============ -->
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>传统 Swarm Intelligence 的三大范式</h2>
+    </div>
+
+    <h3>2.1 经典三样：蚁群 / 粒子群 / 蜂群</h3>
+
+    <div class="three-grid">
+      <div class="card" style="border-left:4px solid var(--orange);">
+        <h5 style="color:var(--orange);">① 蚁群算法（ACO）</h5>
+        <p><strong>生物原型</strong>：蚂蚁通过信息素（pheromone）标记路径，多条路径浓度差异 → 收敛到最短路径。</p>
+        <p><strong>规则核心</strong>：概率选择下一格 ∝ 信息素浓度 × 启发式距离；信息素随时间蒸发。</p>
+        <p><strong>典型应用</strong>：TSP、调度、路由</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--blue);">
+        <h5 style="color:var(--blue);">② 粒子群（PSO）</h5>
+        <p><strong>生物原型</strong>：鸟群觅食时每只鸟参考"自己历史最优"与"群体历史最优"。</p>
+        <p><strong>规则核心</strong>：v<sub>i</sub> ← ω·v<sub>i</sub> + c<sub>1</sub>·(pbest − x<sub>i</sub>) + c<sub>2</sub>·(gbest − x<sub>i</sub>)</p>
+        <p><strong>典型应用</strong>：连续函数优化、神经网络超参数搜索</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--yellow);">
+        <h5 style="color:var(--yellow);">③ 蜂群 / Boids</h5>
+        <p><strong>生物原型</strong>：Reynolds（1987）的鸟群三法则 —— 对齐 / 聚拢 / 分离。</p>
+        <p><strong>规则核心</strong>：每帧读取 N 近邻，加权平均得到速度向量。</p>
+        <p><strong>典型应用</strong>：群体动画、无人机编队</p>
+      </div>
+    </div>
+
+    <h3>2.2 传统范式的公共骨架</h3>
+
+    <p>三种算法表面上差异大，但抽出来看是同一套<strong>"三层栈"</strong>：</p>
+
+    <div class="formula"><span class="label">传统 Swarm Intelligence 的三层栈</span>  ┌─────────────────────────────────────────────┐
+  │  涌现层（全局）：最短路径 / 最优解 / 队形      │   ← 不被任何个体显式编码
+  ├─────────────────────────────────────────────┤
+  │  感知-决策层（个体）：读邻居 → 算公式 → 动作  │   ← 写死的数学规则
+  ├─────────────────────────────────────────────┤
+  │  环境层：网格 / 信息素场 / 物理空间            │   ← 状态载体
+  └─────────────────────────────────────────────┘</div>
+
+    <p>"LLM × Swarm"的核心赌注：<strong>把中间那层从"写死公式"换成"LLM prompt"</strong>，涌现层还能浮现吗？</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">传统 Swarm 的三个痛点（给 LLM 制造了机会）</div>
+      <ul style="margin:6px 0 0 0;">
+        <li><strong>规则僵硬</strong>：换环境就要重新推导公式（比如从网格换成连续空间，ACO 公式全改）。</li>
+        <li><strong>领域知识难以注入</strong>：蚂蚁不知道"远处有河挡路"这种常识，工程师要用 if-else 硬塞。</li>
+        <li><strong>调参痛苦</strong>：ω/c<sub>1</sub>/c<sub>2</sub>/蒸发率都是超参，调不好就不收敛。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 3 ============ -->
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">3</div>
+      <h2>LLM 如何改变 Swarm：两个"抽象层跃迁"</h2>
+    </div>
+
+    <h3>3.1 跃迁一：决策复杂度 —— 从标量算式到文本推理</h3>
+
+    <p>传统蚂蚁只能"读信息素浓度 → 算概率 → 选一格"。LLM 蚂蚁可以<strong>一次性</strong>读取多种语义线索并做综合判断：</p>
+
+    <div class="compare-grid">
+      <div class="compare-col left">
+        <h5 style="color:var(--orange);">传统 ACO 决策</h5>
+        <ul>
+          <li>输入：8 邻格的 pheromone 浓度标量</li>
+          <li>规则：p<sub>i</sub> = τ<sub>i</sub><sup>α</sup>·η<sub>i</sub><sup>β</sup> / Σ</li>
+          <li>输出：随机选一格</li>
+          <li>扩展"躲避障碍" → 改代码</li>
+          <li>扩展"离家不回头" → 改代码</li>
+        </ul>
+      </div>
+      <div class="compare-col right">
+        <h5 style="color:var(--green);">LLM ACO 决策（本文）</h5>
+        <ul>
+          <li>输入：邻格 pheromone、巢穴气味方向、是否携带食物</li>
+          <li>Prompt：结构化规则 + 方向描述（"east", "northwest"）</li>
+          <li>输出：JSON {direction, reason}</li>
+          <li>扩展新行为 → 改一行 prompt</li>
+          <li>可注入"常识知识"（如"朝气味更浓的方向"）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">论文的一个具体工程发现</div>
+      作者对比了"把 pheromone 浓度给 LLM 做<strong>数值</strong>"与"做<strong>方向描述</strong>"两种 prompt。结论：<span class="hl">方向描述更有效</span>（"north has stronger pheromone than east"）。这符合 LLM 的训练数据分布 —— 它见过大量方位描述，但很少见"pheromone 值 0.734"。<strong>prompt 工程在 swarm 里等价于传统 ACO 的超参调优，但维度是自然语言</strong>。
+    </div>
+
+    <h3>3.2 跃迁二：沟通抽象层 —— 从信号到语义（潜在）</h3>
+
+    <p>传统 swarm 的"沟通"极其原始：蚂蚁只能留信息素，鸟只能被动被看到。LLM 打开了一个新可能：<strong>agent 之间可以交换结构化语义</strong>（虽然本论文仍以"非语言 swarm"为限制条件，但这个方向是潜在的扩展空间）。</p>
+
+    <div class="formula"><span class="label">沟通抽象层的光谱</span>
+  信号层  ←────────────────────────────→  语义层
+    │                  │                        │
+  信息素          位置+速度广播            自然语言交换
+  (蚁群)          (PSO / Boids)          (CAMEL / ChatDev)
+                                              │
+                          ←── 本文的 swarm 还停留在"非语言"，
+                               但 LLM 天然具备语义能力，
+                               未来可延伸到"蚂蚁会告诉蚂蚁遇到了障碍"</div>
+
+    <h3>3.3 NetLogo-GPT-4o Toolchain（论文实现）</h3>
+
+    <p>作者没有从零搭建 swarm 模拟器，而是在经典 ABM 平台 <strong>NetLogo</strong> 上用 Python extension 接 GPT-4o API。这是一个极其务实的选择。</p>
+
+    <div class="pipeline">
+      <div class="pipe-node"><div class="pn-role">NetLogo 环境</div><div class="pn-out">网格 + agent 状态</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pn-role">状态编码</div><div class="pn-out">local context → text</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pn-role">Python Ext</div><div class="pn-out">调 OpenAI API</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pn-role">GPT-4o</div><div class="pn-out">JSON 动作</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pn-role">动作解析</div><div class="pn-out">verify + execute</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pn-role">环境更新</div><div class="pn-out">下一 tick</div></div>
+    </div>
+
+    <div class="role-grid">
+      <div class="role r1">
+        <h4 style="color:var(--pink);">① 环境编码（Environment Encoding）<span class="badge">每 tick</span></h4>
+        <p>把当前 agent 的<strong>局部视野</strong>（邻格状态、携带食物与否、到巢穴方向等）序列化为结构化文本。</p>
+        <p>关键设计：<span class="hl">只给局部信息</span>，不给全局 —— 这是 swarm 的本质约束，也是"涌现"成立的必要条件。</p>
+      </div>
+
+      <div class="role r2">
+        <h4 style="color:var(--accent);">② Prompt 设计（两种模式）<span class="badge">rule-based vs knowledge-driven</span></h4>
+        <p><strong>Structured Rule-Based Prompt</strong>（蚁群用）：把传统 ACO 的规则翻译成自然语言 + 示例。</p>
+        <p><strong>Knowledge-Driven Prompt</strong>（鸟群用）：直接说"你是一只鸟，flock 时遵循对齐/聚拢/分离"，让 LLM 的预训练知识生效。</p>
+      </div>
+
+      <div class="role r3">
+        <h4 style="color:var(--blue);">③ JSON 响应协议<span class="badge">输出纪律</span></h4>
+        <p>LLM 输出必须是合法 JSON / Python dict，被解析成动作指令。</p>
+        <p>作者注明即使 temperature=0，偶尔仍有输出偏差 —— 这是所有"LLM 做 agent"的通病，需要 parser 兜底。</p>
+      </div>
+
+      <div class="role r4">
+        <h4 style="color:var(--green);">④ 混合 agent 支持<span class="badge">Hybrid</span></h4>
+        <p>同一环境里允许"一部分 LLM agent + 一部分规则 agent"共存。这为消融实验提供了干净对照，也是论文最意外的发现（见下文：混合 > 纯 LLM 也 > 纯规则）。</p>
+      </div>
+
+      <div class="role r5">
+        <h4 style="color:var(--orange);">⑤ 成本控制 <span class="badge">limit</span></h4>
+        <p>作者明确指出，实验时长受限于 API 成本 —— 蚁群 1000 步、鸟群 800 步。这提示了"LLM × swarm"目前仍是<strong>概念验证尺度</strong>，不是"把 10 万 agent 都接上 GPT-4o"的规模。</p>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      Smallville 的 25 个 agent 每人每 tick 都调 LLM，开销已被证明可承受。本文的 swarm 把粒度进一步放小：agent 行为从"每小时一次规划"降到"每步一次方向决策"。它告诉我们：<strong>LLM 的粒度可以从"社会学时间尺度"压缩到"物理学时间尺度"</strong>，只要能接受成本。
+    </div>
+  </div>
+
+  <!-- ============ SECTION 4 ============ -->
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">4</div>
+      <h2>实验与案例：蚁群觅食 + 鸟群 flocking</h2>
+    </div>
+
+    <h3>4.1 实验 1：蚁群觅食（Ant Foraging）</h3>
+
+    <div class="card">
+      <p><strong>Setup</strong>：10 只蚂蚁 × 3 个食物块 × 1000 simulation steps × 5 次独立 run。</p>
+      <p><strong>三种变体</strong>：① 纯 NetLogo 规则（baseline）；② 纯 LLM（所有蚂蚁都用 GPT-4o 决策）；③ <strong>Hybrid 混合</strong>（50% 规则 + 50% LLM）。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>变体</th><th>食物收集量</th><th>关键观察</th></tr></thead>
+        <tbody>
+          <tr><td>纯 NetLogo 规则</td><td>~85</td><td>信息素轨迹稳定，收敛快</td></tr>
+          <tr><td>纯 LLM（GPT-4o）</td><td>~85</td><td>行为接近规则 baseline，但偶有"走神"</td></tr>
+          <tr><td><strong style="color:var(--pink);">Hybrid 50/50</strong></td><td><strong style="color:var(--green);">~95</strong></td><td>规则蚂蚁负责维持信息素骨架，LLM 蚂蚁负责探索未标记区域</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">最有意思的发现：混合 > 纯粹</div>
+      为什么混合会赢？作者给出的推测是"<strong>分工互补</strong>"：规则蚂蚁行为<em>可预测</em>，维持了信息素网络的主干；LLM 蚂蚁行为<em>更发散</em>，倾向探索未铺设信息素的新区域。这和传统群体智能里的 <span class="hl">exploration vs exploitation</span> 权衡完全同构 —— LLM 相当于一个天然的 "exploration 偏置"。<span class="unverified">&lt;待实证&gt;</span>：这个解释是否在论文正文有更严谨的量化（如新区域访问率）需对照原文 Figure。
+    </div>
+
+    <h3>4.2 实验 2：鸟群 flocking（Bird Flocking）</h3>
+
+    <div class="card">
+      <p><strong>Setup</strong>：30 只鸟（25 规则 Boids + 5 LLM）× 800 steps × 5 次独立 run。</p>
+      <p><strong>评测指标</strong>：heading difference（航向一致性）、成员间距离、碰撞次数、近邻聚类度。</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>观察维度</th><th>规则 Boid</th><th>LLM 鸟</th></tr></thead>
+        <tbody>
+          <tr><td>与最近邻距离</td><td>紧贴</td><td><strong>保持更大距离</strong>（"conservative"）</td></tr>
+          <tr><td>碰撞次数</td><td>更多</td><td><strong>更少</strong></td></tr>
+          <tr><td>航向差异</td><td>快速收敛</td><td>最终收敛但方差更大</td></tr>
+          <tr><td>位置分布</td><td>密集中心</td><td>倾向停留在群体<strong>外缘</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么 LLM 鸟更"保守"？</div>
+      作者归因于"<strong>LLM 内部对距离的表示与数值模型不同</strong>" —— 提示词里写"保持适当距离"，LLM 凭常识把"适当"解释得比 Boids 公式更宽。这是一个重要的<strong>对齐问题信号</strong>：自然语言的模糊性会让 LLM agent 的行为偏离形式化规则，即使任务看似完全可形式化。
+    </div>
+
+    <h3>4.3 Prompt 工程的隐性教训</h3>
+
+    <p>论文一个反复出现的 Loss Function：<strong>"最小化初始提示"策略失败</strong>。作者试过"你是蚂蚁，去找食物"这种简短 prompt，结果行为无法组织。必须迭代精修到结构化规则 + 方向描述 + 输出 schema，才得到可用行为。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">可带走的工程教训</div>
+      <ol style="margin: 6px 0 0 0;">
+        <li><strong>Prompt 要给足"局部上下文的语言外壳"</strong>，而不仅仅是指令动词。</li>
+        <li><strong>方向 &gt; 数字</strong>：把"浓度 0.7"换成"北向较强"。</li>
+        <li><strong>JSON schema 必须强约束</strong>：否则 T=0 也会偶尔失控。</li>
+        <li><strong>混合架构是性价比最高的落地方式</strong>：不必所有 agent 都用 LLM。</li>
+      </ol>
+    </div>
+
+    <h3>4.4 承认的局限</h3>
+
+    <ul>
+      <li><strong>时长受限</strong>：1000 / 800 步远不足以观察长期稳定性。作者呼吁后续做更长尺度的实验。</li>
+      <li><strong>LLM 鸟的"外缘化"行为</strong>可能是一种 artifact，未必是好 flocking。</li>
+      <li><strong>成本</strong>：API 开销限制了 agent 数量和仿真时长，目前只能是<strong>概念验证</strong>。</li>
+      <li><strong>T=0 仍有偏差</strong>：LLM 输出的非确定性不可完全消除。</li>
+    </ul>
+  </div>
+
+  <!-- ============ SECTION 5 ============ -->
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">5</div>
+      <h2>与 17 AgentSociety / 35 OpenCity / 46 AgentTorch 的对照：<br>规模路线 vs Swarm 路线</h2>
+    </div>
+
+    <p>把"大规模多 Agent"的研究图谱摊开看，本文占据了一个<strong>之前空白的象限</strong>：<span class="hl-pink">小规模个体 + 非拟人 + 物理级粒度</strong>。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>17 AgentSociety</th><th>35 OpenCity</th><th>46 AgentTorch</th><th style="color:var(--pink);">49 LLM×Swarm（本文）</th></tr></thead>
+        <tbody>
+          <tr><td>Agent 规模</td><td>1 万+</td><td>城市级（~10<sup>4</sup>）</td><td>百万级（可扩展）</td><td><strong>10–30</strong></td></tr>
+          <tr><td>Agent 类型</td><td>拟人（人口属性）</td><td>拟人（市民）</td><td>拟人/抽象皆可</td><td><strong>非人类（蚂蚁/鸟）</strong></td></tr>
+          <tr><td>决策粒度</td><td>每日/每事件</td><td>出行决策</td><td>policy 层</td><td><strong>每 tick（物理尺度）</strong></td></tr>
+          <tr><td>沟通</td><td>自然语言对话</td><td>社会接触</td><td>可微 message</td><td><strong>信息素 / 可见性</strong></td></tr>
+          <tr><td>涌现目标</td><td>社会行为（宏观）</td><td>交通/扩散</td><td>政策效果</td><td><strong>群体最优路径 / 队形</strong></td></tr>
+          <tr><td>工程挑战</td><td>scaling LLM 调用</td><td>GIS 集成</td><td>可微分仿真</td><td><strong>高频 LLM 调用的成本</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.1 两条根本不同的 scaling 路线</h3>
+
+    <div class="compare-grid">
+      <div class="compare-col left">
+        <h5 style="color:var(--orange);">规模路线（17/35/46）</h5>
+        <ul>
+          <li>追求 agent 数量（10<sup>4</sup>–10<sup>6</sup>）</li>
+          <li>每个 agent 决策频率低、粒度大</li>
+          <li>通过统计抽样 / 采样 / 可微化降本</li>
+          <li>目标：社会/经济/交通宏观规律</li>
+          <li>LLM 角色：偶尔的"生成拟人叙事"</li>
+        </ul>
+      </div>
+      <div class="compare-col right">
+        <h5 style="color:var(--green);">Swarm 路线（本文 49）</h5>
+        <ul>
+          <li>agent 数量少（10–30），但决策频率极高</li>
+          <li>每 tick 一次决策 = 物理时间尺度</li>
+          <li>没有统计抽样的空间，成本直接反比</li>
+          <li>目标：涌现物理/生物级群体行为</li>
+          <li>LLM 角色：<strong>每一步都是行为引擎</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">锐利的一句话</div>
+      规模路线是"<strong>把 LLM 稀释到一大群 agent</strong>"，swarm 路线是"<strong>把 LLM 压到每一个局部决策</strong>"。前者像社会学，后者像生物学。它们不是竞争，而是<strong>多 Agent 研究地图上的正交轴</strong> —— 未来最有想象力的工作会同时 scale 两个维度：10 万只"每步都有 LLM"的 swarm agent。
+    </div>
+
+    <h3>5.2 与 Smallville 的分野</h3>
+
+    <div class="sv-link">
+      Smallville 的 25 个 agent 每人每小时生成计划，这已经是"社会学时间尺度"的最小粒度。本文 swarm 把时间尺度压缩到物理步长，agent 数量不变但调用频率暴涨。<strong>Smallville 追求"拟人的深度"，swarm 追求"非拟人的广度"</strong>。两者共同勾勒了 LLM-as-behavior-engine 的两个极端 —— 一个向认知深处，一个向物理表层。
+    </div>
+
+    <h3>5.3 swarm 路线的三个开放问题</h3>
+
+    <ol>
+      <li><strong>成本墙</strong>：本文 10 agent × 1000 步 × 5 run = 5 万次 LLM 调用，已接近概念验证的上限。要 scale 到 1000 agent，必须引入 batch 推理 / 蒸馏小模型。<span class="unverified">&lt;待实证&gt;</span>：是否有团队在做"蒸馏 LLM swarm policy → 小模型"工作，值得调研。</li>
+      <li><strong>语言–物理 gap</strong>：LLM 鸟更保守，说明自然语言 prompt 对物理参数（如距离）的映射不精确。这在需要精确仿真的场景（如无人机编队）是致命问题。</li>
+      <li><strong>评测体系空白</strong>：传统 swarm 有 TSP / benchmark 函数，LLM-swarm 没有公认 benchmark。本文的"食物收集量 / 碰撞次数"是一次开创性但单点的尝试。</li>
+    </ol>
+  </div>
+
+  <!-- ============ SECTION 6 ============ -->
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">6</div>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq-q">Q1：如果 ACO 已经能解 TSP 到最优，为什么还要用 LLM 替换它的规则？岂不是又慢又贵？</div>
+    <div class="faq-a">
+      问得尖锐。在<strong>封闭、可形式化的任务</strong>（如 TSP）上，LLM 确实没有性能优势，作者也没声称能打败 ACO。LLM × Swarm 的真正价值在<strong>规则难写的开放环境</strong>：① 环境动态变化（规则每次都要重推）；② 需要注入领域常识（"前面河流不能过"这类先验难硬编码）；③ 需要和人类对话交互（"把蜂群向北偏一点")。在这些场景里，用自然语言改 prompt 比改 ACO 代码快一个数量级。所以应该把本文理解为<strong>"Swarm 的可编程接口从数学公式升级成自然语言"</strong>，而不是"LLM 在 TSP 上打败 ACO"。论文实验里混合 > 纯规则这个结果，恰好暗示了未来的正确用法：<span class="hl-green">ACO 负责基础收敛，LLM 负责注入常识与探索</span>。
+    </div>
+
+    <div class="faq-q">Q2：10 只蚂蚁 / 30 只鸟的规模太小，这能叫 swarm 吗？真正的 swarm 要上千个体才有意义，这篇论文是不是"玩具实验"？</div>
+    <div class="faq-a">
+      技术上确实是玩具尺度 —— 作者自己也承认，是<strong>概念验证</strong>。但"能叫不叫 swarm"的争论意义不大，关键是看它是否揭示了新结构。本文有三个独立于规模的贡献：① 第一次把 LLM 接入 NetLogo 做 swarm-style agent；② 发现"方向 &gt; 数字"这条 prompt 规律；③ 发现"LLM+规则混合优于纯粹"这个反直觉结果。这三点都不依赖于"规模大"。至于真正上千 agent 的 LLM swarm，是一个<strong>明确的下一步</strong>：需要解决 batch 推理、小模型蒸馏、成本摊薄 <span class="unverified">&lt;待实证&gt;</span>（社区已有的尝试如 mini-LLM for game NPCs 方向可能相关）。所以应该把这篇当作<strong>"一个地图上新大陆的第一个脚印"</strong>——脚印本身很小，但方向是对的。对比一下历史：1987 年 Reynolds 的 Boids 也是仅仅仿真几十只鸟，没人说 Boids 是玩具，因为它打开了一整条研究线。
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  <p><a href="../index1.html">← 返回导航中心</a></p>
+  <p style="margin-top: 8px;">深度解读 49 · LLM × Swarm Intelligence · 2026</p>
+</div>
+
+</body>
+</html>

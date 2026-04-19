@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读48：Empirical Study on Embodied Hallucinations — 具身 Agent 的幻觉实证</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #3a0f2a 0%, #0f1117 50%, #1f2a3a 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero-badges { margin-top: 16px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .survey-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unverified { background: rgba(251,146,60,0.15); color: var(--orange); padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: 600; border: 1px dashed rgba(251,146,60,0.4); }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td code { background: var(--bg3); color: var(--yellow); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .tier { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .tier.t1 { border-left-color: var(--green); }
+    .tier.t2 { border-left-color: var(--cyan); }
+    .tier.t3 { border-left-color: var(--pink); }
+    .tier.t4 { border-left-color: var(--orange); }
+    .tier.t5 { border-left-color: var(--red); }
+    .tier h4 { margin-top: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .pipeline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 20px 0 24px; }
+    .pipeline .step { flex: 1 1 180px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; position: relative; }
+    .pipeline .step .s-num { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: var(--pink); margin-bottom: 8px; }
+    .pipeline .step h4 { margin: 0 0 6px; }
+    .pipeline .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+    .faq-q { font-weight: 600; color: var(--cyan); margin-bottom: 10px; font-size: 15px; }
+    .faq-a { color: var(--text); font-size: 14px; line-height: 1.8; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>HEAL：Empirical Study on Embodied Hallucinations — 具身 Agent 的幻觉实证 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：当 LLM 被装进机器人成为"认知核"，幻觉的代价不再是"说错话"而是"做错事"——把刀放进不存在的洗碗机、在一面空墙上按按钮。本论文首次系统性地用 <strong>scene–task 不一致</strong> 把具身 Agent 的幻觉诱出来放大 <strong>40×</strong>，并指出 12 个主流模型的共同缺陷：它们<span class="hl-pink">不知道怎么说"不"</span>。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://aclanthology.org/2025.findings-emnlp.1158.pdf" target="_blank">EMNLP 2025 Findings</a> &middot; Trishna Chakraborty et al. &middot; UC Riverside &middot; 2025.11</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.35);color:var(--green);">🤗 HEAL 探针集 &nbsp;<a href="https://huggingface.co/datasets/Trishna13/HEAL" target="_blank" style="color:var(--green);">huggingface.co/datasets/Trishna13/HEAL</a></div>
+  </div>
+  <div class="hero-badges">
+    <span class="survey-badge">EMNLP Findings 2025</span>
+    <span class="survey-badge" style="background:rgba(34,211,238,0.1);color:var(--cyan);border-color:rgba(34,211,238,0.35);">Embodied</span>
+    <span class="survey-badge" style="background:rgba(244,114,182,0.12);color:var(--pink);border-color:rgba(244,114,182,0.4);">12 模型 / 2 仿真器 / 2574 样本</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 具身幻觉特殊性</a>
+    <a href="#sec3">3. 实验设计</a>
+    <a href="#sec4">4. 关键发现</a>
+    <a href="#sec5">5. 幻觉三件套对照</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="40-hallucination-survey.html">40 · 幻觉综述</a>
+  <a href="41-mitigating-hallucination.html">41 · 缓解三路径</a>
+  <a href="29-gea-embodied.html">29 · GEA 具身</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">1</div>
+      <h2>一句话定位：让 LLM 在"不一致的物理世界"里说出该说的"不"</h2>
+    </div>
+
+    <p>过去的 LLM 幻觉研究集中在 <strong>QA / 文本生成</strong>——一句话是否符合事实。而一旦把 LLM 放进机器人成为 goal interpreter，"幻觉"就变成：<span class="hl-pink">LLM 无法把用户指令 grounding 到它所观察的物理场景上</span>。本文把这种现象精确命名为 <strong>scene–task inconsistency hallucination</strong>，并首次用系统性实验把它测出来。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">论文的核心主张（原文精炼）</div>
+      <p style="margin-bottom:0;">"Hallucinations in embodied agents stem from a failure to ground user-provided task instructions in the observed physical environment ... this misalignment can lead to consequences far more seriously than a simple textual error."<br>
+      —— 让一个无洗碗机的家里的机器人"把刀放进洗碗机"，它会<strong>捏造一个洗碗机</strong>并把刀丢进空柜子或按空墙上的按钮。</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">40×</div>
+        <div class="stat-label">探针集诱出幻觉率（相对 base prompt）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">12</div>
+        <div class="stat-label">被测模型（含 Claude/GPT-4o/Gemini）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">2</div>
+        <div class="stat-label">仿真环境（VirtualHome + BEHAVIOR）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">2574</div>
+        <div class="stat-label">HEAL 探针样本量</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">4</div>
+        <div class="stat-label">scene–task 不一致变体</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--accent);">1st</div>
+        <div class="stat-label">首个 long-horizon 具身幻觉实证</div>
+      </div>
+    </div>
+
+    <p>三条核心贡献：<strong>① 问题定义升级</strong>——把具身幻觉精确化为 <code>H(x,y)=1 if ∃o∈F_obj(y) with o∉O</code>，可自动化检测；<strong>② 探针集构造</strong>——用 4 类 scene–task 不一致主动诱导幻觉放大 40×；<strong>③ 诊断性结论</strong>——12 模型普遍<span class="hl">"不会说不"</span>，即使场景完全没有洗衣机也会生成包含洗衣机的计划。</p>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">2</div>
+      <h2>具身幻觉特殊在哪：感知-行动回路中的错觉</h2>
+    </div>
+
+    <p>纯 LLM 的幻觉是"<strong>说了一句不对的话</strong>"，比较可以用事实核查。具身 Agent 的幻觉是"<strong>基于不存在的物理对象产生了可执行计划</strong>"，它的特殊之处在于 <span class="hl-pink">错觉会沿着感知→推理→执行这条回路跑一遍，最终变成物理动作</span>。</p>
+
+    <h3>2.1 与纯 LLM / 多模态 LLM 幻觉的差异</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>维度</th><th>纯 LLM 幻觉</th><th>多模态 LLM 幻觉</th><th>具身 Agent 幻觉（本论文）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>错觉载体</td><td>文本事实</td><td>图-文对齐</td><td><span class="hl-pink">scene（物体+状态）→ LTL 计划</span></td></tr>
+          <tr><td>触发前提</td><td>知识过时</td><td>视觉编码弱 / 语言先验压过视觉</td><td><strong>scene 与 task 不一致</strong></td></tr>
+          <tr><td>最终后果</td><td>用户读到错答案</td><td>描述错一张图</td><td><span class="hl">机器人执行错误动作</span>：空柜丢刀、空墙按按钮</td></tr>
+          <tr><td>安全等级</td><td>信息危害</td><td>信息危害</td><td>物理危害 + 电量浪费 + 硬件损伤</td></tr>
+          <tr><td>黄金正确行为</td><td>"我不确定"</td><td>"我看不清"</td><td><strong>生成空计划 / 显式拒绝</strong>（say "no"）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.2 具身场景下"幻觉"的形式化定义</h3>
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">论文 Equation 3（改写）</div>
+      <p style="margin-bottom:0;">设场景对象集合 <code>O</code>、允许状态集合 <code>S</code>；模型输出 <code>y</code> 中提到的对象/状态记为 <code>F_obj(y)</code> / <code>F_state(y)</code>。<strong>幻觉发生的充要条件</strong>：<br>
+      <code>∃ o_k ∈ F_obj(y), o_k ∉ O</code> 或 <code>∃ s_k ∈ F_state(y), s_k ∉ S</code><br>
+      —— 即输出 LTL 里引用了"不在场景里的东西"。此定义<span class="hl">可被自动化精确检测</span>，不需要人类打标签。</p>
+    </div>
+
+    <h3>2.3 三类具身特有失败：感知-规划断链</h3>
+    <div class="tier-grid">
+      <div class="tier t3">
+        <h4>① 物体幻觉（Object Hallucination）</h4>
+        <p style="margin-bottom:0;">LTL 引用场景不存在的物体（如"打开洗衣机"但场景只有 table/cupboard/plate）。用 <strong>CHAIR-O（CO）</strong> / <strong>POPE-O（PO）</strong> 测量。</p>
+      </div>
+      <div class="tier t4">
+        <h4>② 状态幻觉（State Hallucination）</h4>
+        <p style="margin-bottom:0;">预测了允许集之外的状态（洗衣机允许 {CLOSED, OPEN, PLUGGED_IN} 但输出 <code>state: ON</code>）。通常较少但会被物体幻觉串联触发。用 <strong>CHAIR-S（CS）</strong> 测量。</p>
+      </div>
+      <div class="tier t5">
+        <h4>③ 计划失败但不是幻觉（Silent Planning Failure）</h4>
+        <p style="margin-bottom:0;">最<span class="hl-pink">隐蔽</span>的新种类：模型不幻觉，但"<strong>挪用不相关对象硬凑任务</strong>"——任务打开洗衣机、场景只有淋浴，模型就开淋浴。不违反 grounding 定义，但行为仍错且危险（Table 6）。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">关键洞察：无幻觉 ≠ 正确</div>
+      <p style="margin-bottom:0;">"The absence of hallucination does not guarantee correct planning." 检测幻觉只是第一层防御，<span class="hl">第二层还要检测"不该规划时的规划"</span>。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">3</div>
+      <h2>实验设计：HEAL 探针集 + 12 模型 × 2 仿真器</h2>
+    </div>
+
+    <h3>3.1 基础 pipeline 与 HEAL 的扰动方式</h3>
+
+    <p>论文基于 <strong>Embodied Agent Interface</strong>（Li et al. 2024b，NeurIPS）这一既有 benchmark。基础 pipeline 是：感知模块 P 把视觉 <code>x_i</code> 转成结构化场景 <code>x_s</code>（由 <code>(物体, 初始状态, 可能状态)</code> 三元组构成）；LLM 作为 goal interpreter 读取 <code>(x_td, x_s)</code> 输出 <strong>LTL</strong> 目标（node goals + edge goals）。</p>
+
+    <p>HEAL 做的事是：<strong>只改动 <code>x_td</code> 或 <code>x_s</code></strong>，构造 4 种不一致。</p>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="s-num">变体 1 · 改任务</div>
+        <h4>DistInj（干扰物注入）</h4>
+        <p style="margin-bottom:0;font-size:13px;">task 里塞一个场景中没有的对象（如"别撞到打印机"但场景无打印机）。幻觉 = 模型把 printer 写进 LTL。</p>
+      </div>
+      <div class="step">
+        <div class="s-num">变体 2 · 改场景</div>
+        <h4>TaskObjRem（任务对象移除）</h4>
+        <p style="margin-bottom:0;font-size:13px;">从场景里删除任务需要的关键物体（如删掉 washing_machine）。幻觉 = 模型仍引用被删对象。</p>
+      </div>
+      <div class="step">
+        <div class="s-num">变体 3 · 改场景</div>
+        <h4>SynonymSub（同义词替换）</h4>
+        <p style="margin-bottom:0;font-size:13px;">把 washing_machine 改成 washer、soap 改成 detergent。幻觉 = 输出仍用 washing_machine 而非新名。</p>
+      </div>
+      <div class="step">
+        <div class="s-num">变体 4 · 改场景</div>
+        <h4>SceneTaskCon（场景-任务矛盾）</h4>
+        <p style="margin-bottom:0;font-size:13px;">把场景换成完全无关的（task 要洗衣服，场景只有 table/plate）。正确行为应是<strong>拒绝规划</strong>。</p>
+      </div>
+    </div>
+
+    <h3>3.2 评测指标</h3>
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>CHAIR（CO / CS）—— 相对占比</h4>
+        <p style="margin-bottom:0;">幻觉对象/状态 占 输出中所有提及的对象/状态 的比例。反映"说的话里有多少是编的"。公式：<code>C_t = |hallucinated_t| / |all_t mentioned|</code>。</p>
+      </div>
+      <div class="tier t2">
+        <h4>POPE（PO）—— 二分类准确率</h4>
+        <p style="margin-bottom:0;">预先构造"这个物体是否出现在输出中？"的 yes/no 问题集，测模型对<strong>人工注入的不存在物体</strong>是否会说 "yes"。不受输出长度偏置影响。</p>
+      </div>
+      <div class="tier t4">
+        <h4>Refusal/Empty Rate（补充）</h4>
+        <p style="margin-bottom:0;">在 TaskObjRem 和 SceneTaskCon 下，<strong>正确行为应是拒绝/返回空计划</strong>。论文 Table 8 专门测这个率——大部分模型接近 0%，即"几乎从不拒绝"。<待实证>：具体数值分布需查 Table 8 完整版。</p>
+      </div>
+    </div>
+
+    <h3>3.3 被测模型与仿真器</h3>
+    <p><strong>12 模型</strong>覆盖：开源小模型（LLaMA-3-8B / Gemma-2-9B / Qwen-14B / DS-R1-Distill 系列）、中大模型（LLaMA-4-Scout-17B / LLaMA-3.3-70B / Mistral-Large）、闭源强模型（Claude 3.5 Sonnet / GPT-4o / Gemini 2.0 & 2.5 Flash）；VLM 消融用 Qwen-VL-7B、LLaMA-11B-Vision、Gemma-3-12b-it。仿真器：<strong>VirtualHome</strong>（抽象长程）+ <strong>BEHAVIOR-1K</strong>（低层 pick-and-place）。每设置 3 独立运行取均值。</p>
+
+    <h3>3.4 缓解实验：两种 self-correction</h3>
+    <ul>
+      <li><strong>KAF（Knowledge-Augmented Feedback）</strong>：给模型一般性提示，让它再改一遍。</li>
+      <li><strong>SCW（Self-Correcting Woodpecker）</strong>：给出<em>具体哪些对象是幻觉的</em>反馈，让模型针对性修正。</li>
+    </ul>
+    <p>结论剧透：SCW &gt; KAF，但<strong>对 SceneTaskCon 几乎无效</strong>——即使告诉模型"washing_machine 是幻觉的"，它还是会再生成新的幻觉而不是拒绝任务。</p>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">4</div>
+      <h2>关键发现：四个量化结论 + 一个工程警示</h2>
+    </div>
+
+    <h3>4.1 发现一：SceneTaskCon 是最强幻觉触发器</h3>
+    <p>VirtualHome 上，SceneTaskCon 的 PO 指标最高可达 <strong>70.68%</strong>（Qwen-14B-Instruct）。即使是 Claude 3.5 Sonnet 这种强模型也达到 40.07%。直觉解释：<span class="hl-pink">模型把"完成任务"的优先级放在"尊重场景"之上</span>，即使场景里毫无相关物体，也要强行凑出一个计划。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>模型</th><th>Base PO</th><th>DistInj PO</th><th>TaskObjRem PO</th><th>SynonymSub PO</th><th>SceneTaskCon PO</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Qwen-14B-Instruct</td><td>—</td><td>72.69</td><td>47.59</td><td>17.10</td><td><strong>70.68</strong></td></tr>
+          <tr><td>Gemma-2-9B-it</td><td>—</td><td>81.02</td><td>46.56</td><td>28.34</td><td>66.78</td></tr>
+          <tr><td>LLaMA-3.3-70B</td><td>—</td><td>21.02</td><td>46.74</td><td>21.82</td><td>60.10</td></tr>
+          <tr><td>GPT-4o</td><td>—</td><td>3.45</td><td>31.10</td><td>27.04</td><td>60.91</td></tr>
+          <tr><td>Gemini 2.0 Flash</td><td>—</td><td>0.0</td><td><strong>8.27</strong></td><td><strong>7.21</strong></td><td><strong>20.08</strong></td></tr>
+          <tr><td>Claude 3.5 Sonnet</td><td>—</td><td>0.22</td><td>45.53</td><td>36.64</td><td>40.07</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--muted);font-size:13px;">数据来源：论文 Table 1 VirtualHome 部分。SynonymSub 整体最低（~7–37%），SceneTaskCon 最高（~20–71%）。</p>
+
+    <h3>4.2 发现二：模型规模 ↑ → 幻觉 ↓，但 <strong>"拒绝能力"并不随之线性提升</strong></h3>
+    <p>总体上大模型（70B、闭源 Claude/Gemini）的 CHAIR 指标明显低于小模型（8B/9B）。但是 —— 关键反例：</p>
+    <ul>
+      <li><strong>Gemini 2.0 Flash 是唯一会显式拒绝的模型</strong>：当场景缺少关键物体时，它会说 "I cannot fulfill this request. There's not enough information about light." 并返回空 LTL（Table 5）。</li>
+      <li><strong>Claude 3.5 Sonnet 和 GPT-4o 不幻觉但挪用物体</strong>：任务要打开洗衣机、场景只有淋浴，它们"贴心地"去打开淋浴（Table 6）。这是 §2.3 里的"第三类失败"。</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">模型的两个性格</div>
+      <p style="margin-bottom:0;">结合 Table 5/6 可以把模型粗略分成两种风格：<strong>Gemini 派 —— 保守，会说"不"</strong>；<strong>Claude/GPT-4o 派 —— 热心，会挪用"。前者对不可行任务更安全，后者对歧义任务更"好用"。工程部署时这两种风格对应完全不同的 prompt / policy 策略。</span></p>
+    </div>
+
+    <h3>4.3 发现三：SynonymSub 最容易，DistInj 中等——一个"命名一致性"悖论</h3>
+    <p>SynonymSub 幻觉率最低（均值约 20%），说明<strong>模型理解同义关系</strong>——它知道 washer 就是 washing_machine；但它在输出里<em>时而用 washer、时而偷偷用 washing_machine</em>，失去命名一致性。论文 Table 4 给出例子：输出同时出现 <code>bucket.n.01_1</code> 和 <code>pail.n.01_1</code>。</p>
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">根因猜测（论文 §5.1）</div>
+      <p style="margin-bottom:0;">对话训练偏好"用词多样化"以显得自然；但<span class="hl">具身 grounding 要求严格的词汇对齐</span>——两者直接冲突。这意味着 instruction-tuning 阶段混入的"语言风格偏好"会<strong>反向伤害</strong>具身表现。</p>
+    </div>
+
+    <h3>4.4 发现四：VLM 仅给图像反而更差，image+text 最好</h3>
+    <p>Table 2（DistInj，VirtualHome）PO：Qwen-VL-7B 图/文/图+文 = 31.84 / 30.32 / <strong>24.37</strong>；LLaMA-11B-Vision = 46.90 / 41.49 / <strong>36.44</strong>；Gemma-3-12B = 36.67 / 32.99 / <strong>24.14</strong>。两个信号：<strong>① 只给图像会让 VLM 幻觉更多</strong>（视觉编码器弱、"vision is blind" 效应）；<strong>② image+text 跨模态验证最稳</strong>，视觉应作核验而非唯一来源。</p>
+
+    <h3>4.5 发现五（工程警示）：Post-hoc 自修正对 SceneTaskCon 近乎无效</h3>
+    <p>Table 3：Qwen-14B-Instruct 在 SceneTaskCon 下，KAF 反馈后 PO 仍 55.37%；SCW 反馈（明确告诉它哪些是幻觉）后 PO 仍 <strong>42.35%</strong>。即使<span class="hl-pink">被显式告知"洗衣机不存在"</span>，模型改一轮后还是会"发明"一个等价对象继续规划——一种<strong>顽固的"要完成任务"执念</strong>。</p>
+
+    <div class="callout callout-red">
+      <div class="callout-title" style="color:var(--red);">工程启示：幻觉不是"再想一遍就好"</div>
+      <p style="margin-bottom:0;">这条经验与 #10 Reflexion、#28 Self-Correct Limits 的结论一致：<strong>self-correction 擅长修正"计算错误"，但不擅长修正"任务可行性误判"</strong>。真正要解决 SceneTaskCon 幻觉，需要<span class="hl">前置的 solvability check</span>（"这个任务在这个场景可行吗？"）而不是事后修正。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">5</div>
+      <h2>与 #40 / #41 / #29 对照：具身幻觉三件套</h2>
+    </div>
+
+    <p>本论文不是孤立的——它在库内与三篇形成<strong>立体化的幻觉研究矩阵</strong>：<a href="40-hallucination-survey.html">#40 幻觉综述</a> 给出全景分类、<a href="41-mitigating-hallucination.html">#41 缓解三路径</a> 给出工程方法论、<a href="29-gea-embodied.html">#29 GEA</a> 给出具身底座。本论文（#48）把这三者按下<strong>"具身 × 实证"</strong>这个按钮，暴露了前三者没有正面回答的问题。</p>
+
+    <h3>5.1 四篇论文的定位矩阵</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>维度</th><th>#40 综述</th><th>#41 三路径</th><th>#29 GEA</th><th>#48 HEAL</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>类型</td><td>Survey</td><td>方法论综述</td><td>Method（底座）</td><td><span class="hl-pink">Empirical Study</span></td></tr>
+          <tr><td>范围</td><td>Agent 全阶段</td><td>知识/范式/事后验证</td><td>6 类具身任务</td><td>long-horizon 具身 + LTL</td></tr>
+          <tr><td>幻觉层次</td><td>五阶段十八成因</td><td>mitigation 视角</td><td>不专门研幻觉</td><td>scene-task 不一致</td></tr>
+          <tr><td>回答问题</td><td>"有哪些幻觉？"</td><td>"怎么治？"</td><td>"怎么训底座？"</td><td><span class="hl">"实际有多严重？"</span></td></tr>
+          <tr><td>代码/数据</td><td>无</td><td>无</td><td>GEA ckpt</td><td>HEAL 探针集 (HF)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 具身幻觉三件套：综述 → 底座 → 实证</h3>
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① 综述层（#40 + #41）：告诉你"有什么 / 怎么治"</h4>
+        <p style="margin-bottom:0;">#40 五阶段十八成因中 <strong>Perception → Planning</strong> 正是具身幻觉主场；#41 给出三路径缓解框架。<span class="hl">但两者都停在概念层</span>——没说真实具身任务上哪类幻觉最高。</p>
+      </div>
+      <div class="tier t2">
+        <h4>② 底座层（#29 GEA）：告诉你"用什么模型"</h4>
+        <p style="margin-bottom:0;">GEA 用 2.2M 轨迹统一训练 6 类任务底座，不专门研幻觉。部署到真实机器人必撞 scene-task 不一致——<strong>GEA 提供能力，HEAL 提供能力边界</strong>。</p>
+      </div>
+      <div class="tier t3">
+        <h4>③ 实证层（#48 本篇）：告诉你"现状有多糟"</h4>
+        <p style="margin-bottom:0;"><span class="hl-pink">首个定量实证</span>：12 模型、2 仿真器、2574 样本、4 种扰动、40× 幻觉放大。硬数字如"Claude/GPT-4o 在 SceneTaskCon 下 PO 仍 40–60%、self-correction 改不动"为综述提供实证支撑。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">三件套 = 可执行研究路线</div>
+      <p style="margin-bottom:0;">用 <strong>#40</strong> 找口袋、<strong>#29 GEA</strong> 拿底座、<strong>#48 HEAL</strong> 的探针集与 CHAIR/POPE 量化、<strong>#41</strong> 的三路径做干预——<span class="hl">目前具身幻觉研究最短的"读论文→上手实验"路径</span>。</p>
+    </div>
+
+    <h3>5.3 映射到斯坦福小镇</h3>
+    <div class="sv-link">
+      小镇居民的 action 调用（<code>walk_to</code>, <code>use_object</code> 等）本质上就是<strong>具身任务</strong>。HEAL 发现的 4 种失败模式全部会发生：
+      <ul style="margin-bottom:0;">
+        <li><strong>DistInj</strong>：用户 context 里提到家里有一个其实不存在的物件 → 居民的计划引用它</li>
+        <li><strong>TaskObjRem</strong>：地图里某 object 被随机事件移除但没同步到 memory → 居民仍想去用</li>
+        <li><strong>SynonymSub</strong>：居民之间对话把"咖啡机"叫成"coffee maker" → 规划器输出不一致命名</li>
+        <li><strong>SceneTaskCon</strong>：玩家临时换地图，但没人告诉居民 → 居民在错误场景里硬凑计划</li>
+      </ul>
+      小镇论文完全没有考虑这些失败模式，这对"用 Generative Agents 做机器人模拟"的后续工作是一个重要警示：<span class="hl">原论文的成功部分建立在"静态完美场景"假设上</span>，一旦把它推向真实/动态环境，本论文报告的 40–70% 幻觉率是绕不过的。
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">6</div>
+      <h2>FAQ（两问）</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q1. 既然 #40 已经把 Agent 幻觉分成五阶段了，本论文（#48）还值得单独读吗？</div>
+      <div class="faq-a">
+        <p>值得，而且必读。三个理由：</p>
+        <ul>
+          <li><strong>从概念到数字</strong>：#40 告诉你"Perception 幻觉存在"，#48 告诉你"在 VirtualHome 上 Qwen-14B 的 PO 是 70.68%、Gemini 2.0 Flash 是 20.08%"——<span class="hl">没有这些具体数字，所有缓解方法都无法衡量是否有效</span>。</li>
+          <li><strong>独有新现象</strong>：本论文揭示了#40 没有覆盖的第三类失败——<strong>不幻觉但挪用物体</strong>（Claude/GPT-4o 去打开淋浴代替洗衣机）。这是 Agent 特有但综述层面没命名的新模式。</li>
+          <li><strong>可复现的探针集</strong>：HEAL 数据集开源在 Hugging Face（<code>Trishna13/HEAL</code>），基于现有 Embodied Agent Interface benchmark 扩展。任何研究者都可以直接用这 2574 样本测自己的新 Agent——这是综述提供不了的工程抓手。</li>
+        </ul>
+        <p style="margin-bottom:0;">简言之：#40 / #41 是地图，#48 是第一个<span class="hl-pink">带坐标的勘探报告</span>。</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q2. 要把本论文的结论落地到一个真实 robot agent（或 Smallville 改造），优先抓哪三件事？</div>
+      <div class="faq-a">
+        <p>按论文证据强度排序的三件事：</p>
+        <ol>
+          <li><strong>前置 Solvability Check，而不是事后 self-correct</strong>。论文 Table 3 明确证明：即使给出"washing_machine 是幻觉的"具体反馈，SCW 修正后 PO 仍在 25–42%。根因是模型有"必须完成任务"的执念。解法：在 LLM goal interpreter 之前加一个独立的二分类器——输入 <code>(x_td, x_s)</code> 输出"本任务在本场景是否可行"，不可行则直接返回空计划。这比事后修正 cost-efficient 得多。</li>
+          <li><strong>跨模态验证而非单模态升级</strong>。Table 2 显示图+文联合输入比任一单模态幻觉更少。工程启示：不要指望换个视觉更强的 VLM 就解决问题，<strong>让 VLM 读结构化 <code>x_s</code> + 原始图像两路比较</strong>，把视觉当核验器而非主信息源。对应 #41 的 "cross-checking" 范式。</li>
+          <li><strong>命名一致性约束</strong>。SynonymSub 幻觉（Table 1 显示 ~20% 的模型会丢失命名一致性）可以通过一个非常廉价的 post-processing 规则消除：扫描输出 LTL，把所有对象名替换为场景中 canonical 的名字。这件事<span class="hl">不需要重训模型，一条正则 pass 就能修</span>，但却能把 SynonymSub 的错误直接清零。适合作为任何具身 Agent 的默认后处理层。</li>
+        </ol>
+        <p style="margin-bottom:0;"><strong>不建议优先做的</strong>：fine-tune 一个新底座模型（成本高、效果不确定）、通用 self-correction 框架（已被论文证伪）。先做"检测+拒绝"，再想"升级生成"。<待实证>：Solvability Check 的准确率门槛需做消融实验判定。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-ref" style="margin:20px auto 0;">
+    <span class="cross-ref-label">延伸阅读：</span>
+    <a href="40-hallucination-survey.html">40 · 幻觉综述</a>
+    <a href="41-mitigating-hallucination.html">41 · 缓解三路径</a>
+    <a href="29-gea-embodied.html">29 · GEA</a>
+    <a href="28-self-correct-limits.html">28 · Self-Correct Limits</a>
+    <a href="10-reflexion.html">10 · Reflexion</a>
+    <a href="19-generative-agents.html">19 · Smallville</a>
+    <span class="cr-personal">后加</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 #48 · HEAL: An Empirical Study on Hallucinations in Embodied Agents Driven by LLMs</p>
+  <p style="margin-top:6px;">
+    <a href="../index1.html" style="color:var(--blue);">← 返回研究索引</a>
+    &nbsp;·&nbsp;
+    <a href="../papers-reference.html#cat-personal" style="color:var(--blue);">论文库 · 个人补充</a>
+    &nbsp;·&nbsp;
+    <a href="../concepts-map.html" style="color:var(--blue);">概念地图</a>
+  </p>
+</div>
+
+</body>
+</html>

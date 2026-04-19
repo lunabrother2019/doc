@@ -60,12 +60,15 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/44-autonomous-memory-aug.html` — "后加": MemInsight: Autonomous Memory Augmentation (arXiv:2503.21760, EMNLP 2025, AWS AI Labs) — LLM-driven attribute mining across entity×conversation perspectives
 - `html/deep-dive/45-optima.html` — "后加": OPTIMA (arXiv:2410.08115, ACL Findings 2025, Tsinghua THUNLP) — MCTS-inspired DPO for MAS communication, 2.8× performance + <10% token
 - `html/deep-dive/46-agenttorch.html` — "后加": AgentTorch (arXiv:2409.10568, MIT Media Lab, AAMAS 2024 Oral) — differentiable million-scale agent simulation
+- `html/deep-dive/47-aipatient.html` — "后加": AIPatient (arXiv:2409.18924, Nature Comm Medicine 2025) — 6-agent medical simulation with MIMIC-III + Reasoning RAG, 94.15% QA accuracy
+- `html/deep-dive/48-embodied-hallucinations.html` — "后加": Empirical Study on Hallucinations in Embodied Agents (EMNLP Findings 2025) — HEAL dataset, perception-action loop hallucinations (40/41/48 form hallucination trilogy)
+- `html/deep-dive/49-swarm-intelligence.html` — "后加": LLM × Swarm Intelligence (Jimenez-Romero et al., Frontiers AI 2025, DOI 10.3389/frai.2025.1593017) — ant/bird flock LLM-ification experiments
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 46). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 49). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker
