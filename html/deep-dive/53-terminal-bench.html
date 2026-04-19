@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读53：Terminal-Bench / DPAI Arena — Agent 在终端/IDE 的实测基准</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #2a1640 0%, #0f1117 50%, #1a1d27 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--pink); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.jb { background: rgba(251,146,60,0.1); border-color: rgba(251,146,60,0.35); color: var(--orange); font-weight: 600; }
+    .hero .paper-ref.github { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.35); color: var(--green); }
+    .hero .paper-ref.site { background: rgba(244,114,182,0.08); border-color: rgba(244,114,182,0.3); color: var(--pink); }
+    .hero .paper-ref.bench { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3); color: var(--yellow); font-weight: 600; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--pink); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr.hi td { background: rgba(52,211,153,0.05); }
+    tbody tr.hi-pink td { background: rgba(244,114,182,0.05); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.orange .stat-val { color: var(--orange); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.red .stat-val { color: var(--red); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(244,114,182,0.15); color: var(--pink); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0 22px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; line-height: 1.8; }
+    .col-box .col-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; letter-spacing: .3px; }
+    .col-box.academic { border-left: 3px solid var(--accent); }
+    .col-box.academic .col-title { color: var(--accent); }
+    .col-box.prod { border-left: 3px solid var(--green); }
+    .col-box.prod .col-title { color: var(--green); }
+
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 22px; }
+    @media (max-width: 900px) { .three-col { grid-template-columns: 1fr; } }
+    .three-col .col-box { padding: 14px 16px; }
+
+    .dim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .dim-card { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--pink); border-radius: 10px; padding: 14px 16px; }
+    .dim-card .dim-name { font-size: 13px; color: var(--pink); font-weight: 700; margin-bottom: 4px; letter-spacing: .3px; }
+    .dim-card .dim-range { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .dim-card .dim-desc { font-size: 13px; line-height: 1.7; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Terminal-Bench / DPAI Arena — Agent 在终端/IDE 的实测基准 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：当 LLM Agent 从"聊天助手"走向"替人干活的开发工程师"，怎么量化它的实战能力？Terminal-Bench（Stanford × Laude，2025.05）把 Agent 扔进<span class="hl-pink">沙箱化的 shell 环境</span>里做编译/部署/调试；JetBrains 的 <span class="hl">DPAI Arena</span>（2025.10，转交 Linux Foundation）则更进一步，覆盖<strong>多语言、多框架的完整开发生命周期</strong>——从补丁到 PR 审查、从测试生成到仓库导航。它们共同代表"Agent 工业落地评估"这条赛道。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref bench">Terminal-Bench · Stanford × Laude · 2025.05</div>
+    <div class="paper-ref jb">DPAI Arena · JetBrains · 2025.10</div>
+  </div>
+  <div style="margin-top:10px;">
+    <div class="paper-ref tag">Benchmark · Terminal · IDE · Coding Agent</div>
+    <div class="paper-ref site"><a href="https://www.tbench.ai/" target="_blank" style="color:inherit;">🌐 tbench.ai</a></div>
+    <div class="paper-ref site"><a href="https://ainativedev.io/news/8-benchmarks-shaping-the-next-generation-of-ai-agents" target="_blank" style="color:inherit;">🌐 综述来源</a></div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref github"><a href="https://github.com/laude-institute/terminal-bench" target="_blank" style="color:inherit;">💻 GitHub: laude-institute/terminal-bench</a><span class="unconfirmed">路径待实证</span></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 定位 &amp; 数字</a>
+    <a href="#sec2">2. 为何需要</a>
+    <a href="#sec3">3. 任务设计</a>
+    <a href="#sec4">4. DPAI Arena</a>
+    <a href="#sec5">5. 与 SOTOPIA / SWE-bench 对照</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="38-sotopia.html">Sotopia</a>
+  <a href="50-agentscope.html">AgentScope</a>
+  <a href="51-langgraph.html">LangGraph</a>
+  <a href="../challenge/validation-gap.html">Validation Gap</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- Section 1 -->
+  <section class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>一句话定位 &amp; 关键数字</h2>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">一句话总结</div>
+      Terminal-Bench 和 DPAI Arena 是 2025 年同时冒头的两条"<span class="hl-pink">Agent 工程实测</span>"赛道：<strong>Terminal-Bench</strong> 问"你的 Agent 能不能在真 shell 里装环境、跑命令、恢复错误"；<strong>DPAI Arena</strong> 问"你的 Agent 能不能跨 Python/Kotlin/JS 做补丁、写测试、审 PR"。两者都是对 <a href="39-sweet-sour.html">SWE-bench</a> 的补强——SWE-bench 测"一次性出补丁"，它们测<span class="hl-green">"在真实开发环境里连续干活"</span>。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box pink">
+        <div class="stat-val">89</div>
+        <div class="stat-label">Terminal-Bench 2.0 任务数</div>
+      </div>
+      <div class="stat-box cyan">
+        <div class="stat-val">81.8%</div>
+        <div class="stat-label">榜首（ForgeCode + GPT-5.4）</div>
+      </div>
+      <div class="stat-box yellow">
+        <div class="stat-val">4 类</div>
+        <div class="stat-label">Setup / Debug / Build / Execution</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-val">2025.05</div>
+        <div class="stat-label">Terminal-Bench 首发 · Stanford × Laude</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">2025.10</div>
+        <div class="stat-label">DPAI Arena 发布 · JetBrains</div>
+      </div>
+      <div class="stat-box red">
+        <div class="stat-val">LF</div>
+        <div class="stat-label">DPAI 已计划转交 Linux Foundation</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      注：Terminal-Bench 2.0（当前版本）89 个任务，Terminal-Bench 1.0 是 80 个任务，Terminal-Bench 3.0 与 Terminal-Bench Science 在研。任务贡献者包括 Nicholas Carlini、Jan-Lucas Uslu、Junhong Shen 等学界熟面孔。<span class="unconfirmed">&lt;DPAI Arena 的具体任务数量与最新榜单待实证&gt;</span>。
+    </p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">📌 为何值得专篇研究</div>
+      在 Agent 基准生态里，"<strong>真实工程环境的基准</strong>"是一个长期缺口：SWE-bench 解决了"给定一个 GitHub issue 的一次性补丁"这类任务，但真实开发里 <span class="hl-pink">80% 的时间不在写代码</span>，而在装环境、跑命令、读错误、再试一遍。Terminal-Bench 和 DPAI Arena 各自从<span class="hl">终端交互</span>与<span class="hl-green">多语言生命周期</span>两个角度填这个缺口。对于"把 Generative Agents 思路放到生产系统里能不能工作"这个核心问题，它们提供了最现实的检验手段。
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">2</div>
+      <h2>为什么需要 Agent-in-Terminal 基准</h2>
+    </div>
+
+    <h3>2.1 SWE-bench 没覆盖的维度</h3>
+    <p>SWE-bench 诞生（Princeton，2023）以来一直是 coding agent 的主流标尺，但它的任务形态有几个天然边界：</p>
+    <ul>
+      <li><strong>只看"补丁 vs 测试"</strong>：给定仓库 + issue → 输出 patch → 用隐藏的测试套件判对错。中间过程是黑箱；</li>
+      <li><strong>预先 setup 好环境</strong>：测试环境由基准维护者封装好 Docker image，agent 不用关心安装；</li>
+      <li><strong>Python 为主</strong>：SWE-bench 语料几乎全是 Python 仓库。多语言能力不测；</li>
+      <li><strong>一次性交付</strong>：没有"命令失败 → 看 stderr → 改参数重跑"的多轮错误恢复场景。</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ 真实开发者的工作日并不像 SWE-bench</div>
+      一个真实开发者的一天里典型操作：<code>git clone</code> → <code>pip install -r requirements.txt</code> 报错 → 查 Python 版本 → 装 pyenv → 切版本 → 重装 → 跑测试 → 某个环境变量没设 → ...。这条长链<strong>任何一步失败都会让整个任务失败</strong>，而且失败信息只在 stderr/日志里——<span class="hl-pink">这是 patch-only 基准完全看不见的复杂度</span>。
+    </div>
+
+    <h3>2.2 Terminal-Bench 要测的核心能力</h3>
+    <p>Terminal-Bench 官方表述是：衡量 agent "在真实约束下 plan、execute、recover"的能力——具体拆成四个动作层：</p>
+    <div class="dim-grid">
+      <div class="dim-card">
+        <div class="dim-name">1. Plan（规划）</div>
+        <div class="dim-desc">把自然语言任务分解成若干 shell 步骤；选对工具链、正确的执行顺序。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">2. Execute（执行）</div>
+        <div class="dim-desc">实际发出 shell 命令，包括 <code>apt</code>、<code>pip</code>、<code>make</code>、<code>git</code>、<code>docker</code>、编辑文件。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">3. Recover（恢复）</div>
+        <div class="dim-desc">命令失败后读 stderr/日志，诊断原因，<strong>不盲目重试</strong>，调整策略后再跑。</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">4. Verify（验证）</div>
+        <div class="dim-desc">任务完成与否由 <strong>verification script</strong> 判定——而不是 LLM 自评，杜绝"假装完成"。</div>
+      </div>
+    </div>
+
+    <h3>2.3 DPAI Arena 要测的核心能力</h3>
+    <p>DPAI（Developer Productivity AI Arena）的重点不在 shell，而在<strong>完整开发生命周期</strong>的多环节能力。JetBrains 的立意是：<span class="hl-green">开发者真正被解放的那一刻，是 Agent 能接手重复性工程任务</span>，而不只是写一段 for 循环：</p>
+    <ul>
+      <li><strong>Patching</strong>：经典 SWE-bench 风格的 bug 修复；</li>
+      <li><strong>Test generation</strong>：给一段代码自动写单元/集成测试；</li>
+      <li><strong>PR review</strong>：读 diff，写有意义的 review 评论；</li>
+      <li><strong>Static analysis</strong>：发现潜在问题、性能瓶颈；</li>
+      <li><strong>Repo navigation</strong>：在陌生代码库里快速定位"要改什么"。</li>
+    </ul>
+
+    <div class="callout callout-pink">
+      <div class="callout-title">🎯 DPAI 的野心：跨语言基准</div>
+      DPAI 的官方叙事里反复强调"<strong>multi-language, multi-framework</strong>"——要成为"<span class="hl-pink">第一个真正跨生态的通用编码 Agent 基准</span>"，突破 SWE-bench 的 Python 垄断。JetBrains 的天然优势是：它的 IDE 家族本就覆盖 Java / Kotlin / Python / JS / Go / Rust / PHP / Ruby 等几乎所有主流语言，有现成的"多语言工程语料库"。
+    </div>
+
+    <h3>2.4 定位的微妙差异</h3>
+    <p>虽然都是"Agent 实战基准"，两者的考察面并不重合：</p>
+    <div class="two-col">
+      <div class="col-box prod" style="border-left-color:var(--pink);">
+        <div class="col-title" style="color:var(--pink);">Terminal-Bench 更像"系统管理员考试"</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>考核的是 <strong>shell 命令链</strong>的正确性；</li>
+          <li>任务多含底层操作（装包、配服务、改系统）；</li>
+          <li>verification script 是客观测验；</li>
+          <li>覆盖的领域广：<span class="hl-green">软件工程 / 系统管理 / 科学计算 / 安全 / 模型训练</span>。</li>
+        </ul>
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--orange);">
+        <div class="col-title" style="color:var(--orange);">DPAI Arena 更像"资深工程师日常"</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>考核的是 <strong>IDE 里的日常开发动作</strong>；</li>
+          <li>任务以<span class="hl">源码层</span>操作为主；</li>
+          <li>多维度排行（correctness / efficiency / cross-language）；</li>
+          <li>更接近工业产品：<strong>JetBrains 自家 AI 助手（Junie / AI Assistant）的内评场</strong><span class="unconfirmed">待实证</span>。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>任务设计：真实开发任务 / shell 操作 / IDE 集成</h2>
+    </div>
+
+    <h3>3.1 Terminal-Bench 的任务结构</h3>
+    <p>每个 Terminal-Bench 任务由以下元素构成：</p>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body"><strong>Task instruction</strong> — 自然语言的任务描述。例如："在本容器里搭一个带 TLS 的 nginx，用 self-signed 证书，服务在 443 端口"。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body"><strong>Sandbox environment</strong> — 初始 Docker 容器（干净的 Ubuntu 或定制镜像），Agent 在里面自由发命令。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body"><strong>Reference solution</strong> — 一份<span class="hl-green">人类写的正确步骤</span>，任务作者用它来确认任务确实可完成，也作为难度估计的基准。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body"><strong>Verification script</strong> — 在 Agent 宣称完成后，框架运行这段 shell/Python 脚本，<strong>客观</strong>判定任务是否达成。典型形式：<code>curl -k https://localhost:443 | grep nginx</code>。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div class="pipe-body"><strong>Time / step limit</strong> — 每任务有软性资源上限，防止 Agent 无限试错。</div>
+      </div>
+    </div>
+
+    <h3>3.2 任务四大类别样例</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>类别</th>
+            <th>典型任务</th>
+            <th>考察重点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Setup</strong></td>
+            <td>装 Linux 内核编译环境 / 配 Git 服务 / 部署 web server</td>
+            <td>包管理、依赖解析、环境变量</td>
+          </tr>
+          <tr>
+            <td><strong>Debug</strong></td>
+            <td>跑测试失败 → 读 stack trace → 定位并修</td>
+            <td>错误恢复、日志解读、策略调整</td>
+          </tr>
+          <tr>
+            <td><strong>Build</strong></td>
+            <td>从源码编译某个 C/Rust 项目、打包容器、生成可分发文件</td>
+            <td>工具链配合、Makefile 理解</td>
+          </tr>
+          <tr>
+            <td><strong>Execution</strong></td>
+            <td>跑机器学习训练脚本、密码破解、SSL 证书生成、数据重分区</td>
+            <td>资源管理、脚本参数、结果验证</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 Harbor 框架：任务运行底座</h3>
+    <p>Terminal-Bench 运行在 <strong>Harbor</strong> 框架上——一个专为 Agent 基准测试打造的沙箱编排层。它的职责：</p>
+    <ul>
+      <li>为每个任务启动隔离容器，避免上一个任务的副作用污染下一个；</li>
+      <li>给 Agent 提供统一的 shell 执行接口（让不同 Agent 适配器都能接入）；</li>
+      <li>回收 Agent 的输出 / stderr / 退出码，送给 verification script；</li>
+      <li>支持并发跑多个任务，缩短 89 个任务的总评估时间。</li>
+    </ul>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">🛠️ 这一架构的关键选择：评估"Agent 系统"而非"模型"</div>
+      Terminal-Bench 明确声明：<strong>它评估的是完整的 agent system，不是底层 model</strong>。同一个 Claude Opus 4.6，装在 Claude Code 里是一套分数，装在 ForgeCode 里可能高得多——<span class="hl-pink">因为 prompt、工具封装、错误处理策略都不同</span>。这和 SWE-bench 逐步演化的方向一致（SWE-bench Verified 也是测系统而不是纯模型）。这个设计暗示：在 Agent 领域，<span class="hl-green">"脚手架 / harness / scaffolding"与底层 LLM 一样重要</span>。
+    </div>
+
+    <h3>3.4 一个任务的实际执行流程（简化公式）</h3>
+
+    <div class="formula">
+<span class="label">Terminal-Bench 单任务评估流程</span>Task T = {instruction, init_container, ref_sol, verify_script, max_steps}
+
+container ← spawn(T.init_container)
+step ← 0
+while step < T.max_steps and not agent.done():
+    action ← agent.decide(container.state, T.instruction)
+    obs    ← container.execute(action)    # stdout / stderr / exit_code
+    agent.observe(obs)
+    step  ← step + 1
+
+# Agent 宣称完成后由 script 客观判定
+result ← run_in_container(container, T.verify_script)
+score  ← 1 if result.exit_code == 0 else 0
+
+# 多任务聚合
+SR(agent) = (#solved tasks) / (#total tasks)</div>
+
+    <h3>3.5 Terminal-Bench 2.0 的实测结果（截至 2026.04）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>Agent + 模型</th>
+            <th>成功率</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hi">
+            <td>1</td>
+            <td><strong>ForgeCode + GPT-5.4</strong></td>
+            <td>81.8% ± 2.0</td>
+            <td>榜首</td>
+          </tr>
+          <tr class="hi">
+            <td>1</td>
+            <td><strong>ForgeCode + Claude Opus 4.6</strong></td>
+            <td>81.8% ± 1.7</td>
+            <td>并列榜首</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>TongAgents + Gemini 3.1 Pro</td>
+            <td>80.2% ± 2.6</td>
+            <td>——</td>
+          </tr>
+          <tr class="hi-pink">
+            <td>39</td>
+            <td>Claude Code + Opus 4.6</td>
+            <td>58.0% ± 2.9</td>
+            <td>同模型差 <strong>23.8 个点</strong>（系统差异）</td>
+          </tr>
+          <tr>
+            <td>71</td>
+            <td>Claude Code + Sonnet 4.5</td>
+            <td>40.1% ± 2.9</td>
+            <td>——</td>
+          </tr>
+          <tr>
+            <td>94</td>
+            <td>Claude Code + Haiku 4.5</td>
+            <td>27.5% ± 2.8</td>
+            <td>小模型边界</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">数据来源：<a href="https://www.tbench.ai/leaderboard/terminal-bench/2.0" target="_blank">tbench.ai/leaderboard</a>。<span class="unconfirmed">&lt;本表仅截取部分行，完整榜单持续更新；Aider 未出现在本榜单上&gt;</span>。</p>
+
+    <div class="callout callout-red">
+      <div class="callout-title">🔍 值得注意的观察：同模型不同 Agent 差 20+ 个点</div>
+      <strong>ForgeCode + Opus 4.6 拿 81.8%；Claude Code + Opus 4.6 只有 58.0%</strong>——底层模型一样，分数差近 24 个百分点。这直接证明：<span class="hl-pink">在真实工程环境中，prompt 工程 + 工具设计 + 错误恢复策略的贡献，可能大于切换模型带来的边际</span>。对做 agent 系统的团队是实打实的启示——别把所有希望押在"下一代大模型会更聪明"上。
+    </div>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">4</div>
+      <h2>DPAI Arena：JetBrains 的跨语言全流程评估</h2>
+    </div>
+
+    <h3>4.1 为什么 JetBrains 下场做基准</h3>
+    <p>JetBrains 做 DPAI Arena，有几重战略动因：</p>
+    <ul>
+      <li><strong>自家 AI 产品线需要北极星指标</strong>：Junie / AI Assistant 等需要对标评估，内部用；</li>
+      <li><strong>多语言生态的天然优势</strong>：IntelliJ / PyCharm / WebStorm / GoLand 等 IDE 覆盖几乎全语言，<span class="hl">比任何单一学术机构都更有资格</span>说"跨语言基准"；</li>
+      <li><strong>产业认可度</strong>：对企业买家，"JetBrains 认证"比"某学术 benchmark"更有说服力；</li>
+      <li><strong>推动标准化</strong>：转交 Linux Foundation 是为了去 JetBrains 化，变成中立、社区驱动的行业标尺——避免"既当运动员又当裁判"的嫌疑。</li>
+    </ul>
+
+    <h3>4.2 评估维度</h3>
+    <div class="dim-grid">
+      <div class="dim-card" style="border-left-color:var(--orange);">
+        <div class="dim-name" style="color:var(--orange);">1. Correctness（正确性）</div>
+        <div class="dim-desc">给定任务的输出是否实际可用——经典指标，和 SWE-bench 一脉相承。</div>
+      </div>
+      <div class="dim-card" style="border-left-color:var(--orange);">
+        <div class="dim-name" style="color:var(--orange);">2. Workflow Efficiency（工作流效率）</div>
+        <div class="dim-desc">完成任务所用的 step / token / 时间——不光要对，还要<strong>不废资源</strong>。</div>
+      </div>
+      <div class="dim-card" style="border-left-color:var(--orange);">
+        <div class="dim-name" style="color:var(--orange);">3. Cross-language Behavior（跨语言行为）</div>
+        <div class="dim-desc">同一 Agent 在 Python / Kotlin / JS 上的表现一致性——衡量通用能力而非单语言过拟合。</div>
+      </div>
+      <div class="dim-card" style="border-left-color:var(--orange);">
+        <div class="dim-name" style="color:var(--orange);">4. Multi-task Range（任务覆盖度）</div>
+        <div class="dim-desc">patch / test gen / PR review / static analysis / repo nav 各类任务的平均表现。</div>
+      </div>
+    </div>
+
+    <h3>4.3 DPAI Arena 与 Terminal-Bench 的对照</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>Terminal-Bench</th>
+            <th>DPAI Arena</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>发起方</td>
+            <td>Stanford × Laude Institute（学术）</td>
+            <td><strong>JetBrains</strong>（工业，转交 LF）</td>
+          </tr>
+          <tr>
+            <td>发布时间</td>
+            <td>2025.05</td>
+            <td>2025.10</td>
+          </tr>
+          <tr>
+            <td>任务形态</td>
+            <td>Shell 命令链（4 大类）</td>
+            <td><strong>多任务开发生命周期</strong>（5+ 类）</td>
+          </tr>
+          <tr>
+            <td>语言覆盖</td>
+            <td>以 shell / Python / C 为主</td>
+            <td><strong>Multi-language, multi-framework</strong></td>
+          </tr>
+          <tr class="hi-pink">
+            <td><strong>IDE 集成</strong></td>
+            <td>不涉及</td>
+            <td><strong>天然贴近 JetBrains IDE 场景</strong></td>
+          </tr>
+          <tr>
+            <td>评估粒度</td>
+            <td>任务级成功率（0/1）</td>
+            <td><strong>多维排行</strong>（correctness + efficiency + cross-lang）</td>
+          </tr>
+          <tr>
+            <td>评估对象</td>
+            <td>完整 Agent 系统</td>
+            <td>完整 Agent 系统 + 工作流</td>
+          </tr>
+          <tr class="hi">
+            <td><strong>任务源</strong></td>
+            <td>社区贡献 + Laude 筛选</td>
+            <td>JetBrains 工程现场案例<span class="unconfirmed">待实证</span></td>
+          </tr>
+          <tr>
+            <td>治理</td>
+            <td>Stanford × Laude</td>
+            <td><strong>→ Linux Foundation</strong>（去厂商化）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.4 工业落地验证视角</h3>
+    <div class="callout callout-green">
+      <div class="callout-title">✅ DPAI Arena 的"工业味道"</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>多语言</strong>是企业现实——真实公司代码库几乎必然跨 2-3 种语言；</li>
+        <li><strong>PR review / 静态分析</strong>这类任务，直接对应工程团队"code review is the bottleneck"的痛点；</li>
+        <li><strong>转交 LF</strong>意味着 DPAI 想做<span class="hl-pink">行业标准</span>，而不是 JetBrains 的营销物料——这是学术基准少见的自觉；</li>
+        <li><strong>Workflow efficiency 维度</strong>暗示：在企业场景里，<span class="hl-green">"用 10 倍 token 换 5% 正确率提升"不是一个可接受的交易</span>——这和学术 benchmark 只看 correctness 的风格差别巨大。</li>
+      </ul>
+    </div>
+
+    <div class="sv-link">
+      Sotopia 关心"LLM 社交决策和人类差多少"；Terminal-Bench/DPAI 关心"LLM 工程能力和人类差多少"。两者都是"<strong>把评估从 QA 对话题拉到现实决策情境</strong>"的思路，只是换了领域。斯坦福小镇验证"agent 能像人一样生活"，Terminal-Bench 问的是"agent 能不能像人一样干活"——<span class="hl-pink">这是 Generative Agents 叙事从 research demo 走到生产工具的必经桥梁</span>。
+    </div>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
+      <h2>与 SOTOPIA（社交）/ SWE-bench（代码）对照</h2>
+    </div>
+
+    <h3>5.1 三个基准的一页地图</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>SOTOPIA</th>
+            <th>SWE-bench</th>
+            <th style="color:var(--pink);">Terminal-Bench / DPAI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>测的是什么</td>
+            <td><strong>社交决策</strong>（谈判/妥协）</td>
+            <td><strong>代码修补</strong>（issue → patch）</td>
+            <td><strong>工程执行</strong>（shell / 全流程）</td>
+          </tr>
+          <tr>
+            <td>任务形态</td>
+            <td>2 人文本对话</td>
+            <td>GitHub issue + test set</td>
+            <td>沙箱命令链 / IDE 任务</td>
+          </tr>
+          <tr>
+            <td>成败判定</td>
+            <td>LLM-judge 打 7 维</td>
+            <td>隐藏测试 pass/fail</td>
+            <td><strong>verification script</strong> + 多维排行</td>
+          </tr>
+          <tr>
+            <td>主要考察</td>
+            <td>目标冲突下的沟通</td>
+            <td>理解代码 + 一次性产出</td>
+            <td>执行 + 错误恢复 + 跨语言</td>
+          </tr>
+          <tr>
+            <td>语言</td>
+            <td>自然语言</td>
+            <td>Python 为主</td>
+            <td>Shell / Multi-language</td>
+          </tr>
+          <tr class="hi-pink">
+            <td><strong>代表意义</strong></td>
+            <td>社交智能评估</td>
+            <td>代码能力评估</td>
+            <td><strong>工业落地评估</strong></td>
+          </tr>
+          <tr>
+            <td>发起方</td>
+            <td>CMU LTI</td>
+            <td>Princeton</td>
+            <td>Stanford+Laude / JetBrains</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.2 三者"接力"关系</h3>
+    <div class="callout callout-key">
+      <div class="callout-title">🗺️ Agent 能力评估的"三级台阶"</div>
+      <ol style="margin-bottom:0;">
+        <li><strong>对话能力</strong> → SOTOPIA（给定情境，能不能得体地谈？）；</li>
+        <li><strong>单步代码能力</strong> → SWE-bench（给定 issue，能不能一发命中写对 patch？）；</li>
+        <li><strong>执行与恢复能力</strong> → <span class="hl-pink">Terminal-Bench / DPAI</span>（给定工作台，能不能连续 10 步不崩？）。</li>
+      </ol>
+      从 1 → 2 → 3 难度递增，接近度也递增：<span class="hl-green">第 3 级已经非常接近"真实雇员"的评估标尺</span>。一个只通过 SOTOPIA 的 agent 可能是健谈助手；一个只通过 SWE-bench 的 agent 可能是不错的 pair programmer；而一个通过 Terminal-Bench / DPAI 的 agent，才有资格被考虑"自动化一段工程流程"。
+    </div>
+
+    <h3>5.3 方法论的互补性</h3>
+    <div class="three-col">
+      <div class="col-box academic">
+        <div class="col-title">SOTOPIA 教我们</div>
+        用精心设计的 <strong>场景库</strong> + <strong>多维打分</strong>，就能把一个软性能力（"社交智能"）量化；这个框架可以迁移。
+      </div>
+      <div class="col-box prod">
+        <div class="col-title">SWE-bench 教我们</div>
+        用 <strong>真实仓库 + 真实 issue + 真实 test</strong> 作评估素材，可以杜绝"作弊式 benchmark"——Terminal-Bench 继承了这个思路。
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--pink);">
+        <div class="col-title" style="color:var(--pink);">Terminal-Bench / DPAI 教我们</div>
+        评估要<strong>跳出 patch/QA 单轮</strong>，直接量化"长程任务 + 错误恢复 + 跨工具链"——这是通向生产级 agent 的必经关。
+      </div>
+    </div>
+
+    <h3>5.4 对 Generative Agents 领域的意义</h3>
+    <p>把目光拉回 Generative Agents 主线，Terminal-Bench / DPAI 的意义在于：</p>
+    <ul>
+      <li><span class="hl-pink">把"小镇式 agent 架构"（记忆 + 反思 + 计划 + 行动）放到真实开发场景，能不能 work？</span>——答案只有通过这类基准能客观回答；</li>
+      <li><strong>记忆系统</strong>（<a href="30-mem0.html">Mem0</a>, <a href="06-memori.html">Memori</a>）在终端场景里是否真的降低重复劳动？Terminal-Bench 连续任务可以直接测；</li>
+      <li><strong>多 Agent 协作</strong>（<a href="22-metagpt.html">MetaGPT</a>, <a href="23-chatdev.html">ChatDev</a>）在真实工程任务上的增益也需要这个基准作标尺；</li>
+      <li>它们提供的<span class="hl-green">"工业落地触底"信号</span>，是学术 agent research 和生产系统间的桥梁。</li>
+    </ul>
+
+    <div class="callout callout-pink">
+      <div class="callout-title">💡 对研究者的启示</div>
+      如果你在做一个"<strong>把小镇式认知架构放到生产</strong>"的项目（记忆 + 反思 + 计划），不要只在内部对话 benchmark 上做 A/B——把它挂到 Terminal-Bench 上跑一遍，看多轮错误恢复时"反思机制"是否真的降低了失败率。这比任何 LLM-judge 都更客观。如果跑不过，说明架构还停在"PPT 工程"阶段。
+    </div>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">6</div>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q1：Terminal-Bench 和 SWE-bench 看起来都在评"coding agent"，为什么还要单独做一套？</div>
+      <div class="a">
+        因为 SWE-bench 的任务形态固化了一种<strong>"单步补丁"世界观</strong>——给定仓库、给定 test、产出 patch，中间所有环境都预先 setup 好了。而真实生产里，<span class="hl-pink">"装环境、跑命令、读错误"占了开发者 60%+ 的时间</span>，SWE-bench 完全看不见这段。
+        <br><br>
+        Terminal-Bench 填的就是这个盲区：让 Agent 从<strong>空容器开始</strong>，自己装依赖、自己跑、自己判断失败、自己 recover。这种"长程多轮"能力，和"一次性出 patch"是两种技能。
+        <br><br>
+        从数据上看，这两个基准会筛出不同的强者——一个 Agent 在 SWE-bench 上 60%，在 Terminal-Bench 上可能只有 35%，因为它不会处理 <code>pip install</code> 失败。<span class="hl-green">把两个 benchmark 组合起来，才能给出相对完整的 coding agent 画像</span>。
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：为什么 DPAI Arena 从一开始就规划转交 Linux Foundation？JetBrains 不想自己控制吗？</div>
+      <div class="a">
+        这是一个非常有意思的行业现象。JetBrains 的算盘大概是：
+        <br><br>
+        <strong>①</strong> 一个"厂商自己维护的基准"不会被业界认真对待——买家怀疑"JetBrains 肯定把自家 Junie 调得最好看"，这是天然的信任赤字；
+        <br><br>
+        <strong>②</strong> Linux Foundation 的中立治理，让 <strong>Google / Microsoft / Anthropic / 其他 IDE 厂商</strong>都能放心提交自己的 Agent 来评测——<span class="hl">玩家越多，基准的参考价值越高</span>；
+        <br><br>
+        <strong>③</strong> JetBrains 真正想赢的是"<span class="hl-pink">我们的 IDE 是跨语言 AI 开发者的默认选择</span>"——让整个行业都在它贡献的基准上竞赛，本身就是强大的品牌建设；
+        <br><br>
+        <strong>④</strong> 历史上类似模式屡试不爽：Kubernetes（Google → CNCF）、OpenTelemetry（多厂商 → CNCF），贡献者声誉 + 行业话语权通常比所有权本身更值钱。
+        <br><br>
+        对研究者和工程师的启示：<strong>Agent 基准正在进入"标准化"阶段</strong>，未来几年可能会看到类似 MLPerf 那样的行业联盟跑分。<span class="unconfirmed">&lt;DPAI 最终是否会成为这条路上的 MLPerf 还待实证&gt;</span>。
+      </div>
+    </div>
+
+    <div class="callout callout-key" style="margin-top:24px;">
+      <div class="callout-title">📌 一句话记住本篇</div>
+      Terminal-Bench / DPAI Arena = <span class="hl-pink">Agent 的"实际用人考试"</span>——前者把 Agent 扔进真 shell 考察 plan/execute/recover 四步能力（89 任务、榜首 81.8%、同模型不同 Agent 差 24 个点）；后者把 Agent 放进 IDE 风格的多语言全流程（correctness + efficiency + cross-language 多维排行，JetBrains 主导、转交 LF）。它们和 <a href="38-sotopia.html">SOTOPIA</a>（社交）、<a href="39-sweet-sour.html">SWE-bench</a>（代码）共同构成"<span class="hl-green">对话 → 代码 → 执行</span>"三级 agent 能力评估阶梯，是 Generative Agents 叙事走向工业落地的关键标尺。
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 53 · Terminal-Bench / DPAI Arena · Stanford × Laude + JetBrains · 2025.05 / 2025.10</p>
+  <p style="margin-top:8px;">来源综述：<a href="https://ainativedev.io/news/8-benchmarks-shaping-the-next-generation-of-ai-agents" target="_blank">8 Benchmarks Shaping the Next Generation of AI Agents</a> · <a href="https://www.tbench.ai/" target="_blank">tbench.ai</a></p>
+  <p style="margin-top:8px;"><a href="../index1.html">← 返回导航中心</a></p>
+</div>
+
+</body>
+</html>

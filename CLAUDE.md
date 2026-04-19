@@ -63,12 +63,16 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/47-aipatient.html` — "后加": AIPatient (arXiv:2409.18924, Nature Comm Medicine 2025) — 6-agent medical simulation with MIMIC-III + Reasoning RAG, 94.15% QA accuracy
 - `html/deep-dive/48-embodied-hallucinations.html` — "后加": Empirical Study on Hallucinations in Embodied Agents (EMNLP Findings 2025) — HEAL dataset, perception-action loop hallucinations (40/41/48 form hallucination trilogy)
 - `html/deep-dive/49-swarm-intelligence.html` — "后加": LLM × Swarm Intelligence (Jimenez-Romero et al., Frontiers AI 2025, DOI 10.3389/frai.2025.1593017) — ant/bird flock LLM-ification experiments
+- `html/deep-dive/50-agentscope.html` — "后加": AgentScope 1.0 (arXiv:2508.16279, Alibaba, 2025) — developer-centric message-driven multi-agent framework
+- `html/deep-dive/51-langgraph.html` — "后加": LangGraph v1.0 (LangChain, 2025) — graph-based stateful agent runtime, 29.6k stars, Klarna/Replit production use
+- `html/deep-dive/52-google-a2a.html` — "后加": Google A2A (2025-2026) — Agent-to-Agent interop protocol (horizontal), complements MCP (vertical); Linux Foundation governance
+- `html/deep-dive/53-terminal-bench.html` — "后加": Terminal-Bench / DPAI Arena (JetBrains) — 89-task terminal/IDE agent benchmark for industrial validation
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 49). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 53). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读52：Google A2A — Agent 互操作协议</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #121a2a 0%, #0f1117 50%, #2a1529 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--blue); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.google { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.35); color: var(--blue); font-weight: 600; }
+    .hero .paper-ref.github { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.35); color: var(--green); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--blue); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); color: var(--cyan); padding: 1px 6px; border-radius: 4px; font-size: 13px; font-family: "Courier New", monospace; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-blue { background: rgba(96,165,250,0.12); color: var(--blue); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-orange { background: rgba(251,146,60,0.12); color: var(--orange); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout-blue { background: rgba(96,165,250,0.06); border-left: 3px solid var(--blue); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr.hi td { background: rgba(96,165,250,0.06); }
+    tbody tr.hi-pink td { background: rgba(244,114,182,0.05); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.orange .stat-val { color: var(--orange); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(96,165,250,0.15); color: var(--blue); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0 22px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; line-height: 1.8; }
+    .col-box .col-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; letter-spacing: .3px; }
+    .col-box.mcp { border-left: 3px solid var(--orange); }
+    .col-box.mcp .col-title { color: var(--orange); }
+    .col-box.a2a { border-left: 3px solid var(--blue); }
+    .col-box.a2a .col-title { color: var(--blue); }
+
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 22px; }
+    @media (max-width: 900px) { .three-col { grid-template-columns: 1fr; } }
+    .three-col .col-box { padding: 14px 16px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Google A2A — Agent 互操作协议 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：<strong>A2A (Agent-to-Agent Protocol)</strong> 是 Google 于 2025 年开源、2026 年捐给 Linux Foundation 治理的 Agent 互操作开放协议，目的是让<span class="hl-blue">由不同厂商、不同框架构建的 Agent 能够互相发现、协商模态、协作完成长期任务</span>——在不暴露内部状态、记忆或工具的前提下。与 Anthropic 的 MCP（Agent↔Tool）形成上下层互补：<span class="hl-orange">MCP 让 Agent 用工具，A2A 让 Agent 找 Agent</span>。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref github"><a href="https://github.com/google/A2A" target="_blank" style="color:inherit;">💻 GitHub: a2aproject/A2A</a></div>
+    <div class="paper-ref google">Google · 2025</div>
+    <div class="paper-ref tag">JSON-RPC 2.0 · SSE · AgentCard · Task</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref" style="background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.25);color:#a78bfa;"><a href="https://a2a-protocol.org" target="_blank" style="color:inherit;">📖 a2a-protocol.org（官方文档）</a></div>
+    <div class="paper-ref" style="background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.3);color:#fb923c;"><a href="https://github.com/a2aproject/a2a-samples" target="_blank" style="color:inherit;">🧪 a2a-samples（示例代码）</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 定位 &amp; 数字</a>
+    <a href="#sec2">2. 问题</a>
+    <a href="#sec3">3. 协议核心</a>
+    <a href="#sec4">4. vs MCP</a>
+    <a href="#sec5">5. 生态意义</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="50-agentscope.html">AgentScope</a>
+  <a href="15-camel.html">CAMEL</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <!-- Section 1 -->
+  <section class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>一句话定位 &amp; 关键数字</h2>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">一句话总结</div>
+      A2A = <span class="hl-blue">Agent 世界的 HTTP</span>。它不规定 Agent 怎么想、用什么模型、挂什么记忆，只规定<strong>两个 Agent 相遇时怎么握手、怎么交换任务、怎么协同推进</strong>。核心三件套：<span class="hl-green">AgentCard 发现 · Task 生命周期 · Message/Part/Artifact 数据模型</span>——全部跑在 JSON-RPC 2.0 over HTTPS 之上，外加 SSE 流式和 Push Notifications 两种异步通道。
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box blue">
+        <div class="stat-val">23.3k</div>
+        <div class="stat-label">GitHub Stars <span class="unconfirmed">WebFetch 快照 2026.04</span></div>
+      </div>
+      <div class="stat-box cyan">
+        <div class="stat-val">v1.0.0</div>
+        <div class="stat-label">2026.03.12 正式发布</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-val">5 SDK</div>
+        <div class="stat-label">Python / Go / JS / Java / .NET</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">Apache-2.0</div>
+        <div class="stat-label">开源协议</div>
+      </div>
+      <div class="stat-box yellow">
+        <div class="stat-val">Linux Foundation</div>
+        <div class="stat-label">治理主体（Google 捐赠）</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">2.4k</div>
+        <div class="stat-label">Forks</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);">
+      注：A2A 在 2025 年春由 Google 发起，最初仓库为 <code>google/A2A</code>，后迁移为 <code>a2aproject/A2A</code> 并捐赠给 Linux Foundation（这是关键信号：<strong>Google 放弃单厂商主导，以换取跨厂商采纳</strong>）。截至 2026.04，Amazon、Salesforce、MongoDB、SAP 等 50+ 公司签署了 A2A 合作伙伴名单 <span class="unconfirmed">&lt;具体名单待核实&gt;</span>。
+    </p>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">📌 为什么值得专篇研究</div>
+      2025-2026 年 Agent 基础设施层出现了<span class="hl">两层协议分化</span>：<strong>MCP</strong> 做 Agent↔Tool（Anthropic 主导），<strong>A2A</strong> 做 Agent↔Agent（Google 主导）。这是继 HTTP/JSON-RPC/gRPC 之后，面向 Agent 语义的<span class="hl-blue">新一代互联网协议栈</span>的开端。对做多 Agent 系统、小镇式应用、跨组织 Agent 协作的人，A2A 是<strong>必须理解的"物理层"</strong>。
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">2</div>
+      <h2>问题：不同框架的 Agent 为什么互相不认识</h2>
+    </div>
+
+    <h3>2.1 一个真实的卡点场景</h3>
+    <p>设想 2025 年一个企业架构师的日常困境：</p>
+    <ul>
+      <li>法务部用 <strong>LangChain</strong> 搭了一个"合同审查 Agent"，能解析 PDF 里的风险条款；</li>
+      <li>财务部用 <strong>Microsoft Copilot Studio</strong> 搭了一个"发票核对 Agent"，对接内部 ERP；</li>
+      <li>销售部用 <strong>CrewAI</strong> 搭了一个"客户沟通 Agent"，对接 Salesforce；</li>
+      <li>总经理想要一个"季度交易闭环 Agent"——<span class="hl-pink">让上面三个 Agent 协作</span>，从发起合同到收款全自动。</li>
+    </ul>
+
+    <p>问题来了：LangChain、Copilot Studio、CrewAI 是三套<strong>互不兼容</strong>的 Agent 栈。它们的消息格式不一样、工具注册方式不一样、上下文管理方式不一样。要让它们互通，架构师只有三条路：</p>
+
+    <div class="three-col">
+      <div class="col-box" style="border-left:3px solid var(--red);">
+        <div class="col-title" style="color:var(--red);">方案 A：全部重写</div>
+        把三个 Agent 都迁到同一个框架。<strong>成本高</strong>，而且各业务部门已有的 DevOps 积累全部作废。
+      </div>
+      <div class="col-box" style="border-left:3px solid var(--orange);">
+        <div class="col-title" style="color:var(--orange);">方案 B：点对点适配</div>
+        为每一对 Agent 写一层 HTTP 适配层。3 个 Agent 需要 3 个适配对；10 个就是 45 个。<span class="hl-pink">O(N²) 灾难</span>。
+      </div>
+      <div class="col-box" style="border-left:3px solid var(--green);">
+        <div class="col-title" style="color:var(--green);">方案 C：共同协议</div>
+        让三个 Agent 都说同一种"Agent 语言"，只需要实现 1 次协议绑定，就和所有同协议 Agent 互通。<strong>这就是 A2A 要做的事</strong>。
+      </div>
+    </div>
+
+    <h3>2.2 Agent 互操作比 Web 互操作难在哪</h3>
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ Agent 不是无状态 Web API</div>
+      传统 REST/gRPC 假设调用是<strong>短请求、无状态、结构化 schema</strong>。Agent 交互完全不同：
+      <ul style="margin-bottom:0;">
+        <li><strong>长任务</strong>：一个 Agent 可能花几分钟甚至几小时完成任务（例：深度研究、代码重构）；</li>
+        <li><strong>多模态</strong>：输入输出可能是文本、文件、结构化 JSON、甚至流媒体；</li>
+        <li><strong>中途交互</strong>：Agent 执行到一半可能需要用户补充信息、或要求授权；</li>
+        <li><strong>能力不透明</strong>：服务端 Agent 内部用什么模型、什么记忆，客户端不应当也不需要知道；</li>
+        <li><strong>安全边界</strong>：跨组织 Agent 调用要有强认证和审计。</li>
+      </ul>
+      这五个特性让"Agent 接口"不能简单套用 REST——<span class="hl-blue">A2A 本质是为这五个特性量身设计的协议</span>。
+    </div>
+
+    <h3>2.3 为什么这个事 Google 在做</h3>
+    <p>A2A 诞生的时间节点值得注意：Anthropic 2024 年底推出 MCP 后迅速成为事实标准（Claude、Cursor、Windsurf、VS Code 都接入）。Google 作为云厂商和 Agent 生态玩家，<span class="hl-blue">不能在基础设施层缺席</span>：</p>
+    <ul>
+      <li>如果任由 MCP 扩展到 Agent↔Agent 层面，Google 会失去协议主导权；</li>
+      <li>自建一个"Google 专属 Agent 协议"又会被市场嫌弃为封闭标准；</li>
+      <li>最优策略：<strong>开放 + Linux Foundation 治理 + 与 MCP 互补定位</strong>——A2A 的每一步都很符合这个剧本。</li>
+    </ul>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">3</div>
+      <h2>协议核心：AgentCard · Task · Message/Part/Artifact</h2>
+    </div>
+
+    <h3>3.1 三层设计</h3>
+    <div class="formula">
+<span class="label">A2A 协议的三层抽象</span>┌─────────────────────────────────────────────────────────┐
+│  Layer 3: Task   任务生命周期管理                       │
+│    submitted → working → input-required → completed     │
+│                                     → failed/canceled   │
+├─────────────────────────────────────────────────────────┤
+│  Layer 2: Message / Part / Artifact   数据模型           │
+│    Message = role(user|agent) + parts[]                 │
+│    Part = text | file(raw|url) | data(JSON)             │
+│    Artifact = 任务产出物（parts[]）                      │
+├─────────────────────────────────────────────────────────┤
+│  Layer 1: AgentCard   发现与元数据                       │
+│    /.well-known/agent.json                              │
+│    capabilities · skills · endpoints · security         │
+└─────────────────────────────────────────────────────────┘
+  传输：JSON-RPC 2.0 over HTTPS · SSE 流式 · Push 异步</div>
+
+    <h3>3.2 Layer 1 · AgentCard：Agent 的"名片"</h3>
+    <p>AgentCard 是 A2A 的核心发现机制。任何 A2A 兼容的 Agent 都必须在 <code>/.well-known/agent.json</code> 下暴露一份 AgentCard，描述自己<strong>是谁、能做什么、怎么连</strong>。</p>
+
+    <div class="formula">
+<span class="label">AgentCard 结构（简化示例）</span>{
+  "name": "contract-review-agent",
+  "version": "1.2.0",
+  "provider": { "organization": "Acme Legal", "url": "https://legal.acme.com" },
+  "description": "Reviews contracts for risk clauses.",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "extendedAgentCard": false
+  },
+  "skills": [
+    {
+      "id": "risk-review",
+      "name": "Risk Clause Review",
+      "description": "Identify risky clauses in a contract PDF.",
+      "inputModes":  ["application/pdf", "text/plain"],
+      "outputModes": ["application/json", "text/markdown"]
+    }
+  ],
+  "url": "https://legal.acme.com/a2a",
+  "interfaces": ["jsonrpc", "grpc"],
+  "securitySchemes": { "oauth2": { /* ... */ } }
+}</div>
+
+    <p>这份 Card 让任何客户端（包括其他 Agent）可以：<strong>(1)</strong> 判断是否要接入；<strong>(2)</strong> 知道可以发什么格式（inputModes）、期望拿回什么格式（outputModes）；<strong>(3)</strong> 知道需要什么认证（securitySchemes）。</p>
+
+    <div class="callout callout-blue">
+      <div class="callout-title">🔑 AgentCard 的设计哲学</div>
+      AgentCard 致敬了两个成熟概念：<strong>OpenAPI/Swagger</strong> 的服务描述文件，和 <strong>OAuth 2.0 Discovery</strong> 的 <code>/.well-known/</code> 约定。这让 A2A 在工程实践上对接已有基础设施几乎零摩擦——运维人员不用学新的服务注册工具，<span class="hl-green">用 Nginx 返回一个 JSON 文件就能让 Agent 被发现</span>。
+    </div>
+
+    <h3>3.3 Layer 2 · Message / Part / Artifact：数据模型</h3>
+
+    <h4>Message</h4>
+    <ul>
+      <li><code>messageId</code>：消息唯一 ID；</li>
+      <li><code>contextId</code>：会话上下文 ID（多轮对话用这个串起来）；</li>
+      <li><code>taskId</code>：归属的 task ID（可选）；</li>
+      <li><code>role</code>：<code>ROLE_USER</code>（客户端发）或 <code>ROLE_AGENT</code>（服务端发）；</li>
+      <li><code>parts</code>：<strong>Part 数组</strong>——这是 A2A 最精巧的设计之一。</li>
+    </ul>
+
+    <h4>Part（OneOf 多态）</h4>
+    <p>Part 是内容片段，支持三种类型：</p>
+    <ul>
+      <li><strong>TextPart</strong>：普通字符串，适合对话和指令；</li>
+      <li><strong>FilePart</strong>：文件引用，可以是 <code>raw</code>（base64 内联）或 <code>url</code>（外部链接）；附带 <code>mediaType</code> 和 <code>filename</code>；</li>
+      <li><strong>DataPart</strong>：结构化 JSON，适合表单、查询结果、工具调用参数。</li>
+    </ul>
+
+    <p>一条 Message 里的 parts 可以<span class="hl">混合多种类型</span>——比如同时发一段文本指令 + 一个 PDF 附件 + 一段结构化参数。这比"只能发字符串 prompt"的传统 LLM API 表达力强得多。</p>
+
+    <h4>Artifact</h4>
+    <p>Task 的产出物叫 <strong>Artifact</strong>——结构上和 Message 类似（也是 parts 数组），但语义上是"任务结果"而非"对话消息"。一个 task 可以产生多个 artifact（例如一份 review 报告 + 一张风险热图）。</p>
+
+    <h3>3.4 Layer 3 · Task：任务生命周期</h3>
+
+    <p>Task 是 A2A 的<strong>长任务抽象</strong>。它的状态机有 8 个状态：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>状态</th><th>含义</th><th>是否终态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>SUBMITTED</code></td><td>已接收，排队中</td><td>否</td></tr>
+          <tr class="hi"><td><code>WORKING</code></td><td>Agent 正在处理</td><td>否</td></tr>
+          <tr class="hi"><td><code>INPUT_REQUIRED</code></td><td>需要客户端补充信息</td><td>否（需人类干预）</td></tr>
+          <tr><td><code>AUTH_REQUIRED</code></td><td>需要额外认证</td><td>否</td></tr>
+          <tr><td><code>COMPLETED</code></td><td>成功完成</td><td>✅ 终态</td></tr>
+          <tr><td><code>FAILED</code></td><td>执行失败</td><td>✅ 终态</td></tr>
+          <tr><td><code>CANCELED</code></td><td>客户端主动取消</td><td>✅ 终态</td></tr>
+          <tr><td><code>REJECTED</code></td><td>Agent 拒绝接受</td><td>✅ 终态</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>关键洞察</strong>：<code>INPUT_REQUIRED</code> 和 <code>AUTH_REQUIRED</code> 这两个非终态状态<span class="hl-blue">是 A2A 区别于普通 RPC 的要害</span>——它承认了 Agent 可能在执行中途需要"暂停问用户"，而协议层原生支持这种"可中断可恢复"的语义。</p>
+
+    <h3>3.5 核心 JSON-RPC 方法</h3>
+    <div class="formula">
+<span class="label">A2A v1.0 主要 RPC 方法（a2a/ 前缀）</span>a2a/SendMessage            → 发起/继续一个 Task
+a2a/SendStreamingMessage   → 同上，但返回 SSE 流
+a2a/GetTask                → 查询 Task 当前状态
+a2a/ListTasks              → 列出历史 Tasks（支持 filter）
+a2a/CancelTask             → 取消 Task
+a2a/SubscribeToTask        → 订阅 Task 更新（SSE）
+a2a/GetExtendedAgentCard   → 拿认证后可见的完整 Card
+a2a/CreatePushNotification → 配置异步回调通知
+a2a/GetPushNotification / ListPushNotifications / Delete...</div>
+
+    <h3>3.6 Task 委托典型流程</h3>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body"><strong>Discovery</strong>：客户端 Agent 访问 <code>https://legal.acme.com/.well-known/agent.json</code>，拿到目标 Agent 的 AgentCard，确认它支持 "risk-review" skill、接受 PDF 输入。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body"><strong>Delegation</strong>：调用 <code>a2a/SendMessage</code>，传一条 Message：role=user, parts=[TextPart("请审查这份合同的风险"), FilePart(url=contract.pdf)]。服务端返回 taskId。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body"><strong>Streaming</strong>：客户端用 <code>a2a/SubscribeToTask</code> 订阅 SSE 流，实时拿到 "WORKING: 正在解析 PDF..." "WORKING: 检测到 3 处风险条款..." 等进度。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body"><strong>Mid-task Interaction</strong>：如果服务端状态变成 <code>INPUT_REQUIRED</code>（例："该合同涉及欧盟客户，请确认是否启用 GDPR 检查？"），客户端用 <code>a2a/SendMessage</code> 把补充消息塞进同一个 taskId 继续。</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div class="pipe-body"><strong>Completion</strong>：Task 到达 <code>COMPLETED</code>，客户端拿到 Artifact（风险报告 JSON + markdown 摘要 + 风险热图 PDF）。整个过程<span class="hl-green">无需客户端知道服务端 Agent 用的是 Gemini 还是 Claude、有没有 RAG、挂的是什么工具</span>——opacity 原则。</div>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      把 A2A 映射到斯坦福小镇：小镇 25 个 NPC 目前是<strong>在同一个 Python 进程内通过共享内存通信</strong>——简陋但够用。一旦想把小镇扩展成"<span class="hl-pink">跨服务器的大世界</span>"（比如一个 NPC 跑在 A 机器、另一个跑在 B 机器），A2A 就是天然承载——Agent 之间的对话消息 = Message、NPC 能力描述 = AgentCard、跨 NPC 任务委托 = Task。小镇论文时代还没有 A2A，现在重写小镇，协议层几乎必选 A2A。
+    </div>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--pink);">4</div>
+      <h2>与 MCP 对比：两个协议在栈的不同层</h2>
+    </div>
+
+    <h3>4.1 一句话分工</h3>
+    <div class="callout callout-pink">
+      <div class="callout-title">📐 记住这一句</div>
+      <strong>MCP 是 Agent↔Tool（一个 Agent 调用外部能力），A2A 是 Agent↔Agent（两个对等 Agent 协作）。</strong>
+      <br>
+      前者解决"Agent 不会用电锯"——给它一套标准工具接口；后者解决"两个 Agent 不互相认识"——给它们一套标准握手协议。两者是<span class="hl-blue">同一协议栈的不同层</span>，不是竞争关系。
+    </div>
+
+    <h3>4.2 深度对照表</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>MCP (Model Context Protocol)</th>
+            <th>A2A (Agent-to-Agent Protocol)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hi">
+            <td><strong>出品方</strong></td>
+            <td>Anthropic · 2024.11</td>
+            <td>Google · 2025.04（后归 Linux Foundation）</td>
+          </tr>
+          <tr>
+            <td><strong>定位</strong></td>
+            <td>Agent↔Tool · 工具调用协议</td>
+            <td>Agent↔Agent · 对等协作协议</td>
+          </tr>
+          <tr>
+            <td>核心角色</td>
+            <td>Host (LLM) + Client + Server (Tool)</td>
+            <td>Client Agent + Remote Agent (对等)</td>
+          </tr>
+          <tr>
+            <td>核心抽象</td>
+            <td><span class="hl-orange">Tool · Resource · Prompt</span></td>
+            <td><span class="hl-blue">AgentCard · Task · Message</span></td>
+          </tr>
+          <tr>
+            <td>发现机制</td>
+            <td>Client 主动列出 Server 的 tools</td>
+            <td><code>/.well-known/agent.json</code> 暴露 AgentCard</td>
+          </tr>
+          <tr>
+            <td>交互范式</td>
+            <td>同步请求/响应为主</td>
+            <td><strong>长任务 + 流式 + 异步回调</strong></td>
+          </tr>
+          <tr>
+            <td>状态管理</td>
+            <td>近乎无状态（单次调用）</td>
+            <td>有状态 Task + 生命周期</td>
+          </tr>
+          <tr>
+            <td>中途交互</td>
+            <td>无（要靠 Host 重新调）</td>
+            <td><code>INPUT_REQUIRED</code> 原生支持</td>
+          </tr>
+          <tr>
+            <td>典型场景</td>
+            <td>Claude Desktop 调文件系统 / 数据库 / API</td>
+            <td>法务 Agent 把合同委托给财务 Agent 核对</td>
+          </tr>
+          <tr>
+            <td>权力关系</td>
+            <td>主从（Host 主动、Tool 被动）</td>
+            <td>对等（两个 Agent 都可能是发起方）</td>
+          </tr>
+          <tr class="hi-pink">
+            <td><strong>组合使用</strong></td>
+            <td>一个 A2A Agent 内部可以挂 N 个 MCP Server</td>
+            <td>两个挂 MCP 的 Agent 之间用 A2A 通信</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.3 典型组合：MCP + A2A 叠加使用</h3>
+    <div class="formula">
+<span class="label">一个企业 Agent 平台的分层（推荐做法）</span>┌──────────────────────────────────────────────────┐
+│  组织 / 团队 / 第三方 Agent  (互相用 A2A 通信)   │
+│    法务 Agent ─── A2A ───  财务 Agent            │
+│        │                       │                  │
+│       MCP                     MCP                │
+│        │                       │                  │
+│   ┌────┴────┐              ┌───┴────┐            │
+│   │ PDF 解析│              │ ERP API │            │
+│   │ DB 查询 │              │ 邮件发送│            │
+│   └─────────┘              └─────────┘            │
+│                                                    │
+│  每个 Agent 自己用 MCP 挂工具                       │
+│  Agent 之间协作用 A2A 发消息                        │
+└──────────────────────────────────────────────────┘</div>
+
+    <p>这张图是理解 MCP × A2A 关系的<strong>最重要一张图</strong>。每个"法务/财务 Agent"内部是一个完整 LLM + MCP 工具栈的小宇宙；而它们之间的协作不走内存、不走专有 API，统一用 A2A 说话。<span class="hl-green">MCP 是垂直方向（一个 Agent 的能力深度），A2A 是水平方向（Agent 之间的协作广度）</span>。</p>
+
+    <h3>4.4 为什么这两个协议可以和平共处</h3>
+    <div class="two-col">
+      <div class="col-box mcp">
+        <div class="col-title">MCP：信任边界内</div>
+        MCP 假设 Host（LLM）信任 Tool——通常是同一开发者/团队的组件。所以 MCP 的安全模型相对简单（本地 stdio 传输、或者受控 HTTP），不强调跨组织强认证。
+      </div>
+      <div class="col-box a2a">
+        <div class="col-title">A2A：信任边界外</div>
+        A2A 假设两个 Agent 可能<strong>属于不同组织、不同厂商、不同信任域</strong>。所以协议里 OAuth2 / mTLS / API Key 等方案是一等公民，还有 AgentCard 签名（防伪造名片）、extendedAgentCard（认证后才给看敏感能力）等机制。
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ 容易混的点：A2A 不取代 MCP，也不延伸 MCP</div>
+      有人觉得"既然都是协议，A2A 是不是 MCP 的加强版"——不是。A2A 和 MCP 解决不同层的问题，一个 Agent 可以<strong>同时</strong>：对外暴露 A2A 服务（让别的 Agent 发现和调用自己）、对内挂载 N 个 MCP server（让自己能用工具）。<span class="hl-blue">两个协议的字段几乎没有重叠</span>——Message/Part/Artifact/Task 是 A2A 独有；Tool/Resource/Prompt/Sampling 是 MCP 独有。
+    </div>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">5</div>
+      <h2>对生态的意义：为什么 A2A 重要</h2>
+    </div>
+
+    <h3>5.1 打破"框架锁定"</h3>
+    <p>2024-2025 年的 Agent 生态在经历<strong>严重的框架碎片化</strong>：LangChain、AutoGen、CrewAI、LlamaIndex、AgentScope、Swarm、Copilot Studio、Bedrock Agents……每个框架都定义自己的 Agent 接口，互相不兼容。这和 2010 年前后的 Web 框架战争有点像，但要严重得多——因为 Agent 的抽象维度远比 HTTP 请求复杂。</p>
+
+    <p>A2A 的价值在于：<span class="hl-blue">一个 Agent 只要能把自己包装成 A2A Server，就立刻可以被任何 A2A Client 发现和调用</span>——不关心它里面用的是 LangChain 还是 AutoGen。这相当于给 Agent 世界发了一张"通行护照"。</p>
+
+    <h3>5.2 为"跨组织 Agent 市场"铺路</h3>
+    <div class="callout callout-green">
+      <div class="callout-title">🌐 Agent 互联网的雏形</div>
+      A2A 支持的场景远不止企业内部 Agent 协作——它的最终愿景是<strong>跨组织、跨公司的 Agent 市场</strong>：
+      <ul style="margin-bottom:0;">
+        <li>你自己的"私人助理 Agent"可以自动调用 Expedia 的"订票 Agent"、Kayak 的"比价 Agent"、Marriott 的"酒店 Agent"完成一次出行；</li>
+        <li>这些外部 Agent 只暴露 AgentCard 的公开能力描述，不需要你理解它们内部怎么实现；</li>
+        <li>OAuth + AgentCard 签名 + Task 审计日志构成了 <span class="hl-pink">"Agent 间合约"</span>的技术基础；</li>
+        <li>一旦这个生态起飞，Agent 本身会变成一种<strong>可货币化的 Web 服务</strong>——就像今天的 API 经济，但交互语义更高级。</li>
+      </ul>
+    </div>
+
+    <h3>5.3 对各类玩家的实际影响</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>玩家</th><th>影响</th><th>建议行动</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Agent 框架作者</strong></td>
+            <td>不支持 A2A 的框架会被边缘化</td>
+            <td>尽快添加 A2A Server/Client 适配（参考 a2a-samples）</td>
+          </tr>
+          <tr>
+            <td><strong>企业应用开发者</strong></td>
+            <td>可以用 A2A 解耦多部门 Agent</td>
+            <td>把遗留 Agent 包装成 A2A 服务，逐步迁移</td>
+          </tr>
+          <tr>
+            <td><strong>SaaS 厂商</strong></td>
+            <td>必须提供 A2A Agent 入口</td>
+            <td>在自家 SaaS 上 <code>/.well-known/agent.json</code> 暴露能力</td>
+          </tr>
+          <tr>
+            <td><strong>云厂商</strong></td>
+            <td>Agent 托管服务会标配 A2A 网关</td>
+            <td>参考 Google Vertex AI Agent Builder、AWS Bedrock Agents 动向</td>
+          </tr>
+          <tr>
+            <td><strong>独立开发者</strong></td>
+            <td>可以写 Agent 直接接入大公司 Agent</td>
+            <td>学 A2A SDK（Python/Go/JS 等 5 种语言）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.4 潜在风险与未竟之处</h3>
+    <div class="callout callout-red">
+      <div class="callout-title">⚠️ A2A 还没解决的问题</div>
+      <ul style="margin-bottom:0;">
+        <li><strong>语义对齐</strong>：两个 Agent 说同一个字段 <code>"price"</code>，含义可能不一样（含税/不含税？货币？）——A2A 只定义了传输协议，<span class="hl-orange">不定义领域本体</span>；</li>
+        <li><strong>计费 / 结算</strong>：跨组织 Agent 调用谁付钱？v1.0 里没有标准计费字段 <span class="unconfirmed">&lt;待实证&gt;</span>；</li>
+        <li><strong>信任与声誉</strong>：一个 Agent 说它会做 X 但实际做不好，怎么体现？还没有"Agent 评分系统"；</li>
+        <li><strong>对抗性行为</strong>：恶意 Agent 的 AgentCard 可以撒谎。签名只防篡改，不防"自我夸大"；</li>
+        <li><strong>标准碎片化风险</strong>：微软/OpenAI 会不会推竞争协议？<span class="unconfirmed">&lt;观察中&gt;</span>——但 Linux Foundation 治理 + 早期合作伙伴广泛签约，基本锁定了 A2A 的中立地位。</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-key">
+      <div class="callout-title">🧭 结论：Agent 互联网的 TCP/IP</div>
+      A2A 不会是 Agent 协议栈的全部，但它是<span class="hl-blue">最接近"TCP/IP for Agents"</span>的候选。它的三个关键设计选择——<strong>对等而非主从、任务而非请求、透明边界而非黑盒</strong>——契合了 Agent 协作的本质特征。未来几年，你会看到"AgentCard 目录""Agent 注册中心""Agent 评分机构"等周边生态陆续长出来，就像 2000 年代 HTTP 周边长出 CDN / DNS / CA 一样。
+      <br><br>
+      <strong>对研究者</strong>：A2A 给了多 Agent 系统一个工业级运行时——以后不用再纠结"我的 paper 里多 Agent 怎么通信"；
+      <br>
+      <strong>对开发者</strong>：A2A 给了"再也不用为每个集成写胶水"的承诺——但需要时间和广泛采纳才能兑现；
+      <br>
+      <strong>对企业</strong>：A2A 给了跨系统 Agent 协作的<span class="hl-green">标准化入场券</span>——早接入早收益。
+    </div>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--red);">6</div>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q1：A2A 和 MCP 真的是互补的吗？会不会最终一个吃掉另一个？</div>
+      <div class="a">
+        技术上<strong>两者是互补的，不会互相吃掉</strong>，但政治上会有竞争。
+        <br><br>
+        技术互补的原因已经讲过：MCP 管 Agent↔Tool、A2A 管 Agent↔Agent。两者字段几乎不重叠、解决的问题不重叠。最典型的证据是：<span class="hl-blue">主流框架都在同时支持两者</span>——AgentScope、LangGraph、AutoGen v0.4、Copilot Studio 等纷纷声明兼容 MCP + A2A。
+        <br><br>
+        政治竞争的层面：<strong>Anthropic 和 Google 都想成为 Agent 时代的协议主导方</strong>。Anthropic 通过 MCP 已经站稳了"工具调用层"；Google 想通过 A2A 拿下"Agent 协作层"。如果 Anthropic 未来把 MCP 向上扩展支持"Agent-as-Tool"（把对面 Agent 当工具调），理论上可以覆盖 A2A 的一部分场景；反过来，Google 也可以在 A2A 里加工具调用语义（实际上 A2A 的 DataPart 已经能表达工具调用）。
+        <br><br>
+        <strong>最可能的未来</strong>：两者并存 3-5 年，各自成熟；然后要么出现一个新的"Super Protocol"统一它们（希望由 Linux Foundation 或 IETF 主持），要么分层稳定——就像 HTTP 和 TCP 各管各的，谁也不需要吃掉谁。<span class="unconfirmed">&lt;3-5 年趋势待观察&gt;</span>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="q">Q2：我现在做 Agent 应用，要不要现在就上 A2A？</div>
+      <div class="a">
+        分三种情况回答：
+        <br><br>
+        <strong>单 Agent 应用（一个 LLM + 几个工具）</strong>：不需要 A2A。MCP 就够了。你的 Agent 不对外暴露、不调别人的 Agent，A2A 就是过度设计。
+        <br><br>
+        <strong>同一团队多 Agent 应用（LangGraph/AutoGen 内部多节点）</strong>：不强求。框架内部通信可以直接用内存/消息队列，性能更好。只有当你想把某个 Agent 暴露出去给其他团队/系统消费时，才用 A2A 封装。
+        <br><br>
+        <strong>跨团队 / 跨组织 / 跨产品的 Agent 集成</strong>：<span class="hl-green">强烈推荐现在就上 A2A</span>。三个理由：
+        <ul style="margin-bottom:0;margin-top:6px;">
+          <li><strong>避免未来债</strong>：现在不上，自己写一套胶水代码，等 3 年后 A2A 成为事实标准，又要重写；</li>
+          <li><strong>SDK 已经成熟</strong>：Python/Go/JS/Java/.NET 五种语言官方 SDK 都到 v1.0，工程化成本已经很低；</li>
+          <li><strong>生态势能已起</strong>：Google、Amazon、Salesforce、MongoDB 等大厂都在接入，早期接入能蹭到生态红利（比如被列入 awesome-a2a、拿到 Google 的案例推广 <span class="unconfirmed">待实证</span>）。</li>
+        </ul>
+        <br>
+        <strong>落地建议</strong>：先把你最稳定、最通用的一个 Agent 包装成 A2A Server（暴露 AgentCard + 实现 SendMessage/GetTask），放到 <code>/.well-known/agent.json</code>，试试让别的 Agent 发现调用——这个最小闭环打通后，扩展到其他 Agent 就是复制粘贴。整个学习成本大概<span class="hl">2-3 天</span>（前提是你熟悉 JSON-RPC 和 SSE）。
+      </div>
+    </div>
+
+    <div class="callout callout-key" style="margin-top:24px;">
+      <div class="callout-title">📌 一句话记住本篇</div>
+      A2A = <span class="hl-blue">Google 主导、Linux Foundation 治理的 Agent↔Agent 开放协议</span>，通过 <strong>AgentCard 发现 + Task 生命周期 + Message/Part/Artifact 数据模型</strong> 三层设计，解决不同框架/厂商/组织的 Agent 互操作问题。与 MCP（Agent↔Tool）互补叠加，是 <span class="hl-green">2025-2026 年 Agent 互联网协议栈的关键拼图</span>——对任何做跨系统 Agent 集成的团队都是必须理解的基础设施。
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 52 · Google A2A (Agent-to-Agent Protocol) · a2aproject/A2A · Apache-2.0 · Linux Foundation · 2025-2026</p>
+  <p style="margin-top:8px;"><a href="../index1.html">← 返回导航中心</a></p>
+</div>
+
+</body>
+</html>
