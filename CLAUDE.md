@@ -56,12 +56,16 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/40-hallucination-survey.html` — "后加": LLM-based Agents Suffer from Hallucinations: A Survey (arXiv:2509.18970, 2025) — 5-stage hallucination taxonomy, agent-specific failure modes, mitigation pathways
 - `html/deep-dive/41-mitigating-hallucination.html` — "后加": Mitigating Hallucination: RAG, Reasoning, and Agentic Systems (arXiv:2510.24476, 2025) — three pragmatic paths complementing survey 40
 - `html/deep-dive/42-megaagent.html` — "后加": MegaAgent (arXiv:2408.09955, ACL Findings 2025) — 590 auto-generated agents with dynamic task allocation, contrasts fixed-pipeline approaches (MetaGPT/ChatDev)
+- `html/deep-dive/43-evaluating-memory.html` — "后加": Evaluating Memory Structure (arXiv:2602.11243, 2026) — StructMemEval benchmark comparing Linear/Tree/Graph memory structures
+- `html/deep-dive/44-autonomous-memory-aug.html` — "后加": MemInsight: Autonomous Memory Augmentation (arXiv:2503.21760, EMNLP 2025, AWS AI Labs) — LLM-driven attribute mining across entity×conversation perspectives
+- `html/deep-dive/45-optima.html` — "后加": OPTIMA (arXiv:2410.08115, ACL Findings 2025, Tsinghua THUNLP) — MCTS-inspired DPO for MAS communication, 2.8× performance + <10% token
+- `html/deep-dive/46-agenttorch.html` — "后加": AgentTorch (arXiv:2409.10568, MIT Media Lab, AAMAS 2024 Oral) — differentiable million-scale agent simulation
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 42). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 46). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker

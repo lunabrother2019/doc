@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读46：AgentTorch — 可微分 Agent 仿真 × 百万规模</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero .paper-ref.tag { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--cyan); }
+    .hero .paper-ref.tag-org { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: var(--yellow); }
+    .hero .paper-ref.tag-github { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.3); color: var(--green); }
+    .hero .paper-ref.tag-aamas { background: rgba(244,114,182,0.08); border-color: rgba(244,114,182,0.3); color: var(--pink); }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; background: var(--cyan); }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: "Courier New", monospace; background: rgba(34,211,238,0.08); color: var(--cyan); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .unconfirmed { font-size: 11px; color: var(--orange); background: rgba(251,146,60,0.1); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(251,146,60,0.35); margin-left: 4px; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-box.pink { border-color: rgba(244,114,182,0.3); }
+    .stat-box.pink .stat-val { color: var(--pink); }
+    .stat-box.cyan .stat-val { color: var(--cyan); }
+    .stat-box.green .stat-val { color: var(--green); }
+    .stat-box.yellow .stat-val { color: var(--yellow); }
+    .stat-box.blue .stat-val { color: var(--blue); }
+    .stat-box.accent .stat-val { color: var(--accent); }
+
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13.5px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; text-align: left; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .faq-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .faq-item .q { color: var(--yellow); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .faq-item .a { font-size: 13.5px; line-height: 1.8; color: var(--text); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(34,211,238,0.15); color: var(--cyan); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 22px; }
+    .arch-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .arch-box .arch-title { font-size: 13px; font-weight: 700; color: var(--cyan); margin-bottom: 6px; }
+    .arch-box .arch-body { font-size: 13px; color: var(--text); line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>AgentTorch — 可微分 Agent 仿真 × 百万规模 <span class="personal-badge">后加</span></h1>
+  <p class="sub">深度解读：MIT Media Lab 提出的 <strong>AgentTorch</strong> 把 Agent 状态整体表示为 <span class="hl-cyan">PyTorch Tensor</span>，让 <span class="hl">梯度流通整个 simulation</span>——整个 ABM 变成一个可反向传播的巨大可微计算图。它主打"<span class="hl-pink">科学计算接口 × 百万规模</span>"：在 NYC 做了 <span class="hl-green">8.4M Agent × 2 年</span>的 COVID 仿真，同时用梯度做参数校准，比黑盒 calibration 快 <span class="hl">~8300×</span>，还在新西兰 H5N1、阿拉斯加候鸟、供应链等真实场景落地。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2409.10568" target="_blank">arXiv:2409.10568</a> · Chopra et al. · 2024</div>
+    <div class="paper-ref tag">Differentiable ABM</div>
+    <div class="paper-ref tag-org">MIT Media Lab</div>
+    <div class="paper-ref tag-aamas">AAMAS Oral</div>
+  </div>
+  <div style="margin-top:12px;">
+    <div class="paper-ref tag">Million-Scale</div>
+    <div class="paper-ref tag-github"><a href="https://github.com/AgentTorch/AgentTorch" target="_blank" style="color:inherit;">⭐ GitHub: AgentTorch/AgentTorch</a></div>
+    <div class="paper-ref"><a href="https://agenttorch.github.io/AgentTorch/" target="_blank">官网文档</a></div>
+    <div class="paper-ref"><a href="https://lpm.media.mit.edu/" target="_blank">LPM @ MIT Media Lab</a></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 可微分仿真的特点</a>
+    <a href="#sec3">3. 架构：Tensor Agent + 可微 Op</a>
+    <a href="#sec4">4. 与 17/35 对照</a>
+    <a href="#sec5">5. 应用案例</a>
+    <a href="#sec6">6. 与小镇的联系</a>
+    <a href="#faq">FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">Cross-ref</span>
+  <a href="./17-agent-society.html">17 · AgentSociety</a>
+  <a href="./19-generative-agents.html">19 · Generative Agents</a>
+  <a href="./34-socioverse.html">34 · SocioVerse</a>
+  <a href="./35-opencity.html">35 · OpenCity</a>
+  <span class="cr-personal">后加专题</span>
+</div>
+
+<div class="container">
+
+<!-- ============================== SECTION 1 ============================== -->
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num">1</div><h2>一句话定位：把 Agent-Based Model 变成 PyTorch 程序</h2></div>
+
+  <p>
+    AgentTorch 的口号是："<span class="hl-cyan">PyTorch, but for large-scale agent-based simulations</span>"。它不是一个"新 Agent 架构"论文，而是一个<strong>计算框架</strong>：把传统 ABM 里离散、面向对象的 for-loop 仿真，改写成<span class="hl-pink">张量化 + 可微分</span>的计算图。
+    这一步带来了两个在同类仿真框架里独此一家的能力——
+  </p>
+
+  <ul>
+    <li><strong>梯度流通整个仿真</strong>：从 step 1 到 step T，从 Agent 属性到环境参数，所有"量"都挂在一个<span class="hl">反向传播图</span>上，可以用 <code>loss.backward()</code> 直接拿到任意参数对最终目标的导数。</li>
+    <li><strong>与神经网络/LLM 无缝拼接</strong>：因为仿真本身就是一段 PyTorch 代码，把一段 MLP、一个 LLM 前向、一个 diffusion model 塞进 Agent 决策逻辑只是<span class="hl-green">拼接张量</span>的事——真正做到"神经+仿真混合"。</li>
+  </ul>
+
+  <div class="stat-row">
+    <div class="stat-box pink">
+      <div class="stat-val">8.4M</div>
+      <div class="stat-label">NYC 仿真 Agent 数</div>
+    </div>
+    <div class="stat-box green">
+      <div class="stat-val">~8300×</div>
+      <div class="stat-label">梯度 calibration 加速</div>
+    </div>
+    <div class="stat-box cyan">
+      <div class="stat-val">Tensor</div>
+      <div class="stat-label">Agent 状态表达</div>
+    </div>
+    <div class="stat-box yellow">
+      <div class="stat-val">End-to-End</div>
+      <div class="stat-label">可微分 simulation</div>
+    </div>
+    <div class="stat-box blue">
+      <div class="stat-val">GPU</div>
+      <div class="stat-label">commodity hardware 即可</div>
+    </div>
+    <div class="stat-box accent">
+      <div class="stat-val">AAMAS</div>
+      <div class="stat-label">Oral 接收</div>
+    </div>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话版</div>
+    AgentTorch = "<span class="hl-cyan">把 N 百万 Agent 塞进一个 tensor</span>" + "<span class="hl-pink">把 simulation step 写成可微 op</span>" + "<span class="hl-green">backward() 一键求所有参数梯度</span>"——ABM 终于也能像神经网络一样用梯度优化了。
+  </div>
+
+  <h3>关键事实一览</h3>
+  <ul>
+    <li><strong>作者 / 机构</strong>：Ayush Chopra, Shashank Kumar, Nurullah Giray-Kuru, Arnau Quera-Bofarull, Ramesh Raskar，来自 <span class="hl">MIT Media Lab Camera Culture / LPM</span> 项目。</li>
+    <li><strong>收录</strong>：AAMAS Oral presentation。<span class="unconfirmed">AAMAS 2024 vs 2025 年份待核实：arXiv v3 为 2024-11，web 搜索提到 AAMAS 2025 Detroit；可能是项目族中多篇论文共用 AgentTorch 栈</span></li>
+    <li><strong>两块主要能力</strong>：(a) 张量化可微 ABM 引擎（AgentTorch 栈本身）；(b) LLM 驱动 Agent 的 <span class="hl-pink">Archetype</span> 方法——把 Agent 按 demographic 聚为原型再用 LLM，而不是每人一次调用。</li>
+    <li><strong>典型实验</strong>：NYC 8.4M Agent × 2020-08~2022-07 × COVID 情境，同时预测感染 + 失业两个耦合动态。</li>
+  </ul>
+</section>
+
+<!-- ============================== SECTION 2 ============================== -->
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num">2</div><h2>"可微分仿真"到底是什么：让梯度贯穿整个 Simulation</h2></div>
+
+  <h3>传统 ABM 的痛点：参数校准全靠"猜"</h3>
+  <p>
+    一个常见的 ABM 场景——比如"模拟一个城市 100 万人在疫情中的感染和失业"——往往有几十到上百个参数：接触率、传播概率、居家合规率、失业概率、恢复率… 传统方法做参数校准 (calibration) 基本只有两条路：
+  </p>
+  <ul>
+    <li><strong>grid search / 随机搜索</strong>：跑几千次仿真，挨个对比观测数据——昂贵、慢、维数灾难。</li>
+    <li><strong>Bayesian optimization / ABC</strong>：比 grid 好一些，但仍然把 simulation 当<span class="hl">黑箱</span>，必须反复运行整个前向才能获得一次"反馈"。</li>
+  </ul>
+  <p>
+    根本问题：<span class="hl-pink">黑箱仿真拿不到梯度</span>。而现代深度学习能轻松优化几亿参数模型，全靠一件事——反向传播。AgentTorch 把这件事搬进了 ABM。
+  </p>
+
+  <h3>关键思想：把每一步 Simulation 写成可微 Op</h3>
+  <p>
+    AgentTorch 规定：<span class="hl-cyan">Agent 状态 = PyTorch Tensor</span>，<span class="hl-cyan">一步仿真 = 一次 tensor → tensor 的可微函数</span>。这样 T 步仿真就是 T 次 op 的复合，整个 simulation 等价于一个 T 层深的"前向传播"。最终 loss（比如"仿真感染曲线 vs 真实曲线的 MSE"）能对<strong>任意中间参数</strong>取导数。
+  </p>
+  <div class="formula"><span class="label">可微仿真的核心方程（示意）：</span>
+state_{t+1} = f_θ( state_t , env_t , action_t )         # 所有函数可微
+
+loss = L( state_{1..T} , obs_{1..T} )                   # 与真实观测比较
+
+∂loss / ∂θ = autograd( loss )                           # 一键反传到任意参数
+
+θ_new = θ - η · ∂loss / ∂θ                              # 直接梯度优化
+</div>
+  <p>
+    整个调参过程从"跑几千次 simulation + 外层 optimizer"变成"跑一次 forward + backward"——这就是 <span class="hl-green">~8300× 加速</span>的根源：<strong>用 1 次反传替代数千次黑箱 forward</strong>。<span class="unconfirmed">8300× 数字为论文 / 官网报告，具体条件待核实</span>
+  </p>
+
+  <h3>难点：ABM 里大量"不可微"的东西怎么办</h3>
+  <p>
+    ABM 原生对可微分不友好——离散决策（"去/不去上班"）、随机采样（感染 Bernoulli）、布尔掩码（隔离/未隔离）都会<span class="hl">切断梯度流</span>。AgentTorch 的工程解法是：
+  </p>
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="arch-title">Gumbel-Softmax 替代离散决策</div>
+      <div class="arch-body">把离散 argmax 替换为温度可调的 softmax，在 forward 保持近似 one-hot、在 backward 传真梯度。这是 RL/VAE 里的标准技巧，被搬进 ABM。</div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">Reparameterization for 随机性</div>
+      <div class="arch-body">把 <code>sample ~ Bernoulli(p)</code> 改写成 <code>p + noise</code> 形式，让梯度穿过概率参数，而不是在采样点断开。</div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">Soft Mask 替代硬分支</div>
+      <div class="arch-body">"隔离中 → 不出门"这种硬 if-else 改成连续权重，保留梯度信号。配合 sigmoid / soft threshold 达到近似的离散行为。</div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">Checkpointing / truncated BPTT</div>
+      <div class="arch-body">T 步 simulation 的梯度图会极大——用 gradient checkpointing 或截断反传，控制显存。<span class="unconfirmed">具体实现细节待实证</span></div>
+    </div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">为什么这件事重要</div>
+    ABM 一直是"<span class="hl-cyan">知道怎么模拟，但不知道怎么拟合</span>"的领域——社科/流行病学家能写出合理机制，却很难把模型参数和真实观测对齐。AgentTorch 让<strong>calibration / 敏感性分析 / 干预设计</strong>全都能用梯度求，就像在 ABM 里装上了一个 <code>Adam</code> 优化器。
+  </div>
+
+  <h3>副产品：与神经网络组合的"神经仿真混合"</h3>
+  <p>
+    因为整个 simulation 是 autograd 图，<span class="hl-pink">把神经网络塞进 Agent 决策模块</span>不需要任何特殊接口——就是普通的 <code>nn.Module.forward()</code>。这让 AgentTorch 成为"Neural ABM"的天然载体：
+  </p>
+  <ul>
+    <li>把 Agent 的 decision policy 换成 MLP，用真实数据 end-to-end 学习。</li>
+    <li>把环境 transition 换成小型神经网络，用观测数据拟合"这个城市特有的"动力学。</li>
+    <li>把 LLM 当做<span class="hl">高层策略</span>，输出分布参数，由下游可微仿真消化——LLM 负责"语义"、tensor sim 负责"规模"。</li>
+  </ul>
+</section>
+
+<!-- ============================== SECTION 3 ============================== -->
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num">3</div><h2>架构：Tensor-based Agent State + Differentiable Operations</h2></div>
+
+  <p>
+    AgentTorch 的内部可以拆成 <strong>"Substate 张量 → Transition 可微 op → Observation / Policy 模块 → Environment 容器 → LLM Archetype 插件"</strong> 五层。核心设计就是"每件东西都是 Tensor，每一步都是可微函数"。
+  </p>
+
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="arch-title">① Substate：Agent 状态张量化</div>
+      <div class="arch-body">
+        所有 Agent 的同类属性汇成一个大 tensor：<br>
+        <code>age: [N]</code>, <code>health: [N, 4]</code>（SEIR）, <code>location: [N, 2]</code>, <code>wealth: [N]</code> …<br>
+        N 可以是百万。一次 step 就是对这些 tensor 批量做 op。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">② Transition：可微 Step 函数</div>
+      <div class="arch-body">
+        <code>new_state = transition(state, env, action)</code>——纯 tensor 计算，可用 softmax / reparameterization 等保留梯度。例：感染概率 = 连续函数(暴露次数 × 传播率 × 疫苗权重)。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">③ Observation：Agent 感知局部</div>
+      <div class="arch-body">
+        对"每个 Agent 看得到什么"做向量化：邻居掩码、空间 gather、时间窗滑动。全部是可微 tensor op——没有 for-loop 里逐个 lookup。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">④ Policy：Agent 决策模块</div>
+      <div class="arch-body">
+        可以是：规则（硬编码 tensor op）、神经网络（<code>nn.Module</code>）、或 LLM 原型（见 ⑤）。输出 action tensor 作为 transition 的输入。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">⑤ LLM Archetype 插件</div>
+      <div class="arch-body">
+        把 N 百万 Agent 按 demographic 聚成 K 个 archetype（K 约几十到几百），对每个 archetype 用 <strong>一次</strong> LLM 问"这类人在此情境下会怎么做"，结果当作行为分布回填到所有个体。<span class="hl-pink">LLM 调用数 = K，不是 N</span>。
+      </div>
+    </div>
+    <div class="arch-box">
+      <div class="arch-title">⑥ Environment 容器 + Runner</div>
+      <div class="arch-body">
+        把 substate / transition / policy 组装成一个 simulation object，支持 GPU 执行、多步展开、loss 定义、backward。API 对 PyTorch 用户零学习成本。
+      </div>
+    </div>
+  </div>
+
+  <h3>为什么 Tensor 化能到百万规模</h3>
+  <p>
+    传统 ABM 用 Python object 一人一份，N 百万对象 + 每 step for-loop 必然爆。AgentTorch 的关键观察：
+    <span class="hl">ABM 里大部分行为本质是"对所有 Agent 做同一件事"</span>——更新位置、传播感染、衰减记忆。这种"对齐批量"正是 GPU 和 tensor 引擎最擅长的。
+  </p>
+  <div class="callout callout-warn">
+    <div class="callout-title">关键类比</div>
+    神经网络 batch 推理不会"一样一个样本循环一次"，而是整个 batch 一次算。AgentTorch 把 ABM 里的 Agent population 视为一个 batch——<span class="hl-cyan">N 百万 Agent = batch_size=N 的一次前向</span>——GPU 显存够就能 scale。
+  </div>
+
+  <h3>整体执行 pipeline</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>建模</strong>：定义 substate tensor schema + transition 函数 + policy（规则/NN/LLM archetype）。</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>初始化</strong>：从 census / 真实数据生成 N 百万 Agent 的初始 state tensor，一次放进 GPU。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>Forward simulate</strong>：展开 T 步 transition，记录中间状态。整条链是一张可微 graph。</div></div>
+    <div class="pipe-step"><div class="pipe-num">4</div><div class="pipe-body"><strong>Loss</strong>：把仿真轨迹和真实观测（感染曲线、失业数据…）对齐，定义 MSE / likelihood。</div></div>
+    <div class="pipe-step"><div class="pipe-num">5</div><div class="pipe-body"><strong>Backward + 优化</strong>：<code>loss.backward()</code> 获取所有参数梯度，Adam 更新。迭代直到拟合。</div></div>
+    <div class="pipe-step"><div class="pipe-num">6</div><div class="pipe-body"><strong>反事实</strong>：在拟合好的模型上换一组参数（"如果疫苗覆盖率+10%呢？"），再跑 forward 拿预测。</div></div>
+  </div>
+
+  <h3>LLM Archetype 方法：语义 + 规模兼得</h3>
+  <p>
+    AAMAS 版论文《On the limits of agency in agent-based models》的核心新贡献——不是每人一个 LLM、也不是全规则，而是<span class="hl-pink">按人物原型做 LLM 查询</span>：
+  </p>
+  <div class="formula"><span class="label">LLM Archetype 的直观表达：</span>
+Naive:     每个 Agent 一次 LLM 调用  →  N 百万次调用，成本爆炸
+Full-rule: 所有 Agent 写规则         →  丢失语义，缺乏适应性
+
+Archetype：
+  1. 把 N 百万 Agent 按 (age, income, occupation …) 聚成 K 个原型
+  2. 对每个 archetype k 询问 LLM：
+       "你是 {k 的画像}，在 {情境} 中会做什么？" → 行为分布 π_k
+  3. 每个 Agent 按其所属 archetype 从 π_k 抽样，作为其 action
+  → LLM 调用数 = K（O(10²)），Agent 数 = N（O(10⁶)）
+</div>
+  <p>
+    这条思路与 <a href="./35-opencity.html">OpenCity</a> 的 group-and-distill 非常<strong>同源</strong>——都是"把相似 Agent 聚类 → 省 LLM"。差别是 OpenCity 关注"请求调度 + prompt 蒸馏"的<span class="hl-cyan">系统层</span>，AgentTorch 把它<span class="hl-pink">直接嵌进可微计算图</span>：archetype 输出的行为分布通过 reparameterization 继续保留梯度。
+  </p>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">技术哲学</div>
+    AgentTorch 把 ABM 看作"<span class="hl">一种特殊的神经网络</span>"——每个 Agent 是一个 batch 样本，每步 transition 是一层，整个仿真是一个巨型前向。一旦这个视角被接受，PyTorch 生态的一切（autograd、GPU、混合精度、DDP、profiler、torch.compile）都能拿来用。
+  </div>
+</section>
+
+<!-- ============================== SECTION 4 ============================== -->
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num">4</div><h2>对照：AgentSociety / OpenCity / AgentTorch 的三种定位</h2></div>
+
+  <p>
+    这三者经常被同时提起，但技术路线和用户画像完全不同。简短判断：AgentTorch 侧重 <span class="hl-pink">可微分科学计算接口</span>，AgentSociety/OpenCity 侧重 <span class="hl-cyan">仿真规模和社会场景</span>。
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th><a href="./17-agent-society.html">AgentSociety</a></th>
+          <th><a href="./35-opencity.html">OpenCity</a></th>
+          <th><span class="hl-pink">AgentTorch</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>机构</strong></td>
+          <td>清华 FIB Lab</td>
+          <td>清华 FIB Lab + HKUST(GZ)</td>
+          <td><strong>MIT Media Lab</strong></td>
+        </tr>
+        <tr>
+          <td><strong>规模</strong></td>
+          <td>10K+ Agent</td>
+          <td>10K Agent × 6 城</td>
+          <td><span class="hl">8.4M Agent（NYC）</span></td>
+        </tr>
+        <tr>
+          <td><strong>核心贡献</strong></td>
+          <td>城市级社会仿真研究<em>框架</em></td>
+          <td>LLM 请求调度 + prompt 蒸馏</td>
+          <td>可微分 ABM 引擎 + LLM Archetype</td>
+        </tr>
+        <tr>
+          <td><strong>底层范式</strong></td>
+          <td>面向对象 Agent</td>
+          <td>面向对象 + 系统级优化</td>
+          <td><span class="hl-pink">Tensor + autograd</span></td>
+        </tr>
+        <tr>
+          <td><strong>主要接口用户</strong></td>
+          <td>社科 / 城市规划研究者</td>
+          <td>工程师 / 运营方</td>
+          <td><span class="hl-cyan">科学计算 / 流行病学 / 经济学</span>研究者</td>
+        </tr>
+        <tr>
+          <td><strong>优化方式</strong></td>
+          <td>规则 / 实验设计</td>
+          <td>工程调度（无优化）</td>
+          <td><span class="hl-green">梯度下降（~8300×）</span></td>
+        </tr>
+        <tr>
+          <td><strong>与神经网络集成</strong></td>
+          <td>调用 LLM API</td>
+          <td>调用 LLM API</td>
+          <td><strong>原生 nn.Module 拼接</strong></td>
+        </tr>
+        <tr>
+          <td><strong>典型问题</strong></td>
+          <td>舆论 / 政策 / 经济实验</td>
+          <td>交通 / 应急 / 规划 <em>跑得快</em></td>
+          <td>流行病 / 供应链 / 生态 <em>拟合真数据</em></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>互补而非竞争</h3>
+  <ul>
+    <li><strong>AgentSociety</strong> 回答"怎么搭一个研究平台"——框架侧。</li>
+    <li><strong>OpenCity</strong> 回答"怎么让 LLM Agent 仿真便宜快"——系统侧。</li>
+    <li><span class="hl-pink"><strong>AgentTorch</strong></span> 回答"怎么让 ABM 接入科学计算管线、能拟合、能反事实、能和神经网络一起训"——<span class="hl-cyan">数值/梯度侧</span>。</li>
+  </ul>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一条容易混淆的边界</div>
+    AgentTorch 并不追求"Agent 认知真实度"。它的 Agent 经常只有几个属性、一个简单决策函数——比 Generative Agents 粗糙得多。它追求的是<span class="hl">把百万个这种粗糙 Agent 数值化、可微化、可拟合</span>，让 ABM 跟真实统计数据对得上。
+    如果要研究"Agent 内心世界"，应该选 Generative Agents / AgentSociety；如果要研究"百万人群体动力学并反拟合真实数据"，选 AgentTorch。
+  </div>
+
+  <h3>三者放在一张坐标系</h3>
+  <div class="formula"><span class="label">两维坐标：规模 × 认知深度</span>
+高认知深度 (LLM full agent)
+     |
+     |   Generative Agents(25)       AgentSociety(10K+)
+     |
+     |                         OpenCity(10K)
+     |
+     |                              SocioVerse(10M pool)
+     |                                           AgentTorch(8.4M, archetype)
+     |
+     +————————————————————————————————→ 规模
+</div>
+  <p>
+    AgentTorch 右下角的"低认知深度+超大规模+梯度可优化"正是科学计算传统偏好——宁可 Agent 简单，换来可反演、可拟合。这与 Generative Agents 路线正好相反。
+  </p>
+</section>
+
+<!-- ============================== SECTION 5 ============================== -->
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num">5</div><h2>应用案例：从 COVID NYC 到新西兰 H5N1</h2></div>
+
+  <h3>Case 1 · NYC COVID：8.4M Agent × 2 年仿真</h3>
+  <div class="card">
+    <p><strong>场景</strong>：模拟 NYC 8.4M 居民从 2020-08 到 2022-07 的疫情 + 就业动态，预测两个耦合变量——<span class="hl-cyan">感染曲线</span>和<span class="hl-cyan">失业率</span>。</p>
+    <p><strong>Agent 设计</strong>：每个 Agent 有 demographic 属性（年龄/职业/收入/家庭）+ SEIR 健康状态 + 就业状态。行为模块用 <span class="hl-pink">LLM Archetype</span>：约 O(10²) 个原型预先向 LLM 询问"要不要出门/上班/打疫苗"，所有 8.4M Agent 共享这些行为分布。</p>
+    <p><strong>结果</strong>：</p>
+    <ul>
+      <li>LLM Archetype 版本在 <span class="hl-green">感染和失业的双指标上误差低于纯规则 baseline</span>。</li>
+      <li>对纽约 5 个 borough 中的 3 个（约 5M 人）预测高度精准。</li>
+      <li>计算成本显著低于 per-agent LLM，在 commodity GPU 上可完成。</li>
+    </ul>
+    <p><strong>意义</strong>：证明"粗认知的海量 Agent + 少量 LLM 原型"比"精细规则 ABM"或"每人 LLM"都更好——在真实社会动态预测上<span class="hl">命中一个甜蜜点</span>。</p>
+  </div>
+
+  <h3>Case 2 · 新西兰 H5N1 + 健康经济 digital twin</h3>
+  <div class="card">
+    <p><strong>合作方</strong>：新西兰环境科学与研究所 (ESR)。<span class="unconfirmed">ESR 合作范围与部署细节待实证</span></p>
+    <p><strong>场景</strong>：为新西兰 ~500 万人口建一个 agent-based <span class="hl">数字孪生</span>，用于应对 H5N1 禽流感威胁——跨公共卫生 + 经济两域。</p>
+    <p><strong>AgentTorch 的角色</strong>：提供可微分 ABM 引擎，使得 ESR 能用历史疫情数据<span class="hl-cyan">反拟合</span>传播参数，再做"<em>如果 H5N1 进入人传人阶段会怎样</em>"的反事实模拟。</p>
+    <p><strong>工程意义</strong>：从学术 demo 到国家级公共卫生决策的<strong>落地证明</strong>——这是同类 LLM 仿真平台中少有的真实部署。</p>
+  </div>
+
+  <h3>Case 3 · 阿拉斯加候鸟迁徙</h3>
+  <div class="card">
+    <p>用 AgentTorch 建模候鸟觅食/迁徙行为，研究气候变化下的生态响应。<span class="hl-pink">体现 AgentTorch 不止于"人类社会"</span>——任何"大量个体 + 可写出 transition + 想反演参数"的系统都适用。</p>
+  </div>
+
+  <h3>Case 4 · 供应链 / H5N1 牛奶追踪</h3>
+  <div class="card">
+    <p>在太平洋岛屿做乳制品供应链仿真，追踪 H5N1 传播风险。ABM 在此类问题上天然比微分方程更合适——因为涉及<span class="hl">离散实体流转</span>——AgentTorch 让这类模型也能被梯度 fit。</p>
+  </div>
+
+  <h3>关键性能数字</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>指标</th><th>数值</th><th>意义</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>NYC 仿真规模</td><td>8.4M Agent × 2 年</td><td>百万级端到端可微</td></tr>
+        <tr><td>梯度 calibration 加速</td><td><span class="hl-green">~8300×</span></td><td>vs 黑箱参数搜索<span class="unconfirmed">论文/官网数字待核实具体条件</span></td></tr>
+        <tr><td>LLM 调用省去</td><td>N/K（几千倍）</td><td>Archetype vs per-agent LLM</td></tr>
+        <tr><td>硬件门槛</td><td>commodity GPU</td><td>不依赖专用集群</td></tr>
+        <tr><td>集成方式</td><td>nn.Module / LangChain / DSPy</td><td>与 LLM 生态无缝拼接</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-green">
+    <div class="callout-title">为什么这些应用都在 AgentTorch 上做</div>
+    它们有一个共同需求：<span class="hl">模型得能拟合真实数据 + 做反事实推演</span>。传统 ABM 靠 grid search，慢到不能迭代；纯 LLM 仿真成本太高。AgentTorch 的梯度可微 + Archetype 组合，在"<em>便宜 × 可拟合 × 可反事实</em>"三个维度上同时占优——这是它能进入国家级公卫项目的根本原因。
+  </div>
+</section>
+
+<!-- ============================== SECTION 6 ============================== -->
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num">6</div><h2>与斯坦福小镇的联系：两条"Agent 研究路径"的分岔</h2></div>
+
+  <h3>定位差异</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>斯坦福小镇 (Park 2023)</th><th>AgentTorch (Chopra 2024/25)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>规模</td><td>25 Agent</td><td><span class="hl-pink">8.4M Agent</span></td></tr>
+        <tr><td>Agent 内核</td><td>Memory Stream + Plan + Reflect</td><td>Tensor 状态 + 可微 transition + LLM archetype</td></tr>
+        <tr><td>认知深度</td><td>极高（每个 Agent 有完整"人格"）</td><td>较低（Agent 属性通常仅几个字段）</td></tr>
+        <tr><td>可微分</td><td>否（LLM 推理链是黑盒）</td><td><span class="hl-green">是（完整 autograd 图）</span></td></tr>
+        <tr><td>用途</td><td>"Agent 能不能像人"定性研究</td><td>"ABM 能不能拟合真实社会"定量研究</td></tr>
+        <tr><td>数据对齐</td><td>Phaser.js 虚构小镇</td><td>census + 真实观测序列</td></tr>
+        <tr><td>研究社区</td><td>HCI / NLP / AI</td><td>流行病学 / 经济 / 计算社科</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">两条路径的分岔</div>
+    Generative Agents 路径 = "<span class="hl-cyan">让每个 Agent 更像人</span>"——内存/反思/规划的 agent architecture。<br>
+    AgentTorch 路径 = "<span class="hl-pink">让 Agent 群体能被科学计算工具处理</span>"——tensor / autograd / 梯度拟合。<br>
+    两条路径互相不否定——事实上 <strong>LLM Archetype 正是它们的相遇点</strong>：LLM 提供语义（继承 Generative Agents 思路），但只对 O(10²) 个原型调用，让 O(10⁶) Agent 规模可行且可微。
+  </div>
+
+  <div class="sv-link">
+    小镇关心"Agent 能否展示可信的<strong>个体</strong>行为"；AgentTorch 关心"Agent 群体能否复现可信的<strong>宏观统计</strong>"。一个对外说"像人"，一个对外说"对得上真实数据"。要做政策/公卫决策，后者更重要；要做社会涌现/叙事研究，前者更重要。
+  </div>
+
+  <h3>AgentTorch 给 Generative Agents 路线的启发</h3>
+  <ul>
+    <li><strong>规模门槛被重新定义</strong>：原来以为"LLM Agent 到 10K 就很难了"，AgentTorch 证明只要肯牺牲一点认知深度（archetype），上千万是可行的。</li>
+    <li><strong>数据闭环</strong>：小镇缺一个"把仿真输出与真实数据对齐"的机制，AgentTorch 的可微 calibration 是现成解。</li>
+    <li><strong>科学计算接口</strong>：为 LLM Agent 仿真进入流行病学 / 经济学 / 气候学等传统定量领域打开了门。</li>
+  </ul>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">未来融合点</div>
+    设想：上层用 Generative Agents 式"<strong>认知深</strong>"模块做 O(10²) 个 archetype 的语义推理；下层用 AgentTorch 把 O(10⁶) Agent 张量化、可微化、可拟合——这就是"<span class="hl">认知真实 × 统计真实</span>"的理想融合路线。
+  </div>
+</section>
+
+<!-- ============================== FAQ ============================== -->
+<section class="section" id="faq">
+  <div class="sec-head"><div class="sec-num">?</div><h2>FAQ：两个最常被问的问题</h2></div>
+
+  <div class="faq-item">
+    <div class="q">Q1. 可微分仿真听起来很美，但离散决策、随机采样、if-else 分支这些东西怎么"可微"？是不是只是"近似可微"？</div>
+    <div class="a">
+      是"近似可微"——但这种近似在深度学习里已经很成熟，且实践效果好。AgentTorch 的处理手段包括：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>Gumbel-Softmax</strong>（离散 action → softmax + 退火温度，梯度可传）；</li>
+        <li><strong>Reparameterization</strong>（把 sample 搬到分布参数外，让概率可求导）；</li>
+        <li><strong>Soft mask</strong>（硬 if-else 换成 sigmoid 连续权重）；</li>
+        <li><strong>Straight-Through estimator</strong>（forward 用离散、backward 用连续 surrogate）。</li>
+      </ul>
+      这些技巧在 VAE / RL / NAS 里都成熟。它们会让 simulation <strong>与完全离散版本行为略有偏差</strong>，但在"<span class="hl-cyan">用梯度做参数拟合</span>"的场景下这种偏差完全可接受——因为核心目标是找到参数，而不是 bit-for-bit 复现离散动力学。
+      对于必须完全离散的场景，AgentTorch 仍然支持"不可微"op，只是在这些位置<strong>梯度不会传播</strong>——用户要自己决定哪里可微、哪里硬截断。<span class="unconfirmed">API 级别的细节与官方文档待核实</span>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="q">Q2. AgentTorch 的 LLM Archetype 和 OpenCity 的 group-and-distill 好像一回事？它们到底什么关系？</div>
+    <div class="a">
+      思路确实非常相近——都是"<span class="hl">把 N 百万 Agent 聚成 K 个代表，只对 K 个用 LLM</span>"——但侧重层次不同：
+      <ul style="margin-top:6px;margin-bottom:0;">
+        <li><strong>OpenCity 的 group-and-distill</strong>（见 <a href="./35-opencity.html">deep-dive 35</a>）：关注"prompt 蒸馏 + 请求调度"，目标是<span class="hl-cyan">省 LLM token 和请求数</span>（系统层优化）。它的 downstream 还是每个 Agent 一次 LLM call，只是 prefix 共享。</li>
+        <li><span class="hl-pink"><strong>AgentTorch 的 Archetype</strong></span>：关注"把 LLM 输出变成可微分布"，目标是<span class="hl-cyan">让 LLM 语义和 tensor 仿真对接</span>（计算图层）。它的 downstream 是每个 archetype <strong>只算一次</strong> LLM，个体从该分布抽样。</li>
+        <li><strong>一个指标对比</strong>：OpenCity 报告 ~70% 请求减少；AgentTorch 的 Archetype 因 K ≪ N，LLM 调用数减少<strong>几千倍</strong>。</li>
+      </ul>
+      两者是<span class="hl-green">不同层面的"同一思想"</span>——Agent 群体同质性是可以被利用的计算结构。如果要在工业级 LLM 城市仿真里做"cost × 梯度拟合"双优化，最好把两者结合：用 OpenCity 风格调度保证 K 个 archetype LLM 调用便宜，用 AgentTorch 风格 autograd 让整个 simulation 可拟合真实数据。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color: var(--cyan); font-weight: 600;">← 返回索引</a>
+  <p style="margin-top: 10px;">深度解读 46 · AgentTorch: Differentiable Agent Simulation at Million Scale · AAMAS Oral · MIT Media Lab</p>
+</div>
+
+</body>
+</html>

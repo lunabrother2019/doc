@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读43：Evaluating Memory Structure — 线性/树状/图状三种记忆结构对比</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .hero .paper-ref + .paper-ref { margin-left: 8px; }
+    .hero-badges { margin-top: 16px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+    .personal-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px; margin-left: 10px;
+      background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6;
+      vertical-align: middle;
+    }
+    .survey-badge {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35);
+      vertical-align: middle;
+    }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .tbd { background: rgba(248,113,113,0.1); color: var(--red); border: 1px dashed rgba(248,113,113,0.4); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td code { background: var(--bg3); color: var(--yellow); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 24px; }
+    .tier { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+    .tier.t1 { border-left-color: var(--green); }
+    .tier.t2 { border-left-color: var(--cyan); }
+    .tier.t3 { border-left-color: var(--pink); }
+    .tier.t4 { border-left-color: var(--orange); }
+    .tier h4 { margin-top: 0; }
+
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+
+    .pipeline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin: 20px 0 24px; }
+    .pipeline .step { flex: 1 1 200px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; position: relative; }
+    .pipeline .step .s-num { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(34,211,238,0.15); color: var(--cyan); margin-bottom: 8px; }
+    .pipeline .step h4 { margin: 0 0 6px; }
+    .pipeline .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+
+    .faq { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin-bottom: 14px; }
+    .faq-q { color: var(--cyan); font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { color: var(--text); font-size: 14px; line-height: 1.85; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); transition: all .15s; }
+    .cross-ref a:hover { background: rgba(96,165,250,0.15); text-decoration: none; }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>深度解读43：Evaluating Memory Structure — 线性/树状/图状三种记忆结构对比 <span class="personal-badge">后加</span></h1>
+  <p class="sub">当"Agent 记忆"从一个向量池发展到树、图、层次化结构时，我们到底怎么知道哪种结构"更好"？本文提出 <strong>StructMemEval</strong>：一个专门评估 agent <em>组织</em>其长期记忆能力的基准——不是背得住事实，而是能否把事实按"人类会用的结构（账本、待办、树、图）"自己摆好。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2602.11243" target="_blank">arXiv 2602.11243</a> &middot; Shutova, Olenina, Vinogradov, Sinitsin &middot; 2026.02.11</div>
+    <div class="paper-ref" style="background:rgba(139,149,165,0.08);border-color:rgba(139,149,165,0.25);color:var(--muted);">📄 Preprint（代码仓库：<span class="tbd">&lt;待实证&gt;</span>）</div>
+  </div>
+  <div class="hero-badges">
+    <span class="survey-badge">Memory Benchmark</span>
+    <span class="survey-badge" style="background:rgba(34,211,238,0.1);color:var(--cyan);border-color:rgba(34,211,238,0.35);">arXiv 2026</span>
+    <span class="survey-badge" style="background:rgba(167,139,250,0.1);color:var(--accent);border-color:rgba(167,139,250,0.35);">Linear / Tree / Graph</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sec1">1. 一句话定位</a>
+    <a href="#sec2">2. 三种记忆结构</a>
+    <a href="#sec3">3. 评估设定</a>
+    <a href="#sec4">4. 关键结果</a>
+    <a href="#sec5">5. 与本库对比</a>
+    <a href="#sec6">6. FAQ</a>
+  </div>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../concepts-map.html">概念图</a>
+  <a href="../papers-reference.html#cat-personal">论文库</a>
+  <a href="18-hiagent.html">18 HiAgent</a>
+  <a href="20-a-mem.html">20 A-MEM</a>
+  <a href="21-memory-os.html">21 MemoryOS</a>
+  <a href="24-memory-survey.html">24 Memory Survey</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+  <div class="section" id="sec1">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--cyan);">1</div>
+      <h2>一句话定位：第一个专测"记忆结构"的 benchmark</h2>
+    </div>
+
+    <p>过去两年 agent 记忆研究百花齐放——Memory Stream（线性）、HiAgent（层级树）、A-MEM（图网络）、MemoryOS（多级）。但几乎所有评测（LongMemEval / LoCoMo / PerLTQA）<strong>只测"能不能记住事实"</strong>，不测"记忆到底组织成什么样"。这就像给学生考记忆量，却从不考察他们的笔记本结构。</p>
+
+    <div class="callout callout-key">
+      <div class="callout-title" style="color:var(--accent);">论文摘要核心主张</div>
+      <p style="margin-bottom:0;">"简单 RAG 在'多跳召回 + 事实保持'上就够用了，但面对<span class="hl">需要人类按特定结构组织信息才能解的任务</span>（账本、待办、树、排序、图），RAG 几乎必败。" 论文提出 <strong>StructMemEval</strong>，一个专门测量"agent 能否主动构造并使用合适记忆结构"的基准。</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--cyan);">3</div>
+        <div class="stat-label">主结构类别（Linear / Tree / Graph）</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">1</div>
+        <div class="stat-label">新 benchmark：StructMemEval</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--yellow);">N</div>
+        <div class="stat-label">任务类型：账本 / 待办 / 树 / ...<span class="tbd">&lt;待实证&gt;</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--pink);">2026</div>
+        <div class="stat-label">arXiv 首版</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--orange);">2</div>
+        <div class="stat-label">关键实证结论（提示/不提示）</div>
+      </div>
+    </div>
+
+    <p>从 abstract 可以读出的两条"核心发现"非常锋利：</p>
+    <ol>
+      <li><strong>简单 RAG 难以完成这些任务</strong>：传统检索增强不足以支撑需要结构化组织的任务。</li>
+      <li><strong>带结构化 memory 的 agent 只要被提示"如何组织"就能稳定解决</strong>——但如果不提示，<span class="hl">现代 LLM 经常认不出该用哪种结构</span>。这揭示了 agent 记忆的一个关键缺口：<em>结构选择</em>本身目前还需要人工提示。</li>
+    </ol>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">为什么这件事重要</div>
+      <p style="margin-bottom:0;">agent 记忆研究已经从"存什么"走到"怎么组织"。但在没有好 benchmark 之前，大家只能靠直觉选 Linear / Tree / Graph。StructMemEval 把这件事从"工程直觉"升级为"可量化评测"，让后续 A-MEM 类图、HiAgent 类树、MemoryOS 类层级真正能放在同一张尺子上比。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec2">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--accent);">2</div>
+      <h2>三种记忆结构：Linear / Tree / Graph 各自特点</h2>
+    </div>
+
+    <p>论文核心把 agent 记忆的组织形式抽象为三类——这也是 StructMemEval 横向对比的主要对象。本节定义取自"结构组织"视角（abstract 明说了 "trees and others"，其他具体命名 <span class="tbd">&lt;待实证&gt;</span>，但可以从先验相关工作合理推断为 Linear 流、Tree 层级、Graph 网络三种主流范式）。</p>
+
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>① Linear / Stream 记忆（线性流）</h4>
+        <p style="margin-bottom:4px;"><strong>形态</strong>：把所有经历 append 到时间流里，写入简单、检索靠向量相似 + 时间/重要性加权。</p>
+        <p style="margin-bottom:4px;"><strong>代表</strong>：Smallville Memory Stream、LangChain ConversationBufferMemory、大部分 ChatGPT 式对话记忆。</p>
+        <p style="margin-bottom:0;"><strong>优点</strong>：实现成本低、写路径零额外认知成本；<strong>缺点</strong>：当任务要求"对所有条目保持聚合/排序/统计"时（典型如账本），纯流式结构必须<span class="hl">每次从零重算</span>，随着条目增多准确率崩塌。</p>
+      </div>
+      <div class="tier t2">
+        <h4>② Tree / Hierarchy 记忆（树状层级）</h4>
+        <p style="margin-bottom:4px;"><strong>形态</strong>：以"根-章节-段-条目"或"目标-子目标-动作"的层级方式组织，写入时分到合适分支，检索按路径。</p>
+        <p style="margin-bottom:4px;"><strong>代表</strong>：HiAgent（目标分层的工作记忆）、文件系统式记忆、MemGPT 分档、层级待办表/大纲。</p>
+        <p style="margin-bottom:0;"><strong>优点</strong>：天然适合"任务分解"、"范畴明确"、"临时插入/删除"类场景；<strong>缺点</strong>：树形结构对"跨分支关联"不友好，遇到图式依赖时容易把关系压成重复子树。</p>
+      </div>
+      <div class="tier t3">
+        <h4>③ Graph / Network 记忆（图状网络）</h4>
+        <p style="margin-bottom:4px;"><strong>形态</strong>：每条记忆是节点，写入时同时生成与已有节点的关联边（实体共现、因果、语义相似、时序）。</p>
+        <p style="margin-bottom:4px;"><strong>代表</strong>：A-MEM（Zettelkasten 自动建边）、Zep/Graphiti（时序知识图）、GraphRAG 系。</p>
+        <p style="margin-bottom:0;"><strong>优点</strong>：跨实体、跨时间的"多跳关系"题目表现最佳；<strong>缺点</strong>：写入代价高、对抽取质量敏感、图膨胀后检索策略本身成为难题。</p>
+      </div>
+      <div class="tier t4">
+        <h4>（附）StructMemEval 还会触及的"其他"结构</h4>
+        <p style="margin-bottom:0;">原文明确提到 <em>"transaction ledgers, to-do lists, trees and others"</em>——前两者可以看成"带语义槽的线性/表格结构"，其实是对"纯 stream"的<span class="hl">结构化特化</span>：账本要求条目之间能"求和/对账"，待办要求"状态可翻转/可删除"。这类"受约束的半结构"可能是论文最有意思的灰色地带。<span class="tbd">&lt;待实证&gt;</span>具体任务数量与构造。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">结构不是"越复杂越好"——匹配任务才是关键</div>
+      <p style="margin-bottom:0;">论文抓住的隐含主张是：<span class="hl">没有统一最优的记忆结构</span>，只有"任务-结构"匹配与否。线性结构对流式叙事最自然，树对任务分解最自然，图对多跳关系最自然；用错结构会导致 agent 必须在每次推理时"现场重构"——而这正是 LLM 最容易犯错的地方。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec3">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--yellow);">3</div>
+      <h2>评估设定：StructMemEval 的任务、对照与指标</h2>
+    </div>
+
+    <h3>3.1 任务集：按"人类组织知识的结构"反推</h3>
+    <p>论文给出的任务构造原则非常直接——<span class="hl">挑那些人类必须用一个特定结构才能解的题</span>：</p>
+    <ul>
+      <li><strong>Transaction Ledger（账本）</strong>：一段长对话中不断"+100 / -50 / 转账"，期末要求给出对账结果。必须维护一张可求和的表，不是"找到最相似那句话"就能解的。</li>
+      <li><strong>To-Do List（待办清单）</strong>：在对话中不断增删改待办项，期末要求列出当前活动项。必须维护"状态可变"的集合，而不是 append-only 的 stream。</li>
+      <li><strong>Tree（树式组织）</strong>：对应层级/分类/目录结构的任务，例如家族树、目录树。</li>
+      <li><strong>Others（其他）</strong>：论文提到"and others"，具体任务集合 <span class="tbd">&lt;待实证&gt;</span>，但按设计思路推测应覆盖图式关系（多跳）、排序（有序集合）、聚合统计等。</li>
+    </ul>
+
+    <h3>3.2 对照组设定</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>对照组</th>
+            <th>做法</th>
+            <th>预期表现</th>
+            <th>论文关心的问题</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Simple RAG LLM</strong></td>
+            <td>对话历史切块 + 向量检索 + 回填到 prompt</td>
+            <td>事实多跳还行，结构化任务差</td>
+            <td>验证"检索不等于组织"</td>
+          </tr>
+          <tr>
+            <td><strong>Memory Agent（带提示）</strong></td>
+            <td>明确告诉 agent "请用账本结构维护这段对话"</td>
+            <td>几乎可以稳定解决</td>
+            <td>验证"只要结构对，LLM 有能力执行"</td>
+          </tr>
+          <tr style="background:rgba(244,114,182,0.05);">
+            <td><strong>Memory Agent（不提示）</strong></td>
+            <td>由 agent 自己决定用哪种记忆结构</td>
+            <td>常常识别不到应该用哪种结构</td>
+            <td><span class="hl">核心发现：结构选择能力缺失</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 指标（按论文设计意图推断）</h3>
+    <ul>
+      <li><strong>任务成功率 / 最终答案准确率</strong>：所有 benchmark 的基本盘。</li>
+      <li><strong>结构选择正确率</strong>：在"不提示"组，agent 自发选择的结构是否匹配任务——这是本论文<span class="hl">独特的新指标</span>。<span class="tbd">&lt;待实证&gt;</span>具体是否以这个名字命名。</li>
+      <li><strong>规模扩展曲线</strong>：随条目数量 / 对话轮数增长，各结构的性能衰减曲线。</li>
+      <li><strong>Ablation</strong>：结构给定 vs 不给定、模型规模差异、检索策略差异（<span class="tbd">&lt;待实证&gt;</span>）。</li>
+    </ul>
+
+    <div class="sv-link">
+      Smallville 的"记忆流 + recency/importance/relevance 评分"正是典型的<strong>线性结构</strong>代表。如果把小镇居民放到 StructMemEval 的账本任务里，它大概率会败——因为 memory stream 没有"可聚合槽位"的概念，只能靠在检索后让 LLM 临时求和，这恰好是论文批评的"结构错位"。
+    </div>
+  </div>
+
+  <div class="section" id="sec4">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--green);">4</div>
+      <h2>关键结果：哪种结构在哪种任务上更优</h2>
+    </div>
+
+    <p>论文 abstract 直接给出的两条实证结论（其他数字表 <span class="tbd">&lt;待实证&gt;</span>）：</p>
+
+    <div class="callout callout-green">
+      <div class="callout-title" style="color:var(--green);">实证结论 1：RAG 基线在结构化任务上显著不足</div>
+      <p style="margin-bottom:0;">"simple retrieval-augmented LLMs struggle with these tasks" ——  账本、待办这类任务不是"找到相关片段"问题，而是"维护一个可更新的全局视图"问题。向量检索的语义相似度在这里帮不上忙。</p>
+    </div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title" style="color:var(--cyan);">实证结论 2：结构一旦被给出，agent 就能稳定解题</div>
+      <p style="margin-bottom:0;">"memory agents can reliably solve them if prompted how to organize their memory" —— 也就是说 LLM 缺的不是"执行结构化操作"的能力，而是"主动选择合适结构"的能力。</p>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">实证结论 3（最惊人）：LLM 不总能识别应该用什么结构</div>
+      <p style="margin-bottom:0;">"modern LLMs do not always recognize the memory structure when not prompted to do so" —— 这暗示一个明确的研究方向：<span class="hl">"记忆结构选择"应当成为训练目标或元提示的显式一环</span>。否则 agent 只能在"结构给对了"的理想情况下工作。</p>
+    </div>
+
+    <h3>按任务类型推测的"最佳结构"矩阵（综合论文意图 + 相关工作）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>任务类别</th>
+            <th>线性 / Stream</th>
+            <th>树 / Hierarchy</th>
+            <th>图 / Graph</th>
+            <th>最匹配结构</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>事实多跳召回（LongMemEval 类）</td>
+            <td>中</td>
+            <td>中</td>
+            <td><span class="hl">强</span></td>
+            <td>Graph（多跳友好）</td>
+          </tr>
+          <tr>
+            <td>账本 / 聚合统计</td>
+            <td>弱</td>
+            <td>中</td>
+            <td>中</td>
+            <td>专用表 / 结构化槽位</td>
+          </tr>
+          <tr>
+            <td>待办 / 状态可变集合</td>
+            <td>弱</td>
+            <td><span class="hl">强</span></td>
+            <td>中</td>
+            <td>Tree / 可变集合</td>
+          </tr>
+          <tr>
+            <td>任务分解（多级子目标）</td>
+            <td>弱</td>
+            <td><span class="hl">强</span></td>
+            <td>中</td>
+            <td>Tree（HiAgent 式）</td>
+          </tr>
+          <tr>
+            <td>叙事 / 社会对话连续性</td>
+            <td><span class="hl">强</span></td>
+            <td>中</td>
+            <td>中</td>
+            <td>Linear（小镇 memory stream）</td>
+          </tr>
+          <tr>
+            <td>跨实体关系推理</td>
+            <td>弱</td>
+            <td>弱</td>
+            <td><span class="hl">强</span></td>
+            <td>Graph（A-MEM、Zep）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:-12px;">表中具体评级在论文中 <span class="tbd">&lt;待实证&gt;</span>；方向性结论来自 abstract + StructMemEval 任务构造原则。</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-title" style="color:var(--orange);">对工程社区的实务含义</div>
+      <p style="margin-bottom:0;">如果你的 agent 只聊天，Smallville 式 <strong>线性流</strong>够用；如果你的 agent 在做"多步任务 + 子目标追踪"，<strong>Tree</strong>（HiAgent）更稳；如果你在做"跨实体/跨时间"知识推理，<strong>Graph</strong>（A-MEM、Zep）是主选。<span class="hl">不要用"一个 vector store 吃所有任务"</span>——这正是论文展示的 RAG 基线失败模式。</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec5">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">5</div>
+      <h2>与本库 18 HiAgent / 20 A-MEM / 21 MemoryOS 的系统对比</h2>
+    </div>
+
+    <p>把 StructMemEval 的三种结构套到本库已有的三个代表性系统上，可以清楚看出各自的"结构坐标"：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>系统</th>
+            <th>结构类型</th>
+            <th>组织方式</th>
+            <th>最擅长的任务类型</th>
+            <th>若放入 StructMemEval 的预期表现</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="18-hiagent.html">#18 HiAgent</a></td>
+            <td><strong>Tree / Hierarchy</strong></td>
+            <td>目标-子目标-动作的层级分解</td>
+            <td>多步任务分解、子目标追踪</td>
+            <td>在待办 / 任务分解任务上强，在图式多跳上一般</td>
+          </tr>
+          <tr>
+            <td><a href="20-a-mem.html">#20 A-MEM</a></td>
+            <td><strong>Graph / Network</strong></td>
+            <td>Zettelkasten 自动建链，节点 + 边</td>
+            <td>跨实体、跨时间多跳推理</td>
+            <td>在跨实体关系任务上强，在"聚合/对账"上难</td>
+          </tr>
+          <tr>
+            <td><a href="21-memory-os.html">#21 MemoryOS</a></td>
+            <td><strong>Hybrid（分层 + 多级缓存）</strong></td>
+            <td>三级 FIFO：短期/中期/长期 + 用户画像</td>
+            <td>长会话一致性、个性化</td>
+            <td>事实保持 / 偏好召回类强，纯结构化任务中等</td>
+          </tr>
+          <tr>
+            <td><a href="19-generative-agents.html">#19 Smallville</a></td>
+            <td><strong>Linear / Stream</strong></td>
+            <td>时间流 + 三因子评分</td>
+            <td>叙事连续性、社会对话</td>
+            <td>结构化任务（账本/待办）大概率败</td>
+          </tr>
+          <tr>
+            <td><a href="06-memori.html">#06 Memori</a></td>
+            <td><strong>Linear + 事实去重</strong></td>
+            <td>短期 working + 长期 fact</td>
+            <td>事实保持 + 冲突消解</td>
+            <td>事实任务强，账本/聚合任务难</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>三者各自的"结构盲点"</h3>
+    <div class="tier-grid">
+      <div class="tier t1">
+        <h4>HiAgent 的盲点：跨分支关系弱</h4>
+        <p style="margin-bottom:0;">层级分解的代价是"横向关系被压扁"。当同一个实体出现在多个子目标里，tree 里只能出现重复节点。对 StructMemEval 的 graph 式任务，HiAgent 很可能需要额外的"跨引用"机制（论文意义上仍属于结构缺口）。</p>
+      </div>
+      <div class="tier t2">
+        <h4>A-MEM 的盲点：聚合/可变状态弱</h4>
+        <p style="margin-bottom:0;">图擅长"多跳关系"，但<span class="hl">不擅长"求和/对账"</span>。账本任务不需要找到"所有相关节点"，而是维护一个聚合变量；对 A-MEM 这种 append-only 的网络来说并不自然。</p>
+      </div>
+      <div class="tier t3">
+        <h4>MemoryOS 的盲点：结构选择仍是层级固定</h4>
+        <p style="margin-bottom:0;">MemoryOS 的"分层"是<em>时间维</em>的（短/中/长期），不是<em>任务结构维</em>的。面对 StructMemEval 的"用账本解题 vs 用树解题"，它依然缺一个"结构选择器"。</p>
+      </div>
+      <div class="tier t4">
+        <h4>Smallville 的盲点：纯线性全面短板</h4>
+        <p style="margin-bottom:0;">线性流对"叙事类"任务最强，但对论文中全部结构化任务几乎系统性劣势——这正是 StructMemEval 能给"经典原典"敲的一次警钟：<em>叙事 ≠ 组织</em>。</p>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <div class="callout-title" style="color:var(--pink);">结构选择本身可能是下一个研究热点</div>
+      <p style="margin-bottom:0;">如果 StructMemEval 的"agent 识别不到正确结构"这一发现被其他团队复现，那么下一阶段的 agent 设计里很可能会出现一层<strong>"meta-memory policy"</strong>：它不是记东西，而是决定"这条信息应该进流/进树/进图"。这跟综述 #24 提到的 <em>Memory Automation</em> 方向高度一致。</p>
+    </div>
+
+    <div class="sv-link">
+      综合来看，StructMemEval 等于给本库中 #18 / #19 / #20 / #21 四个系统发了一张"体检表"：小镇（线性）是原典但结构单一；HiAgent（树）是任务分解标杆；A-MEM（图）是关系推理标杆；MemoryOS（多级）是长期一致性标杆。<span class="hl">四者在 StructMemEval 上应当表现出明显的任务-结构匹配模式</span>——这正是后续社区可以直接接上的一块拼图。
+    </div>
+  </div>
+
+  <div class="section" id="sec6">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--blue);">6</div>
+      <h2>FAQ：两个最容易被问到的问题</h2>
+    </div>
+
+    <div class="faq">
+      <div class="faq-q">Q1. 既然可以用提示告诉 agent"用账本结构"，那 StructMemEval 除了再加一条 system prompt 还有什么意义？</div>
+      <div class="faq-a">
+        这正是论文真正的刀尖所在——<strong>手工提示只能解决当下这个任务</strong>，但真实 agent 会面对成百上千种对话场景，不可能为每一种预先写好"应当使用哪种结构"的指令。论文的核心发现是：<span class="hl">现代 LLM 在没有提示时常常识别不到正确结构</span>，这意味着 agent 记忆领域需要的不是"更多结构"，而是<strong>"自动选择结构的能力"</strong>（可视作 meta-memory policy）。StructMemEval 首次把这个能力变得可以测量，所以它不是"考题"，是<em>考察题型识别能力</em>。类比人类：给学生直接说"这题用求和"他当然会做，但考试考的是"看到一堆流水，能不能自己意识到要求和"。
+      </div>
+    </div>
+
+    <div class="faq">
+      <div class="faq-q">Q2. 我在工程里应该怎么用这篇论文？需要把现有 memory 系统全部重写吗？</div>
+      <div class="faq-a">
+        不用全部重写。可以按以下三步"渐进式对号入座"：
+        <ol>
+          <li><strong>诊断</strong>：把业务场景分成（a）叙事/对话连续性、（b）任务分解、（c）跨实体推理、（d）可变状态/聚合 四类，看哪类占主导。</li>
+          <li><strong>选型</strong>：a→线性（Smallville / MemoryOS 短期层）；b→树（HiAgent）；c→图（A-MEM / Zep）；d→专用结构化槽位（账本表 / 状态机），通常要<span class="hl">独立一块存储</span>，别塞进通用向量库。</li>
+          <li><strong>加元提示</strong>：在系统 prompt 里显式说明"以下信息请维护在结构 X"。这正是 StructMemEval 的"带提示 memory agent"路径——已经证明能稳定解题。等到未来出现可训练的"结构选择器"，再把这部分从手工提示升级为自动选择。</li>
+        </ol>
+        总之，这篇论文在工程上给的是<strong>选型指南 + 盲点提醒</strong>，不是"再造一套记忆框架"。它能帮你避免最常见的陷阱——<em>把所有记忆扔进一个 vector store</em>。
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-ref" style="margin:20px auto 0;">
+    <span class="cross-ref-label">延伸阅读：</span>
+    <a href="18-hiagent.html">18 · HiAgent（Tree）</a>
+    <a href="19-generative-agents.html">19 · Smallville（Linear）</a>
+    <a href="20-a-mem.html">20 · A-MEM（Graph）</a>
+    <a href="21-memory-os.html">21 · MemoryOS（Hybrid）</a>
+    <a href="24-memory-survey.html">24 · Memory Survey</a>
+    <a href="06-memori.html">06 · Memori</a>
+    <span class="cr-personal">后加</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>深度解读 #43 · Evaluating Memory Structure in LLM Agents — StructMemEval 基准</p>
+  <p style="margin-top:6px;">
+    <a href="../index1.html" style="color:var(--blue);">← 返回研究索引</a>
+    &nbsp;·&nbsp;
+    <a href="../papers-reference.html#cat-personal" style="color:var(--blue);">论文库 · 个人补充</a>
+    &nbsp;·&nbsp;
+    <a href="../concepts-map.html" style="color:var(--blue);">概念地图</a>
+  </p>
+</div>
+
+</body>
+</html>
