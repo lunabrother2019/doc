@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读63：应用域远征 — 自动驾驶 / 游戏 NPC / 经济 Agent / 医疗教育 / Ubisoft Teammates</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #28200a 0%, #0f1117 40%, #0a2818 80%, #1b1340 100%); padding: 48px 24px 36px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3.2vw, 26px); color: var(--yellow); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 5px 12px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+    .section { margin-bottom: 44px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 18px; font-weight: 600; }
+    h3 { font-size: 15px; color: var(--accent); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 8px; font-size: 14px; }
+    ul, ol { padding-left: 22px; margin-bottom: 12px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 14px 18px; margin: 14px 0 18px; font-size: 13.5px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+    .table-wrap { overflow-x: auto; margin: 14px 0 20px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 10px; font-size: 13px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>应用域远征 — 小镇架构在 6 个垂直领域的落地 <span class="personal-badge">后加</span></h1>
+  <p class="sub">Generative Agents 的 Perceive→Plan→Act 范式如何迁移到自动驾驶、游戏 NPC、经济学、医疗教育？6 篇论文/项目覆盖小镇架构最远的应用边界。</p>
+  <div style="margin-top:14px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2312.09245" target="_blank">DriveMLM</a> · 上海 AI Lab</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2502.16804" target="_blank">Multi-Agent AD Survey</a> · EMNLP 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2504.13928" target="_blank">LLM-Driven NPCs</a> · 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2406.00477" target="_blank">GenAI as Economic Agents</a> · MSR</div>
+    <div class="paper-ref">GenAI Healthcare Education · Clin Sim Nursing 2025</div>
+    <div class="paper-ref">Ubisoft Teammates · 2025.11</div>
+  </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="29-gea-embodied.html">29 · GEA</a>
+  <a href="47-aipatient.html">47 · AIPatient</a>
+  <a href="56-mmo-simulation.html">56 · MMO 仿真</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<!-- 总览 -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">0</div><h2>6 篇全景表</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>名称</th><th>领域</th><th>年份</th><th>机构</th><th>核心思想</th><th>代码</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><strong><a href="https://arxiv.org/abs/2312.09245" target="_blank">DriveMLM</a></strong></td><td>自动驾驶</td><td>2023/2025</td><td>上海 AI Lab</td><td>多模态 LLM 做行为规划模块，标准化决策状态桥接语言→控制</td><td><a href="https://github.com/opengvlab/drivemlm">✅</a></td></tr>
+        <tr><td>2</td><td><strong><a href="https://arxiv.org/abs/2502.16804" target="_blank">Multi-Agent AD Survey</a></strong></td><td>自动驾驶</td><td>EMNLP 2025</td><td>东京大学+Cornell+UIC</td><td>首篇 LLM 多 Agent 自动驾驶综述：通信/人机交互/协作决策</td><td>—</td></tr>
+        <tr><td>3</td><td><strong><a href="https://arxiv.org/abs/2504.13928" target="_blank">LLM-Driven NPCs</a></strong></td><td>游戏 NPC</td><td>2025</td><td>—</td><td>DeepSeek-R1 驱动 Unity NPC + Discord 跨平台 memory 同步</td><td>—</td></tr>
+        <tr><td>4</td><td><strong>Ubisoft Teammates</strong></td><td>游戏 NPC</td><td>2025.11</td><td>Ubisoft La Forge</td><td>行为树+LLM 层的商业 FPS 队友 AI，玩家语音指挥</td><td>—</td></tr>
+        <tr><td>5</td><td><strong><a href="https://arxiv.org/abs/2406.00477" target="_blank">GenAI as Economic Agents</a></strong></td><td>经济学</td><td>ACM SIGecom 2024</td><td>Microsoft Research</td><td>Position paper：AI 本身是经济行动者，改变博弈均衡</td><td>—</td></tr>
+        <tr><td>6</td><td><strong>GenAI Healthcare Education</strong></td><td>医疗教育</td><td>Clin Sim Nursing 2025</td><td>NUS+多机构</td><td>Scoping review：28 篇文献，GPT 驱动虚拟患者模拟教学</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 自动驾驶 -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">1</div><h2>自动驾驶：DriveMLM + Multi-Agent Survey</h2></div>
+
+  <h3>DriveMLM（上海 AI Lab，Visual Intelligence 2025）</h3>
+  <p>将多模态 LLM 嵌入模块化自动驾驶系统（Apollo/Autopilot）作为 <span class="hl-green">plug-and-play 行为规划模块</span>。用标准化 decision states 桥接语言决策与车辆控制指令。CARLA Town05 Long benchmark 上 Driving Score 提升 3.2–4.7 分。</p>
+
+  <h3>Multi-Agent AD Survey（EMNLP 2025 Findings）</h3>
+  <p>首篇 LLM 多 Agent 自动驾驶综述。核心发现：多 Agent 协作可扩展感知范围（遮挡检测）、提升实时协调（merge/roundabout）、分布式计算降低单体负载。</p>
+
+  <div class="sv-link">
+    DriveMLM 的"感知→推理→决策→解释"循环与小镇的 Perceive→Plan→Act 高度同构；Multi-Agent Survey 则是把小镇的 25 Agent 社会协作范式搬到了物理道路——每辆车是一个 Agent，路口是"社交场景"。
+  </div>
+</section>
+
+<!-- 游戏 NPC -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">2</div><h2>游戏 NPC：跨平台对话 + Ubisoft Teammates</h2></div>
+
+  <h3>LLM-Driven NPCs（arXiv:2504.13928）</h3>
+  <p>用 DeepSeek-R1 驱动 Unity 游戏内 NPC，同时通过 Discord 与玩家对话；LeanCloud 同步 memory。发现 <span class="hl-pink">memory dilution 问题</span>——超过 20 轮对话后记忆衰减，建议引入 RAG/vector database。这正是小镇用 recency×importance×relevance 公式解决的问题。</p>
+
+  <h3>Ubisoft Teammates（2025.11，La Forge R&D）</h3>
+  <p><strong>商业级工业落地</strong>。Snowdrop 引擎 + Google Gemini + 自研 middleware。核心设计：</p>
+  <ul>
+    <li><strong>Behavior tree</strong> = 约束 action space（"能做什么"）</li>
+    <li><strong>LLM layer</strong> = planning/reflection（"何时/如何做"）</li>
+    <li><strong>Voice input</strong> = 人类直接注入 perception stream</li>
+    <li><strong>API 安全护栏</strong> = 过滤 hallucination / toxic / lore-breaking 输出</li>
+    <li><strong>Personality sheet + fences</strong> = 编剧定义 persona 边界，NPC 在围栏内即兴</li>
+  </ul>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">Teammates 的设计哲学</div>
+    把小镇的"完全自主 Agent"收缩为"<span class="hl">行为树约束下的有限自主</span>"——因为商业游戏不能容忍 NPC 做出不合剧情的行为。这是 Generative Agents 从研究原型到商业产品的关键妥协。
+  </div>
+</section>
+
+<!-- 经济 Agent -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">3</div><h2>经济学：GenAI as Economic Agents</h2></div>
+
+  <p><strong>Microsoft Research</strong>（Immorlica, Lucier, Slivkins），ACM SIGecom Exchanges 2024。</p>
+
+  <p>Position paper，核心主张：<span class="hl">不要把 AI 只当工具，要把它建模为经济行动者</span>。每个 user 配一个 AI agent，双方信息和偏好可能不同，产生与无 AI 场景<strong>质性不同</strong>的博弈均衡。</p>
+
+  <div class="sv-link">
+    小镇已展现 Agent 的 emergent social behavior（投票、信息传播）。这篇论文将这种"AI 作为自主行动者"的视角正式化为经济学理论框架——如果 Smallville 的 NPC 进入市场交易，均衡会如何改变？这和 MMOAgent (DD56) 的实证发现互补：理论框架 × 游戏内实验。
+  </div>
+</section>
+
+<!-- 医疗 -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink);">4</div><h2>医疗教育：GenAI Simulation-Based Education</h2></div>
+
+  <p>NUS + 多机构，Clinical Simulation in Nursing 2025。Scoping review，28 篇文献（2023-2025），覆盖医学(14)与护理(10)。</p>
+
+  <p>GPT 模型最常用于 <strong>simulated patient portrayal</strong>（虚拟标准化病人）和 <strong>automated feedback</strong>。学习者因 psychological safety（不怕在 AI 前犯错）和 realism 倾向 GenAI 模拟。</p>
+
+  <div class="sv-link">
+    虚拟病人模拟 = Generative Agents 在医疗的特化：需要 persona consistency（同一个"病人"前后一致）、memory continuity（记住之前说过的症状）、realistic interaction。与 <a href="47-aipatient.html">DD47 AIPatient</a> 互补：AIPatient 做诊断准确率，本综述关注教育场景的用户体验。
+  </div>
+</section>
+
+<!-- 总结 -->
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--red);">5</div><h2>小镇架构的迁移距离谱</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>领域</th><th>迁移距离</th><th>最需要的小镇组件</th><th>最不需要的</th></tr></thead>
+      <tbody>
+        <tr><td>游戏 NPC (Ubisoft)</td><td><span class="hl-green">近</span></td><td>Persona + Planning + Action</td><td>Reflection（行为树已约束）</td></tr>
+        <tr><td>自动驾驶</td><td>中</td><td>Perception + Planning</td><td>Social Interaction（车间协调≠社交）</td></tr>
+        <tr><td>经济学</td><td>中</td><td>Planning + Memory（交易历史）</td><td>Perception（数字环境无需感知）</td></tr>
+        <tr><td>医疗教育</td><td>中</td><td>Memory + Persona（患者一致性）</td><td>Planning（对话驱动，无需日程）</td></tr>
+        <tr><td>跨平台 NPC</td><td><span class="hl-green">近</span></td><td>Memory Stream（跨平台持久化）</td><td>Reflection（简单对话不需要）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-key" style="margin-top:16px;">
+    <div class="callout-title">📌 一句话记住</div>
+    小镇的 Perceive→Plan→Act 范式已扩散到自动驾驶（DriveMLM）、FPS 队友（Ubisoft Teammates）、经济博弈（MSR position paper）、医疗教育（虚拟病人）、跨平台 NPC（Discord+Unity）。每个领域只需要小镇架构的<strong>子集</strong>——游戏 NPC 要 persona+planning，自动驾驶要 perception+planning，医疗要 memory+persona。没有一个领域需要小镇的全部五根柱子。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--yellow);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 63 · 应用域远征：6 篇论文/项目覆盖 5 个垂直领域</p>
+</div>
+
+</body>
+</html>

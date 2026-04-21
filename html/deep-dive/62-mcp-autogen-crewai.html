@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读62：MCP + AutoGen + CrewAI — Agent 协议与框架三巨头</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #0a1628 0%, #0f1117 50%, #1b1340 100%); padding: 48px 24px 36px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3.2vw, 28px); color: var(--blue); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+    .section { margin-bottom: 48px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 24px 0 10px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .stat-box .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 11px; color: var(--muted); }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 22px; margin: 14px 0 18px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 6px; display: block; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>MCP + AutoGen + CrewAI — Agent 协议与框架三巨头 <span class="personal-badge">后加</span></h1>
+  <p class="sub">三个层次的 Agent 基础设施：MCP 是<strong>协议层</strong>（agent↔tool 通信标准），AutoGen/MAF 是<strong>运行时层</strong>（对话驱动编排引擎），CrewAI 是<strong>应用层</strong>（角色声明式 crew 组建）。三者可组合：CrewAI agent 通过 MCP 调工具，在 MAF runtime 上运行。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://github.com/modelcontextprotocol/specification" target="_blank">MCP</a> · Anthropic · 2024</div>
+    <div class="paper-ref"><a href="https://github.com/microsoft/autogen" target="_blank">AutoGen</a> · Microsoft · 57.3k ★</div>
+    <div class="paper-ref"><a href="https://github.com/crewAIInc/crewAI" target="_blank">CrewAI</a> · João Moura · 49.4k ★</div>
+  </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="52-google-a2a.html">52 · Google A2A</a>
+  <a href="22-metagpt.html">22 · MetaGPT</a>
+  <a href="23-chatdev.html">23 · ChatDev</a>
+  <a href="50-agentscope.html">50 · AgentScope</a>
+  <a href="51-langgraph.html">51 · LangGraph</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--blue);">1</div><h2>三层定位</h2></div>
+
+  <div class="formula"><span class="label">Agent 基础设施协议栈</span>
+┌─────────────────────────────────────────────┐
+│  应用层   CrewAI (角色声明式 crew)            │
+│           MetaGPT / ChatDev / AgentScope     │
+├─────────────────────────────────────────────┤
+│  运行时层  AutoGen/MAF (对话驱动编排)          │
+│           LangGraph (图式状态机)              │
+├─────────────────────────────────────────────┤
+│  协议层   MCP (agent↔tool 纵向)              │
+│           A2A (agent↔agent 横向)             │
+└─────────────────────────────────────────────┘</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>维度</th><th>MCP</th><th>AutoGen / MAF</th><th>CrewAI</th></tr></thead>
+      <tbody>
+        <tr><td>出品方</td><td>Anthropic</td><td>Microsoft Research</td><td>João Moura (个人→公司)</td></tr>
+        <tr><td>Stars</td><td>22.7k (Python SDK)</td><td>57.3k (AutoGen) + 9.7k (MAF)</td><td>49.4k</td></tr>
+        <tr><td>核心抽象</td><td>Tools / Resources / Prompts</td><td>Conversable Agent + Group Chat</td><td>Agent (role/goal/backstory) + Task</td></tr>
+        <tr><td>通信方式</td><td>JSON-RPC 2.0 (stdio / HTTP+SSE)</td><td>Message passing + Event-driven</td><td>Task delegation</td></tr>
+        <tr><td>语言</td><td>TypeScript / Python SDK</td><td>Python + .NET</td><td>Python ≥3.10</td></tr>
+        <tr><td>许可证</td><td>MIT</td><td>MIT</td><td>MIT</td></tr>
+        <tr><td>状态</td><td>活跃</td><td>AutoGen maintenance → MAF active</td><td>活跃</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">2</div><h2>MCP：Agent↔Tool 的 USB-C</h2></div>
+
+  <p>Anthropic 2024 年底发布。类比 USB-C 为设备提供统一接口，MCP 为 AI agent 提供统一的 tool/resource/prompt 访问层。</p>
+
+  <h3>三层架构</h3>
+  <ul>
+    <li><strong>Host</strong>：LLM 应用（Claude Desktop / IDE 等）</li>
+    <li><strong>Client</strong>：管理连接生命周期</li>
+    <li><strong>Server</strong>：暴露 Tools / Resources / Prompts 三种 primitive</li>
+  </ul>
+
+  <h3>三大 Primitive</h3>
+  <ul>
+    <li><strong>Tools</strong>：可调用函数（如"搜索数据库""发送邮件"）</li>
+    <li><strong>Resources</strong>：可读数据源（如"项目文件列表""数据库 schema"）</li>
+    <li><strong>Prompts</strong>：预定义提示模板</li>
+  </ul>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">与 A2A 的互补关系</div>
+    <a href="52-google-a2a.html">DD52 Google A2A</a> 管 agent↔agent <strong>横向</strong>通信，MCP 管 agent↔tool <strong>纵向</strong>调用。两者正交互补。
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">3</div><h2>AutoGen → MAF：对话驱动的 Agent 编排</h2></div>
+
+  <p>Microsoft Research 2023.08 推出 AutoGen（57.3k stars），2026 年进入 maintenance，后继者 <strong>Microsoft Agent Framework (MAF)</strong>（9.7k stars，2025.04 创建）。</p>
+
+  <h3>核心设计：Conversable Agent</h3>
+  <p>每个 agent 可发送/接收消息并自主决策——通过<span class="hl">对话</span>而非固定流水线驱动协作。与 MetaGPT 的 SOP 固定管线不同，AutoGen 强调<span class="hl-green">动态对话驱动</span>。</p>
+
+  <h3>三层 API</h3>
+  <ul>
+    <li><strong>Core API</strong>：message passing + event-driven runtime，支持分布式</li>
+    <li><strong>AgentChat API</strong>：简化的 two-agent / group chat 原型</li>
+    <li><strong>Extensions API</strong>：LLM client、code execution 等插件</li>
+  </ul>
+
+  <p>MAF 继承设计并加入企业特性：稳定 API、A2A + MCP 跨 runtime 互操作、长期支持。</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">4</div><h2>CrewAI：角色声明式 Crew 组建</h2></div>
+
+  <p>João Moura 2023.10 创建（49.4k stars），从零构建（不依赖 LangChain）。</p>
+
+  <h3>核心概念：Role-Playing 三元组</h3>
+  <p>每个 Agent 有 <code>role</code>（角色）+ <code>goal</code>（目标）+ <code>backstory</code>（背景故事），YAML 声明式配置。</p>
+
+  <h3>双模式设计</h3>
+  <ul>
+    <li><strong>Crews</strong>：自主协作 agent 团队，sequential / hierarchical process，agent 可自主 delegate</li>
+    <li><strong>Flows</strong>：event-driven 精确控制流，面向生产环境</li>
+  </ul>
+
+  <h3>Memory 系统</h3>
+  <p>内置三层 memory：short-term / long-term / entity memory——直接呼应小镇的 memory stream 分层设计。</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">5</div><h2>与小镇生态的全景映射</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>小镇组件</th><th>MCP</th><th>AutoGen/MAF</th><th>CrewAI</th></tr></thead>
+      <tbody>
+        <tr><td>Agent↔环境交互</td><td>✅ Tools/Resources primitive</td><td>Extensions API</td><td>Tool integration</td></tr>
+        <tr><td>Agent↔Agent 对话</td><td>—（由 A2A 处理）</td><td>✅ Conversable Agent + Group Chat</td><td>✅ Task delegation</td></tr>
+        <tr><td>Memory Stream</td><td>—</td><td>—（需自行实现）</td><td>✅ short/long/entity memory</td></tr>
+        <tr><td>Persona</td><td>—</td><td>Agent 描述</td><td>✅ role + goal + backstory</td></tr>
+        <tr><td>Planning</td><td>—</td><td>动态对话驱动</td><td>sequential / hierarchical process</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sv-link">
+    如果要用现有框架重建小镇：<strong>MCP</strong> 连接 Agent 与游戏世界（读地图/触发事件）；<strong>AutoGen/MAF</strong> 提供 Agent 间的消息传递运行时；<strong>CrewAI</strong> 提供最接近小镇 persona 的 role/goal/backstory 声明。但三者都缺少小镇的<span class="hl-pink">反思（reflection）机制</span>——需要在框架之上自行实现。
+  </div>
+
+  <div class="callout callout-key" style="margin-top:16px;">
+    <div class="callout-title">📌 一句话记住</div>
+    MCP = agent↔tool 的 USB-C 标准（Anthropic）；AutoGen/MAF = 对话驱动的 agent 编排引擎（Microsoft，57k★→MAF 接棒）；CrewAI = 角色声明式 crew 组建（49k★，内置三层 memory）。三者分属协议/运行时/应用三层，可组合使用。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--blue);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 62 · MCP (Anthropic 2024) + AutoGen/MAF (Microsoft) + CrewAI (49k★)</p>
+</div>
+
+</body>
+</html>

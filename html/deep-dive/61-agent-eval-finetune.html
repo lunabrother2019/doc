@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读61：AgentBench + FireAct + AgentTuning — Agent 评测与微调闭环</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 48px 24px 36px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3.2vw, 28px); color: var(--orange); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+    .section { margin-bottom: 48px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 24px 0 10px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .stat-box .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 11px; color: var(--muted); }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 22px; margin: 14px 0 18px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 6px; display: block; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>AgentBench + FireAct + AgentTuning — Agent 评测与微调闭环 <span class="personal-badge">后加</span></h1>
+  <p class="sub">清华 THUDM 定义"什么是好 Agent"（AgentBench, ICLR 2024），Princeton 和清华分别回答"如何训练好 Agent"（FireAct + AgentTuning）。三篇形成 <strong>evaluate → fine-tune</strong> 闭环，证明 Agent 能力可通过少量高质量 trajectory SFT 高效获得。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2308.03688" target="_blank">AgentBench</a> · 清华 THUDM · ICLR 2024</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2310.05915" target="_blank">FireAct</a> · Princeton · 2023.10</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2310.12823" target="_blank">AgentTuning</a> · 清华 THUDM · 2023.10</div>
+  </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="08-react.html">08 · ReAct</a>
+  <a href="10-reflexion.html">10 · Reflexion</a>
+  <a href="53-terminal-bench.html">53 · Terminal-Bench</a>
+  <a href="38-sotopia.html">38 · SOTOPIA</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--orange);">1</div><h2>三篇论文的闭环关系</h2></div>
+
+  <div class="formula"><span class="label">Evaluate → Fine-tune 闭环</span>
+AgentBench（定义评测标准 · 8 环境 · 25+ LLM）
+    ↓ 产出：哪些模型好？好在哪？差在哪？
+    ↓
+FireAct（Princeton 路线）           AgentTuning（清华路线）
+用 GPT-4 trajectory 微调小模型      用 AgentBench 环境生成 AgentInstruct
+多 prompting method 混合数据        Agent 数据 + 通用数据 hybrid SFT
+    ↓                                  ↓
+Llama2-7B HotpotQA +77%            AgentLM-70B ≈ GPT-3.5-turbo</div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--red);">2</div><h2>AgentBench：首个系统化 Agent 评测基准</h2></div>
+
+  <p><strong>清华 THUDM</strong>（Xiao Liu, Hao Yu 等 22 人）+ Ohio State。ICLR 2024。</p>
+
+  <h3>8 个交互环境</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>类别</th><th>环境</th><th>测试能力</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3">Code-grounded</td><td>Operating System (OS)</td><td>命令行操作+系统管理</td></tr>
+        <tr><td>Database (DB)</td><td>SQL 查询+数据分析</td></tr>
+        <tr><td>Knowledge Graph (KG)</td><td>结构化知识推理</td></tr>
+        <tr><td rowspan="2">Game</td><td>Digital Card Game</td><td>策略规划</td></tr>
+        <tr><td>Lateral Thinking Puzzles</td><td>创意推理</td></tr>
+        <tr><td rowspan="3">Web</td><td>HouseholdsEnv</td><td>物理环境导航</td></tr>
+        <tr><td>Web Shopping</td><td>网购决策</td></tr>
+        <tr><td>Web Browsing</td><td>信息检索</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>关键发现</h3>
+  <ul>
+    <li>GPT-4 <strong>大幅领先</strong>所有开源模型（≤70B）</li>
+    <li>失败主因：<span class="hl-pink">long-term reasoning 薄弱</span> + instruction following 差</li>
+    <li>Code training 对 agent 任务影响<strong>具有两面性</strong>（非单纯正面）</li>
+  </ul>
+
+  <p><strong>代码</strong>：<a href="https://github.com/THUDM/AgentBench">github.com/THUDM/AgentBench</a></p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">3</div><h2>FireAct：多方法 Trajectory 微调</h2></div>
+
+  <p><strong>Princeton</strong>（Baian Chen, <strong>Shunyu Yao</strong> = ReAct 作者）+ Monash + Cambridge。2023.10。</p>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">核心发现</div>
+    用 GPT-4 生成的 agent trajectory 数据微调 Llama2-7B，仅 <span class="hl-green">500 条数据</span> 即获 HotpotQA <strong>77% 性能提升</strong>。多样化数据源（混合 ReAct + CoT + Reflexion trajectory）比单一来源效果更好。
+  </div>
+
+  <p>关键设计：从 ReAct / CoT / Reflexion 等<strong>多种 prompting method</strong> 分别生成 trajectory，混合训练。这证明 Agent 的推理模式可以通过 SFT "烤进"小模型。</p>
+
+  <p><strong>代码</strong>：<a href="https://github.com/anchen1011/FireAct">github.com/anchen1011/FireAct</a></p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">4</div><h2>AgentTuning：Hybrid SFT 保通用能力</h2></div>
+
+  <p><strong>清华 THUDM</strong>（Aohan Zeng 等，与 AgentBench 同组）。2023.10。</p>
+
+  <h3>AgentInstruct 数据集</h3>
+  <p>从 AgentBench 的 6 个环境筛选高质量交互轨迹，构成 <strong>1866 条</strong> AgentInstruct。关键创新：与通用 ShareGPT 数据<strong>按比例混合</strong>做 SFT → 产出 <strong>AgentLM</strong>（7B / 13B / 70B）。</p>
+
+  <div class="callout callout-green">
+    <div class="callout-title">Hybrid 策略是核心</div>
+    纯 agent 数据训练会<span class="hl-pink">损害通用能力</span>（模型变成只会做 agent 任务的专才）。混合通用数据后两者兼得：AgentLM-70B 在 held-out agent tasks 上<span class="hl-green">媲美 GPT-3.5-turbo</span>，同时通用 benchmark 不下降。
+  </div>
+
+  <p><strong>代码</strong>：<a href="https://github.com/THUDM/AgentTuning">github.com/THUDM/AgentTuning</a>（开源 AgentInstruct + AgentLM 权重）</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">5</div><h2>对照 &amp; 小镇映射</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>维度</th><th>AgentBench</th><th>FireAct</th><th>AgentTuning</th></tr></thead>
+      <tbody>
+        <tr><td>角色</td><td>定义标准</td><td>训练方法（Princeton）</td><td>训练方法（清华）</td></tr>
+        <tr><td>数据来源</td><td>8 环境交互</td><td>GPT-4 多方法 trajectory</td><td>AgentBench 环境筛选</td></tr>
+        <tr><td>训练策略</td><td>—</td><td>多 prompting method 混合</td><td>Agent + 通用数据 hybrid</td></tr>
+        <tr><td>产出模型</td><td>—</td><td>微调 Llama2-7B</td><td>AgentLM 7B/13B/70B</td></tr>
+        <tr><td>核心贡献</td><td>评测基础设施</td><td>数据多样性 &gt; 数据量</td><td>Hybrid 保通用能力</td></tr>
+        <tr><td>代码</td><td>✅</td><td>✅</td><td>✅（含权重）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sv-link">
+    对 Generative Agents 的意义：小镇的 25 NPC 全部依赖 GPT-3.5/4 级别模型——成本高、延迟大、无法离线。这三篇证明了<span class="hl-green">小镇式 Agent 的 planning/memory/tool-use 能力可以通过轻量 SFT 注入开源模型</span>（7B 级），为低成本规模化部署 generative agent 系统铺路。具体路径：用 AgentBench 环境生成训练数据 → FireAct/AgentTuning 方法微调 → 得到可本地部署的"小镇级"Agent LLM。
+  </div>
+
+  <div class="callout callout-key" style="margin-top:16px;">
+    <div class="callout-title">📌 一句话记住</div>
+    AgentBench 定义了"好 Agent 长什么样"（8 环境评测），FireAct 和 AgentTuning 证明了"少量高质量 trajectory SFT 就能训出好 Agent"（500 条数据 +77%），三者形成 evaluate→train 闭环。对小镇架构的实际意义：GPT-4 级 Agent 能力可以蒸馏到 7B 模型。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--orange);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 61 · AgentBench (ICLR 2024) + FireAct (2023) + AgentTuning (2023)</p>
+  <p>代码: <a href="https://github.com/THUDM/AgentBench">AgentBench</a> · <a href="https://github.com/anchen1011/FireAct">FireAct</a> · <a href="https://github.com/THUDM/AgentTuning">AgentTuning</a></p>
+</div>
+
+</body>
+</html>
