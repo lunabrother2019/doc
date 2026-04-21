@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读55：OASIS — 百万 Agent 社交媒体仿真平台</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #0a1628 0%, #0f1117 50%, #1b1340 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 32px); color: var(--cyan); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(34,211,238,0.15); color: var(--cyan); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>OASIS — 百万 Agent 社交媒体仿真平台 <span class="personal-badge">后加</span></h1>
+  <p class="sub">100 万 LLM Agent 在 Twitter/Reddit 上进行拟真社交互动：信息级联超线性增长、群体极化随规模加剧、从众行为占比上升。牺牲个体认知深度换取群体规模——和小镇走完全相反的路。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2411.11581" target="_blank">arXiv:2411.11581</a> · Yang et al. · Nov 2024</div>
+    <div class="paper-ref" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.25);color:var(--yellow);">PKU + CAMEL-AI (多机构)</div>
+    <div class="paper-ref" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.25);color:var(--green);"><a href="https://github.com/camel-ai/oasis" target="_blank" style="color:inherit;">💻 GitHub: camel-ai/oasis</a></div>
+  </div>
+</div>
+
+<nav class="nav"><div class="nav-inner">
+  <a href="#sec1">1. 定位</a>
+  <a href="#sec2">2. 三层架构</a>
+  <a href="#sec3">3. 规模实验</a>
+  <a href="#sec4">4. 涌现现象</a>
+  <a href="#sec5">5. 对照小镇</a>
+  <a href="#sec6">6. 工程与代码</a>
+</div></nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="19-generative-agents.html">19 · Smallville</a>
+  <a href="35-opencity.html">35 · OpenCity</a>
+  <a href="46-agenttorch.html">46 · AgentTorch</a>
+  <a href="54-recagent.html">54 · RecAgent</a>
+  <a href="17-agent-society.html">17 · AgentSociety</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">1</div><h2>一句话定位：规模压倒一切</h2></div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">一句话</div>
+    OASIS = <span class="hl-cyan">百万 Agent × 社交媒体模拟器</span>。不追求单个 Agent 的认知深度（无 memory stream / reflection），而是用<strong>规模+推荐系统+23 种社交动作</strong>来观察群体现象如何随 Agent 数量增长而改变。
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val" style="color:var(--cyan);">1M</div><div class="stat-label">最大 Agent 规模</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green);">23</div><div class="stat-label">离散动作空间</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--yellow);">2</div><div class="stat-label">平台模拟 (Twitter/Reddit)</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--pink);">3</div><div class="stat-label">涌现群体现象</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--accent);">GPT-4o-mini</div><div class="stat-label">默认 LLM</div></div>
+  </div>
+
+  <p>OASIS 由北京大学 + CAMEL-AI 生态（多机构联合，20+ 作者）开发，2024.11 发布。Apache 2.0 许可证，PyPI 可装（<code>pip install camel-oasis</code>）。</p>
+</section>
+
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num" style="background:var(--blue);">2</div><h2>三层架构</h2></div>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>Environment Layer</strong> — 动态社交网络图 + 帖子信息流，实时更新关注关系与内容状态。支持 Twitter（关注制）和 Reddit（板块制）两种拓扑。</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>Action Layer</strong> — 23 种离散动作：follow / unfollow / mute / comment / repost / like / dislike / create_post / search / report / block 等。Agent 每轮从 action space 中选择执行。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>Recommendation Layer</strong> — 内置两套推荐算法：<span class="hl-cyan">interest-based</span>（向量相似度）和 <span class="hl">hot-score-based</span>（热度衰减排序）。模拟真实平台的内容分发机制。</div></div>
+  </div>
+
+  <h3>关键设计选择</h3>
+  <ul>
+    <li><strong>无 memory stream</strong> — Agent 靠 profile + prompt + 当前 feed 驱动，没有跨轮记忆</li>
+    <li><strong>无 reflection</strong> — 不做自我反思或高层合成</li>
+    <li><strong>Activation probability</strong> — 每轮只有一定比例的 Agent 活跃，控制 LLM 调用成本</li>
+    <li><strong>Async event-driven</strong> — <code>asyncio</code> + SQLite 持久化，支撑百万级并发</li>
+  </ul>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">成本参考</div>
+    100 Agent × 1 step ≈ 33.5 万 input tokens（GPT-4o-mini）。百万 Agent 一轮的成本是天文数字——所以 activation probability 是必需的工程手段。
+  </div>
+</section>
+
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">3</div><h2>规模实验：从 100 到 1,000,000</h2></div>
+
+  <p>OASIS 的核心贡献是证明<span class="hl">群体现象随规模变化</span>——这是此前小规模仿真器（小镇 25 人 / AgentSociety 10K）无法观察的：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>规模</th><th>观察</th></tr></thead>
+      <tbody>
+        <tr><td>100</td><td>基础社交行为可复现；群体现象不明显</td></tr>
+        <tr><td>1,000</td><td>信息级联开始出现</td></tr>
+        <tr><td>10,000</td><td>群体极化显著加剧</td></tr>
+        <tr><td>100,000</td><td>从众行为比例上升；观点多样性开始丰富</td></tr>
+        <tr><td>1,000,000</td><td>所有群体现象<strong>amplified</strong>；规模本身成为涌现的驱动力</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">关键发现</div>
+    <strong>Larger scale amplifies group dynamics 且 produces more diverse viewpoints</strong>。这暗示小镇式 25 人仿真在原理上就无法观测到某些社会现象——有些涌现只在大规模时才存在。
+  </div>
+</section>
+
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink);">4</div><h2>三大涌现群体现象</h2></div>
+
+  <h3>① Information Cascade（信息级联）</h3>
+  <p>传播速度随规模呈<span class="hl-pink">超线性增长</span>——100 人时一条帖子平均传播 3 跳，10 万人时可达 12+ 跳。推荐算法放大了 viral 效应。</p>
+
+  <h3>② Group Polarization（群体极化）</h3>
+  <p>在 10K+ 规模时，持有相似观点的 Agent 越来越聚集在一起（echo chamber），极端观点被放大。推荐系统的 interest-based 算法加剧了这一效应。</p>
+
+  <h3>③ Herd Effect（从众效应）</h3>
+  <p>从众行为比例随群体增大而上升——当一个帖子获得大量 likes 后，后续 Agent 给 like 的概率显著提升，与社会心理学中的 conformity 文献一致。</p>
+</section>
+
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">5</div><h2>对照小镇：两条完全相反的路</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>维度</th><th>Smallville (2023)</th><th>OASIS (2024)</th></tr></thead>
+      <tbody>
+        <tr><td>规模</td><td>25 人</td><td><strong>1,000,000 人</strong></td></tr>
+        <tr><td>个体认知深度</td><td>memory stream + reflection + planning</td><td><strong>无记忆 / 无反思 / 无规划</strong></td></tr>
+        <tr><td>行为驱动</td><td>记忆检索 + 反思合成</td><td>profile + prompt + 当前 feed</td></tr>
+        <tr><td>环境</td><td>物理小镇 (2D 地图)</td><td>社交平台 (Twitter/Reddit)</td></tr>
+        <tr><td>涌现类型</td><td>叙事性（派对、选举、浪漫）</td><td>统计性（极化、级联、从众）</td></tr>
+        <tr><td>验证方式</td><td>定性 + credibility</td><td>与社会学文献定性趋势对比</td></tr>
+        <tr><td>推荐系统</td><td>无</td><td><strong>内置两套算法，是关键变量</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sv-link">
+    OASIS 和小镇代表了 Agent 仿真的两个极端：小镇追求"<span class="hl">少而深</span>"——用 25 个高认知 Agent 涌现叙事；OASIS 追求"<span class="hl-cyan">多而浅</span>"——用百万个低认知 Agent 涌现统计。两者互补：小镇回答"Agent 能不能像人"，OASIS 回答"百万 Agent 能不能像社会"。未来的融合方向可能是：在 OASIS 的百万规模上给关键 Agent 加上小镇的 memory + reflection——形成<strong>分层认知架构</strong>。
+  </div>
+</section>
+
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">6</div><h2>工程与代码</h2></div>
+
+  <ul>
+    <li><strong>安装</strong>：<code>pip install camel-oasis</code>（PyPI 直装）</li>
+    <li><strong>框架依赖</strong>：CAMEL framework (v0.2.78+)</li>
+    <li><strong>文档</strong>：独立文档站 docs.oasis.camel-ai.org</li>
+    <li><strong>数据</strong>：HuggingFace 预置 dataset</li>
+    <li><strong>LLM 后端</strong>：默认 GPT-4o-mini，可换其他 OpenAI-compatible 模型</li>
+    <li><strong>活跃度</strong>：代码活跃维护中（最新更新 2025-12）</li>
+    <li><strong>许可证</strong>：Apache 2.0</li>
+  </ul>
+
+  <div class="callout callout-key" style="margin-top:20px;">
+    <div class="callout-title">📌 一句话记住</div>
+    OASIS = 百万 Agent × 社交平台模拟 × 推荐算法内置 → 证明了群体极化/信息级联/从众随规模超线性增长 → 和小镇走完全相反的"多而浅"路线。无 memory/reflection，用规模本身换取社会学统计意义。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--cyan);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 55 · OASIS · arXiv:2411.11581 · PKU + CAMEL-AI · 2024.11</p>
+  <p>代码：<a href="https://github.com/camel-ai/oasis" target="_blank" style="color:var(--green);">github.com/camel-ai/oasis</a></p>
+</div>
+
+</body>
+</html>

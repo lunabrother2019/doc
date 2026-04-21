@@ -140,6 +140,7 @@
     <a href="#sec5">5. 小镇映射</a>
     <a href="#sec6">6. 综述定位</a>
     <a href="#sec7">7. FAQ</a>
+    <a href="#sec8">8. V3 代码实证</a>
   </div>
 </nav>
 
@@ -648,6 +649,274 @@
     <div class="callout callout-key" style="margin-top:24px;">
       <div class="callout-title">📌 一句话记住本篇</div>
       Mem0 = <span class="hl-pink">LLM 抽取事实</span> + <span class="hl">冲突感知合并 (ADD/UPDATE/DELETE)</span> + 向量/图双通道存储 → 工程指标碾压朴素 RAG 与 Full-Context，是目前最接近"开箱即用长期记忆 SDK"的开源方案；但它<strong>不替代小镇 reflection</strong>，那是另一个维度的能力。
+    </div>
+  </section>
+
+  <!-- Section 8 -->
+  <section class="section" id="sec8">
+    <div class="sec-head">
+      <div class="sec-num" style="background:var(--orange);">8</div>
+      <h2>V3 代码库实证分析：论文 → 工程的三大演化</h2>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ 论文描述 ≠ 当前代码</div>
+      以下基于 2026-04 对 <a href="https://github.com/mem0ai/mem0" target="_blank">mem0ai/mem0</a> main 分支的源码阅读。V3 算法在三个关键点上<strong>背离了论文</strong>（第 3 节）的描述。论文是 2025.04 发表的快照，代码已经历至少一轮重大重构。
+    </div>
+
+    <h3>8.1 模块规模：26 种后端的即插即用工厂</h3>
+    <p>代码库采用 Factory 全解耦模式，四大组件均可独立替换：</p>
+
+    <div class="stat-row">
+      <div class="stat-box cyan">
+        <div class="stat-val">19</div>
+        <div class="stat-label">LLM 后端（OpenAI / Anthropic / Gemini / DeepSeek / Groq / Ollama / vLLM / xAI …）</div>
+      </div>
+      <div class="stat-box green">
+        <div class="stat-val">14</div>
+        <div class="stat-label">Embedding 后端（OpenAI / Gemini / HuggingFace / FastEmbed / Ollama …）</div>
+      </div>
+      <div class="stat-box pink">
+        <div class="stat-val">26</div>
+        <div class="stat-label">Vector Store（Qdrant / Pinecone / Chroma / Milvus / pgvector / Redis / Elasticsearch / MongoDB / Faiss / Weaviate / Supabase / DynamoDB …）</div>
+      </div>
+      <div class="stat-box orange">
+        <div class="stat-val">5</div>
+        <div class="stat-label">Reranker（Cohere / HuggingFace / LLM-based / SentenceTransformer / ZeroEntropy）</div>
+      </div>
+    </div>
+
+    <p>核心入口在 <code>mem0/memory/main.py</code>（约 3200 行），包含 <code>Memory</code> 类的 sync + async 双版本。<code>LlmFactory</code> / <code>EmbedderFactory</code> / <code>VectorStoreFactory</code> / <code>RerankerFactory</code> 提供统一创建接口。</p>
+
+    <h3>8.2 演化一：ADD-only 策略 — V3 最大的架构断裂</h3>
+
+    <div class="callout callout-red">
+      <div class="callout-title">🔴 论文 vs 代码的核心矛盾</div>
+      论文（和本文第 3 节）描述的是 <span class="hl">ADD / UPDATE / DELETE / NOOP</span> 四操作冲突合并。<strong>V3 代码已完全抛弃这个设计</strong>——extraction prompt（<code>ADDITIVE_EXTRACTION_PROMPT</code>）只允许 <span class="hl-pink">ADD</span> 操作，不再让 LLM 决定 UPDATE 或 DELETE。去重改由 <strong>MD5 hash</strong> 在 CPU 层完成（Phase 4-5），彻底绕开 LLM 判断。
+    </div>
+
+    <p><strong>为什么改？</strong>实测发现 LLM 做 UPDATE/DELETE 决策时<strong>经常错误覆盖有效记忆</strong>。改成 ADD-only + hash 去重后，LoCoMo benchmark 得分从 71.4 跃升到 <span class="hl-green">91.6</span>。这个决策的本质是：<strong>宁可冗余也不要误删</strong>——让检索端（reranker + scoring）来处理信息过载，而不是在写入端冒险让 LLM 做编辑判断。</p>
+
+    <div class="two-col">
+      <div class="col-box academic">
+        <div class="col-title">论文描述（已过时）</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>LLM 判定 ADD / UPDATE / DELETE / NOOP</li>
+          <li>冲突感知的写入——每条新事实与已有记忆比对</li>
+          <li>"事实漂移"靠 UPDATE 覆盖解决</li>
+        </ul>
+      </div>
+      <div class="col-box prod">
+        <div class="col-title">V3 代码（当前）</div>
+        <ul style="margin-bottom:0;padding-left:18px;">
+          <li>LLM 只做 ADD——提取事实，不做编辑决策</li>
+          <li>MD5 hash 去重（同批内 + 已有记忆）</li>
+          <li>"事实漂移"靠检索端排序解决（新记忆自然排在前面）</li>
+          <li>LoCoMo: 71.4 → <strong>91.6</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sv-link">
+      这和小镇的设计哲学高度一致——Park et al. 的 memory stream 也是 <strong>append-only</strong>，从不删改旧记忆，靠 recency 衰减自然淘汰过时信息。Mem0 V3 等于用工程实测验证了小镇 2023 年的直觉选择：<strong>让 LLM 管理记忆生命周期是危险的</strong>。
+    </div>
+
+    <h3>8.3 演化二：Graph Memory 被 Entity Store 替代</h3>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">💡 Neo4j 图谱 → Entity Vector Store</div>
+      论文浓墨重彩的 Mem0<sup>g</sup>（Graph 变体，第 3.3 节）<strong>在当前 main 分支已被移除</strong>。<code>mem0/</code> 下没有任何 graph 目录或 Neo4j 相关代码。取而代之的是一个轻量化方案：<strong>entity vector store</strong>。
+    </div>
+
+    <p>V3 的 entity 机制工作在 Phase 7：</p>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body"><strong>spaCy NLP 抽取实体</strong> — 从新增记忆中提取命名实体（人名、地名、组织等）</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body"><strong>全局去重 + 批量 embed</strong> — 对抽取的实体做去重，然后批量生成 embedding</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body"><strong>匹配已有 entity</strong> — 在独立的 entity vector collection 中搜索是否已存在相同实体</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body"><strong>分流 insert / update</strong> — 新实体直接插入；已有实体追加 <code>linked_memory_ids</code>（记忆条目的引用列表）</div>
+      </div>
+    </div>
+
+    <p>这种设计用 <code>linked_memory_ids</code> 列表模拟了图的"边"关系——每个 entity 记录指向它关联的所有记忆条目，在检索时提供 entity boost。本质是用 <strong>向量库的 metadata 字段</strong>替代了完整的图数据库，换来了部署复杂度的大幅下降（不再需要 Neo4j），代价是丧失了多跳图遍历能力。</p>
+
+    <h3>8.4 演化三：V3 八阶段写入流水线</h3>
+
+    <p>论文描述的"三步"（抽取 → 合并 → 检索）在代码中展开为 <strong>8 个 Phase</strong>：</p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">0</div>
+        <div class="pipe-body"><strong>上下文收集</strong> — 从 SQLite 获取该 session scope 最近 10 条消息，构建对话上下文</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-body"><strong>已有记忆检索</strong> — embedding + vector search 获取 top-10 相关记忆。关键细节：<span class="hl-pink">UUID → 连续整数 ID 映射</span>（反幻觉设计——防止 LLM 编造不存在的记忆 ID）</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-body"><strong>单次 LLM 调用提取事实</strong> — 使用 <code>ADDITIVE_EXTRACTION_PROMPT</code>，<span class="hl-green">只有 ADD 操作</span>，不再有 UPDATE/DELETE</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-body"><strong>批量 embedding</strong> — <code>embed_batch</code> 调用，失败时逐条 fallback</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-body"><strong>Lemmatize for BM25</strong> — CPU 层对事实文本做词形还原，为后续 BM25 检索做索引准备</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div class="pipe-body"><strong>MD5 hash 去重</strong> — 同批内去重 + 与已有记忆去重，替代了论文中 LLM 做的 NOOP 判定</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">6</div>
+        <div class="pipe-body"><strong>批量持久化到 vector store</strong> — 单次批量写入，失败时逐条 fallback（graceful degradation）</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">7</div>
+        <div class="pipe-body"><strong>批量 entity linking</strong> — spaCy 抽实体 → 去重 → embed → 搜索现有 entity → insert/update。<span class="hl">完全 non-fatal</span>——entity linking 失败只产生 warning，不影响主路径</div>
+      </div>
+    </div>
+
+    <h3>8.5 V3 检索：三信号融合</h3>
+
+    <p>检索路径也从论文的"cosine top-k"演化为三信号加权融合：</p>
+
+    <div class="formula">
+<span class="label">V3 检索评分公式（代码重建）</span>combined = (semantic + bm25_sigmoid + entity_boost) / max_possible
+
+其中:
+  semantic    = cosine 相似度，4× over-fetch（至少 60 条候选）
+  bm25_sigmoid = sigmoid(bm25_raw, k=query_length_adaptive)  // query 长度自适应参数
+  entity_boost = match_score × attenuation(linked_count)      // 链接记忆越多，boost 越衰减
+
+最终 → 阈值过滤 → 可选 reranker 二次排序</div>
+
+    <div class="callout callout-insight">
+      <div class="callout-title">💡 三信号 vs 小镇三维公式</div>
+      <div class="table-wrap" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr><th>维度</th><th>Smallville</th><th>Mem0 V3</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>信号 1</td>
+              <td>recency（时间衰减）</td>
+              <td>semantic（向量相似度）</td>
+            </tr>
+            <tr>
+              <td>信号 2</td>
+              <td>importance（LLM 打分 1-10）</td>
+              <td>BM25（关键词匹配，sigmoid 归一化）</td>
+            </tr>
+            <tr>
+              <td>信号 3</td>
+              <td>relevance（cosine 相似度）</td>
+              <td>entity boost（实体匹配，衰减系数）</td>
+            </tr>
+            <tr>
+              <td>权重</td>
+              <td>手调 0.5 / 0.3 / 0.2</td>
+              <td>等权加法 + 阈值过滤</td>
+            </tr>
+            <tr>
+              <td>二次排序</td>
+              <td>无</td>
+              <td>可选 reranker（Cohere / HuggingFace 等）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>8.6 记忆类型与双向抽取</h3>
+
+    <p>代码定义了 <code>MemoryType</code> enum 区分三种记忆类型：</p>
+    <ul>
+      <li><strong>semantic</strong> — 事实性知识（"用户住在上海"）</li>
+      <li><strong>episodic</strong> — 事件记忆（"上周讨论了迁移方案"）</li>
+      <li><strong>procedural</strong> — 过程记忆（Agent 执行历史的详细摘要），有专门的 system prompt</li>
+    </ul>
+
+    <p>特别地，V3 的 extraction prompt 区分<strong>双向抽取</strong>：</p>
+    <div class="two-col">
+      <div class="col-box academic" style="border-left-color:var(--cyan);">
+        <div class="col-title" style="color:var(--cyan);">User Extraction</div>
+        <p style="margin-bottom:0;">从 user 消息中提取用户偏好、事实、需求。这是默认模式。</p>
+      </div>
+      <div class="col-box prod" style="border-left-color:var(--pink);">
+        <div class="col-title" style="color:var(--pink);">Agent Extraction</div>
+        <p style="margin-bottom:0;">当 <code>agent_id</code> 存在且有 assistant 消息时，从 assistant 消息中提取 Agent 自身的行为特征和能力描述。</p>
+      </div>
+    </div>
+
+    <h3>8.7 关键工程决策总结</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>决策</th><th>实现</th><th>动机</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hi">
+            <td>ADD-only</td>
+            <td>LLM 只提取事实，不做编辑</td>
+            <td>LoCoMo 71.4 → 91.6；减少 LLM 误删有效记忆</td>
+          </tr>
+          <tr>
+            <td>Anti-hallucination ID</td>
+            <td>UUID → 连续整数映射</td>
+            <td>防止 LLM 编造不存在的记忆 ID</td>
+          </tr>
+          <tr>
+            <td>Graceful degradation</td>
+            <td>批量操作失败 → 逐条 fallback</td>
+            <td>生产环境零数据丢失</td>
+          </tr>
+          <tr>
+            <td>Entity linking non-fatal</td>
+            <td>失败只 warning，不阻塞主路径</td>
+            <td>entity 是增强功能，不是必需功能</td>
+          </tr>
+          <tr>
+            <td>Telemetry redaction</td>
+            <td>api_key / password / token 字段显式脱敏</td>
+            <td>安全合规</td>
+          </tr>
+          <tr>
+            <td>Graph → Entity Store</td>
+            <td>linked_memory_ids 替代 Neo4j</td>
+            <td>部署复杂度大幅下降</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>8.8 部署形态与生态</h3>
+    <ul>
+      <li><strong>Python SDK</strong>：<code>from mem0 import Memory</code>（自托管）/ <code>from mem0 import MemoryClient</code>（hosted platform）</li>
+      <li><strong>Node.js SDK</strong>：<code>npm install mem0ai</code></li>
+      <li><strong>CLI</strong>：<code>mem0 add / search / init</code> 命令行管理</li>
+      <li><strong>REST Server</strong>：<code>server/</code> 提供 Docker 化的 API 服务</li>
+      <li><strong>OpenMemory</strong>：<code>openmemory/</code> 带 Web UI 的完整部署方案（Docker Compose）</li>
+      <li><strong>浏览器插件</strong>：Chrome extension 跨 ChatGPT / Perplexity / Claude 存储记忆</li>
+      <li><strong>框架集成</strong>：LangGraph / CrewAI / Vercel AI SDK</li>
+    </ul>
+
+    <div class="callout callout-key" style="margin-top:20px;">
+      <div class="callout-title">📌 第 8 节核心结论</div>
+      Mem0 V3 代码和论文描述之间的<strong>最大断裂</strong>是 ADD-only 策略——论文引以为豪的"冲突感知合并（ADD/UPDATE/DELETE）"在工程实测中被证明<strong>弊大于利</strong>，V3 用 MD5 hash 去重替代了 LLM 判定。这是记忆系统领域的一个重要实证教训：<span class="hl-pink">让 LLM 管理记忆生命周期是危险的</span>。小镇的 append-only memory stream 在 2023 年就做出了同样的选择，只是当时没有量化证据支持——Mem0 V3 的 LoCoMo 数据（71.4 → 91.6）现在提供了。
     </div>
   </section>
 

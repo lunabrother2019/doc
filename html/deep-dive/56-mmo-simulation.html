@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读56：MMOAgent + Beyond Playtesting — MMO 经济仿真双路线对照</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #1b0a28 0%, #0f1117 50%, #28200a 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3.2vw, 28px); color: var(--orange); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 16px; overflow-x: auto; white-space: nowrap; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 6px 0; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; transition: all .2s; flex-shrink: 0; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 20px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .stat-box .stat-label { font-size: 12px; color: var(--muted); }
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; background: rgba(251,146,60,0.15); color: var(--orange); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; letter-spacing: 0.5px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0 22px; }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+    .col-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; line-height: 1.8; }
+    .col-box .col-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; }
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>MMOAgent + Beyond Playtesting — MMO 经济仿真双路线 <span class="personal-badge">后加</span></h1>
+  <p class="sub">两家中国游戏巨头的 LLM Agent × MMO 仿真：网易伏羲走 Smallville 式认知架构做社交涌现（KDD 2025），腾讯光子走 SFT+RL 微调小模型做数值干预测试。同一个问题，完全相反的技术路线。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2506.04699" target="_blank">arXiv:2506.04699</a> · Xu et al. (NetEase) · KDD 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2512.02358" target="_blank">arXiv:2512.02358</a> · Zhang et al. (Tencent) · 2025.12</div>
+  </div>
+</div>
+
+<nav class="nav"><div class="nav-inner">
+  <a href="#sec1">1. 双路线总览</a>
+  <a href="#sec2">2. MMOAgent (网易)</a>
+  <a href="#sec3">3. Beyond Playtesting (腾讯)</a>
+  <a href="#sec4">4. 核心对照</a>
+  <a href="#sec5">5. 小镇映射</a>
+  <a href="#sec6">6. 验证试验田意义</a>
+</div></nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="19-generative-agents.html">19 · Smallville</a>
+  <a href="14-voyager.html">14 · Voyager</a>
+  <a href="46-agenttorch.html">46 · AgentTorch</a>
+  <a href="../challenge/verification-testbeds.html">验证试验田</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<section class="section" id="sec1">
+  <div class="sec-head"><div class="sec-num" style="background:var(--orange);">1</div><h2>同一问题，两条路线</h2></div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">共同问题</div>
+    MMO 游戏的经济系统设计（物品定价、交易规则、资源投放）需要大规模用户测试，但真实 A/B 测试昂贵且有风险（破坏玩家体验）。能否用 LLM Agent 替代真人做<strong>离线仿真</strong>？
+  </div>
+
+  <div class="two-col">
+    <div class="col-box" style="border-left:3px solid var(--yellow);">
+      <div class="col-title" style="color:var(--yellow);">路线 A：MMOAgent（网易伏羲）</div>
+      <p style="margin:0;">Smallville 式认知架构 + 通用 LLM (GPT-3.5) + P2P 社交涌现。追求<span class="hl">行为自然性</span>和角色分工涌现。KDD 2025。</p>
+    </div>
+    <div class="col-box" style="border-left:3px solid var(--cyan);">
+      <div class="col-title" style="color:var(--cyan);">路线 B：Beyond Playtesting（腾讯光子）</div>
+      <p style="margin:0;">SFT + RL 微调 Qwen2.5-1.5B 小模型 + 数值干预测试。追求<span class="hl-cyan">预测精度</span>和因果推断。Preprint 2025.12。</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="sec2">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">2</div><h2>MMOAgent：Smallville 式认知架构入 MMO</h2></div>
+
+  <h3>五模块架构（直接继承小镇）</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">P</div><div class="pipe-body"><strong>Profile</strong> — 基于真实玩家数据 k-means 聚类生成角色画像（非手写 persona）</div></div>
+    <div class="pipe-step"><div class="pipe-num">O</div><div class="pipe-body"><strong>Perception</strong> — 将游戏数值状态转为自然语言描述</div></div>
+    <div class="pipe-step"><div class="pipe-num">M</div><div class="pipe-body"><strong>Memory</strong> — 双层：Short-Term（最近 10 条 ⟨obs, action⟩）+ Long-Term（importance scoring + <span class="hl">Ebbinghaus 遗忘曲线</span>衰减）</div></div>
+    <div class="pipe-step"><div class="pipe-num">R</div><div class="pipe-body"><strong>Reasoning</strong> — Chain-of-Thought + execution feedback loop</div></div>
+    <div class="pipe-step"><div class="pipe-num">A</div><div class="pipe-body"><strong>Action</strong> — 五类经济活动：Task（生产）/ Upgrade（消费）/ Auction（拍卖）/ Shop（购买）/ Recharge（充值）</div></div>
+  </div>
+
+  <h3>关键创新</h3>
+  <ul>
+    <li><strong>Numeric-aware Memory</strong>：Long-Term Memory 用 max relative difference（而非 cosine similarity）做 importance scoring——因为游戏状态是数值而非文本</li>
+    <li><strong>Ebbinghaus Forgetting Curve</strong>：比小镇的 exponential recency decay 更有认知科学依据</li>
+    <li><strong>P2P Trading + Chat</strong>：Agent 通过公聊/私聊谈判，涌现角色分工（富玩家→商人，穷玩家→打工者）</li>
+  </ul>
+
+  <h3>实验结果</h3>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val" style="color:var(--yellow);">121.0</div><div class="stat-label">Capability (vs MMO-Economist 92.4)</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green);">1.58</div><div class="stat-label">Diversity Entropy (vs ReAct 0.76)</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--cyan);">0.67</div><div class="stat-label">Price-Supply Pearson r (p<0.001)</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--pink);">30</div><div class="stat-label">Agent × 200 steps</div></div>
+  </div>
+
+  <p>Ablation 显示<span class="hl-pink">Long-Term Memory 移除导致最大性能下降</span>——记忆是该架构的核心，与小镇结论一致。</p>
+</section>
+
+<section class="section" id="sec3">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">3</div><h2>Beyond Playtesting：SFT+RL 微调路线</h2></div>
+
+  <h3>三阶段训练管线</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>Stage 1: Vocabulary SFT</strong> — LoRA (rank=16) 让 Qwen2.5-1.5B 理解游戏术语（武器名/货币名/地图名等）</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>Stage 2: Action Planning SFT</strong> — 从真实玩家日志学预测下一步动作（offline/battle/buy/sell），监督微调</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>Stage 3: GRPO Reinforcement Learning</strong> — 强化推理一致性，让 Agent 的 decision chain 更 coherent</div></div>
+  </div>
+
+  <h3>关键设计差异</h3>
+  <ul>
+    <li><strong>无 memory / 无 reflection</strong> — 靠 SFT 把行为模式"烤进"模型参数</li>
+    <li><strong>小模型路线</strong> — Qwen2.5-1.5B（约 GPT-3.5 1/100 参数量），推理成本极低</li>
+    <li><strong>Data-driven Battle Server</strong> — 用真实对战日志训分类/回归模型预测胜负</li>
+    <li><strong>因果干预测试</strong> — 引入官方黑市后观察非正式交易变化</li>
+  </ul>
+
+  <h3>实验结果</h3>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val" style="color:var(--cyan);">+10.19%</div><div class="stat-label">Action Accuracy vs DeepSeek-V3</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green);">27.4%→1.5%</div><div class="stat-label">非正式交易降幅（干预后）</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--orange);">1.5B</div><div class="stat-label">模型参数量</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--pink);">10K</div><div class="stat-label">训练 trajectory 数</div></div>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">干预实验：因果推断成功</div>
+    引入官方黑市（一个新的合法交易渠道）后，Agent 的非正式交易从 27.4% 骤降到 1.5%——这证明仿真系统能正确响应<strong>反事实干预</strong>，是数值设计决策的有效工具。
+  </div>
+</section>
+
+<section class="section" id="sec4">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">4</div><h2>核心对照：两条路线的哲学差异</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>维度</th><th>MMOAgent (网易 · KDD 2025)</th><th>Beyond Playtesting (腾讯 · 2025.12)</th></tr></thead>
+      <tbody>
+        <tr><td>LLM 使用方式</td><td>通用 LLM (GPT-3.5) 做 role-playing</td><td>微调小模型 (Qwen2.5-1.5B) 做 prediction</td></tr>
+        <tr><td>认知架构</td><td>Profile + Perception + Memory + Reasoning + Action</td><td>无显式认知模块，行为"烤进"参数</td></tr>
+        <tr><td>记忆系统</td><td>双层 + Ebbinghaus 遗忘曲线</td><td>无（靠 SFT 隐式记忆）</td></tr>
+        <tr><td>社交交互</td><td>P2P 交易谈判 + 聊天，涌现角色分工</td><td>几乎无 Agent 间通信</td></tr>
+        <tr><td>核心追求</td><td><span class="hl">行为自然性 + 社会涌现</span></td><td><span class="hl-cyan">预测精度 + 因果干预</span></td></tr>
+        <tr><td>验证标准</td><td>多样性 entropy / 供需 correlation</td><td>Action accuracy / 干预响应合理性</td></tr>
+        <tr><td>规模</td><td>30 Agent × 200 steps</td><td>数百 Agent × 数周</td></tr>
+        <tr><td>推理成本</td><td>高（每步调 GPT-3.5）</td><td>低（1.5B 本地推理）</td></tr>
+        <tr><td>代码</td><td>未开源（网易内部数据）</td><td>未开源（腾讯内部数据）</td></tr>
+        <tr><td>学术贡献</td><td>证明 Smallville 架构可迁移到经济仿真</td><td>证明 SFT+RL 路线在 action prediction 上超越通用 LLM</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">两条路线的本质分歧</div>
+    <p><strong>MMOAgent</strong> 相信：Agent 的行为应该从<span class="hl">认知过程</span>中涌现——给它记忆和推理能力，行为自然就像人。这是 Smallville 的哲学。</p>
+    <p><strong>Beyond Playtesting</strong> 相信：Agent 的行为应该从<span class="hl-cyan">真实数据</span>中学习——用人类行为轨迹微调模型，直接模仿行为模式。这是 behavioral cloning 的哲学。</p>
+    <p>两者分歧的根源：<strong>你相信"理解产生行为"还是"模仿即理解"？</strong></p>
+  </div>
+</section>
+
+<section class="section" id="sec5">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">5</div><h2>与小镇的深层映射</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>小镇组件</th><th>MMOAgent</th><th>Beyond Playtesting</th></tr></thead>
+      <tbody>
+        <tr><td>Memory Stream</td><td>✅ 双层记忆 + Ebbinghaus 遗忘</td><td>❌ 无显式记忆</td></tr>
+        <tr><td>Reflection</td><td>⚠️ 隐含在 CoT reasoning 中</td><td>❌ 无</td></tr>
+        <tr><td>Planning</td><td>⚠️ 简单 action selection</td><td>⚠️ SFT 学到的 action sequence</td></tr>
+        <tr><td>Social Interaction</td><td>✅ 公聊/私聊/拍卖谈判</td><td>❌ 几乎无</td></tr>
+        <tr><td>Persona</td><td>✅ Data-driven clustering</td><td>✅ User profile conditioning</td></tr>
+        <tr><td>Environment</td><td>MMO 经济系统</td><td>Extraction shooter MMO</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sv-link">
+    MMOAgent 是小镇架构的<strong>忠实继承者</strong>——保留了 memory + perception + reasoning 的完整认知栈，只是把环境从物理小镇换成了 MMO 经济。Beyond Playtesting 则代表了一种<strong>后小镇路线</strong>——认为认知架构是不必要的开销，用 SFT+RL 直接从数据中学行为模式。两者的成功都证明了 LLM 在 MMO 仿真中的可行性，但解决的是不同的子问题：前者解"行为为什么"，后者解"行为是什么"。
+  </div>
+</section>
+
+<section class="section" id="sec6">
+  <div class="sec-head"><div class="sec-num" style="background:var(--red);">6</div><h2>验证试验田：MMO 的独特价值</h2></div>
+
+  <div class="callout callout-green">
+    <div class="callout-title">为什么 MMO 是好的验证场</div>
+    <ul style="margin-bottom:0;">
+      <li><strong>完整数据闭环</strong> — 所有玩家行为都被服务器记录，Ground Truth 完备</li>
+      <li><strong>经济系统有理论基础</strong> — 供需/通胀/交易量有经济学分析工具</li>
+      <li><strong>支持干预实验</strong> — 可以在仿真中"引入黑市"然后观察反应，再和真实数据比</li>
+      <li><strong>规模适中</strong> — 比社交媒体小（万人级），比小镇大（30+ Agent），恰好在可控范围</li>
+    </ul>
+  </div>
+
+  <p>两篇论文共同证明：<span class="hl">MMO 经济系统是 Agent 仿真从"讲故事"走向"做预测"的可行验证场</span>。推荐系统验证"品味像不像人"（RecAgent），MMO 验证"决策像不像人"——后者对小镇式认知架构的要求更高。</p>
+
+  <div class="callout callout-key" style="margin-top:20px;">
+    <div class="callout-title">📌 一句话记住</div>
+    MMO 仿真双路线：网易用 Smallville 式认知架构做社交涌现（KDD 2025），腾讯用 SFT+RL 微调做数值预测——前者证明记忆是核心，后者证明小模型+数据可超越通用 LLM。两者共同证明 MMO 是 Agent 仿真的高价值验证场。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--orange);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 56 · MMOAgent (KDD 2025) + Beyond Playtesting (2025.12)</p>
+  <p>arXiv: <a href="https://arxiv.org/abs/2506.04699" target="_blank">2506.04699</a> · <a href="https://arxiv.org/abs/2512.02358" target="_blank">2512.02358</a></p>
+</div>
+
+</body>
+</html>

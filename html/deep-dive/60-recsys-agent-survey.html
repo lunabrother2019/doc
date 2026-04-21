@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读60：LLM-powered Agents for RecSys 综述 — 三大范式与统一架构</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; }
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 60%, #0a1628 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3.2vw, 28px); color: var(--blue); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 820px; margin: 0 auto; line-height: 1.8; }
+    .hero .paper-ref { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 8px; padding: 6px 16px; }
+    .personal-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-left: 10px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 28px 0 10px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 14px 18px; margin-top: 12px; font-size: 13.5px; line-height: 1.8; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .cross-ref .cr-personal { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; font-weight: 700; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LLM-powered Agents for RecSys 综述 — 三大范式 <span class="personal-badge">后加</span></h1>
+  <p class="sub">天津大学+度小满（EMNLP 2025 Findings）对推荐系统×Agent 全领域的系统梳理：30+ 方法归入三大范式（推荐导向/交互导向/仿真导向），提出统一 Profile/Memory/Planning/Action 架构——与 Smallville 高度同构。</p>
+  <div style="margin-top:16px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2502.10050" target="_blank">arXiv:2502.10050</a> · Peng et al. · EMNLP 2025 Findings</div>
+    <div class="paper-ref" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.25);color:var(--yellow);">天津大学 + 度小满金融</div>
+  </div>
+</div>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="54-recagent.html">54 · RecAgent</a>
+  <a href="57-recsys-user-simulation.html">57 · Agent4Rec/AgentCF</a>
+  <a href="58-recsys-agent-brain.html">58 · Agent-as-Brain</a>
+  <a href="59-recsys-feedback-loop.html">59 · AFL/BiLLP/RecoWorld</a>
+  <a href="24-memory-survey.html">24 · Memory Survey</a>
+  <span class="cr-personal">后加</span>
+</div>
+
+<div class="container">
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--blue);">1</div><h2>三大范式</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>范式</th><th>核心思想</th><th>代表工作</th><th>与小镇的距离</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Recommender-oriented</strong><br>推荐导向</td>
+          <td>Agent 直接增强推荐机制（planning / reasoning / tool-use 提升推荐质量）</td>
+          <td>RecMind, MACRec, BiLLP, ToolRec</td>
+          <td>中——用了 planning 和 tool use</td>
+        </tr>
+        <tr>
+          <td><strong>Interaction-oriented</strong><br>交互导向</td>
+          <td>通过自然对话实现可解释推荐（human-like dialogue + 推荐理由透明化）</td>
+          <td>InteRecAgent, MACRS, RecLLM</td>
+          <td>中——用了 memory 和 reflection</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--pink);">Simulation-oriented</strong><br>仿真导向</td>
+          <td>Multi-agent 模拟真实用户行为与系统动态</td>
+          <td>Agent4Rec, RecAgent, AgentCF, OASIS</td>
+          <td><span class="hl-pink">最近——完整继承 Smallville 架构</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">Simulation-oriented = Smallville 在推荐领域的落地</div>
+    综述明确引用 Park et al. (2023) Generative Agents 作为 simulation-oriented 范式的基础工作。该范式下分三个子方向：User Behavior Simulation（Agent4Rec/RecAgent）、Collaborative Agent Simulation（AgentCF）、System Dynamics Simulation（AFL/RecoWorld）。
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">2</div><h2>统一架构：Profile / Memory / Planning / Action</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>模块</th><th>功能</th><th>推荐系统实例</th><th>Smallville 对应</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Profile</strong></td><td>构建动态用户/物品表征</td><td>Agent4Rec 融合 activity/conformity/diversity 三维社交特质</td><td>Persona (seed memory)</td></tr>
+        <tr><td><strong>Memory</strong></td><td>管理历史交互与情感记忆</td><td>RecAgent 三层记忆；AgentCF dual-layer</td><td>Memory Stream</td></tr>
+        <tr><td><strong>Planning</strong></td><td>制定多步推荐策略</td><td>BiLLP macro/micro 分层；RecMind Self-Inspiring</td><td>Daily plan → hourly actions</td></tr>
+        <tr><td><strong>Action</strong></td><td>执行推荐并捕获反馈</td><td>RecAgent 六种行动模态（搜索/浏览/点击/翻页/聊天/广播）</td><td>Agent 物理动作</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>综述的独特贡献：<strong>显式对齐</strong>推荐系统 Agent 与 Generative Agents 的四模块架构。这为跨领域迁移提供了方法论框架——任何新垂直领域要做 Agent 仿真，都可以按 Profile/Memory/Planning/Action 四件套来设计。</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">3</div><h2>Simulation-oriented 的挑战</h2></div>
+
+  <p>综述指出该范式面临的核心问题：</p>
+  <ul>
+    <li><strong>评估标准缺失</strong> — "Agent 行为像不像真人"缺乏统一 benchmark（对应我们的 <a href="../challenge/validation-gap.html">验证鸿沟</a>）</li>
+    <li><strong>可扩展性</strong> — 1000 Agent × 多轮交互的 LLM 成本仍然昂贵</li>
+    <li><strong>对抗攻击脆弱性</strong> — 论文提到 CheatAgent：恶意 Agent 可通过操控 profile 欺骗推荐系统</li>
+    <li><strong>LLM 偏差传播</strong> — position bias / popularity bias 从 LLM 传导到仿真结果</li>
+  </ul>
+
+  <div class="sv-link">
+    这篇综述是目前唯一一篇<strong>系统性对齐</strong> Smallville 架构与推荐系统 Agent 的工作。它证实了我们在 <code>challenge/verification-testbeds.html</code> 中的判断：推荐系统是 Generative Agents 范式获得<strong>定量验证</strong>的最佳突破口——因为行为数据密度最高、feedback 循环最快、评估指标最成熟。
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink);">4</div><h2>覆盖规模与评估基础设施</h2></div>
+  <ul>
+    <li><strong>覆盖方法</strong>：30+ 种</li>
+    <li><strong>Benchmark 数据集</strong>：Amazon Books (1030万用户) / MovieLens-1M/20M / Steam / Yelp / ReDial / OpenDialKG</li>
+    <li><strong>评估指标</strong>：NDCG@K / Recall@K / BLEU/ROUGE / Agent memory believability</li>
+  </ul>
+
+  <div class="callout callout-key" style="margin-top:16px;">
+    <div class="callout-title">📌 一句话记住</div>
+    这篇综述把推荐系统×Agent 全领域归入三大范式，其中 Simulation-oriented 就是 Smallville 的推荐领域分支。统一 Profile/Memory/Planning/Action 四模块架构，为跨领域 Agent 仿真提供方法论模板。
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--blue);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">深度解读 60 · Survey: LLM-powered Agents for RecSys · arXiv:2502.10050 · EMNLP 2025</p>
+</div>
+
+</body>
+</html>

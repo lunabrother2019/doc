@@ -134,6 +134,7 @@
     <a href="#sec4">4. 校准 Pipeline</a>
     <a href="#sec5">5. 三大实验</a>
     <a href="#sec6">6. 对照小镇 / AgentSociety</a>
+    <a href="#sec7">7. 代码仓库实证</a>
     <a href="#faq">FAQ</a>
   </div>
 </nav>
@@ -524,6 +525,116 @@ until 收敛
 
   <div class="sv-link">
     SocioVerse 相当于给<strong>小镇的 Memory Stream</strong> 换了一个"来源"：不再是剧作家构造的虚构经验，而是真实个体在社交媒体上留下的数字影子。小镇的架构本身可以不变——变的是 seed memory 的<span class="hl-pink">统计真实性</span>。
+  </div>
+</section>
+
+<!-- ============================== SECTION 7 ============================== -->
+<section class="section" id="sec7">
+  <div class="sec-head"><div class="sec-num" style="background:var(--orange);">7</div><h2>代码仓库实证：GitHub 上到底有什么</h2></div>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">⚠️ 核心结论：这不是完整实现，是数据+评估壳</div>
+    截至 2026-04-20，<a href="https://github.com/FudanDISC/SocioVerse" target="_blank">FudanDISC/SocioVerse</a> 仓库（175 stars / 14 forks，最后更新 2026-02-08）<strong>没有任何仿真执行代码</strong>。论文核心——World Model 四大 Alignment 模块的实现标注 "coming soon"，至今未发布。仓库仅包含评估脚本、问卷定义和样本用户数据。
+  </div>
+
+  <h3>7.1 仓库实际内容</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>目录</th><th>内容</th><th>体量</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>evaluation/</code></td><td>3 个 Python 评估脚本（事后验证用）</td><td>~10KB</td></tr>
+        <tr><td><code>questionnaire/</code></td><td>3 个 JSON 问卷定义文件</td><td>结构化场景模板</td></tr>
+        <tr><td><code>user_pool/</code></td><td>样本用户画像（按州/省分 JSON 文件）</td><td>Alabama 5031 人 / 北京 249 人</td></tr>
+        <tr><td><code>assets/</code></td><td>3 张 PNG 框架图</td><td>用于 README 展示</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>不存在的内容</strong>：没有 <code>src/</code>、没有 <code>socioverse/</code>、没有 <code>model/</code>，没有 prompt template，没有 LLM 调用逻辑，没有 <code>requirements.txt</code>，没有运行说明。提交历史约 20 次 commit，全部为 README 修改和数据文件上传。</p>
+
+  <h3>7.2 User Pool 数据结构</h3>
+
+  <h4>选举场景（X/Twitter 用户）</h4>
+  <div class="formula"><span class="label">user_pool/ 选举场景 JSON 示例（Alabama，5031 人）：</span>
+{
+  "user_id": "...",
+  "screen_name": "...",
+  "overlap_score": 0.83,        // 与目标人群的重叠度评分
+  "RELIGIOUS": "Protestant",
+  "EMPLOYMENT": "Full-time",
+  "MARITAL": "Married",
+  "RACE": "White",
+  "IDEOLOGY": "Conservative",
+  "INCOME": "$50k-75k",
+  "AREA": "Rural",
+  "PARTY": "Republican",
+  "AGE": "45-54",
+  "GENDER": "Male"
+}
+</div>
+
+  <h4>经济场景（小红书/Rednote 用户）</h4>
+  <div class="formula"><span class="label">user_pool/ 经济场景 JSON 示例（北京，249 人）：</span>
+{
+  "clean_extracted_texts": ["今天去了三里屯...", ...],  // 用户发帖原文
+  "demographic_label": "25-34岁, 女性, 白领",           // LLM 标注
+  "influence": 0.72,                                    // 影响力分数
+  "similarity": 0.65                                    // 与目标群体相似度
+}
+</div>
+
+  <p>完整千万级用户池托管在 HuggingFace（<code>Lishi0905/SimulateAnything</code>），但受 X 平台政策限制，仅提供 user ID + 标签，文本内容需自行通过 API 获取。</p>
+
+  <h3>7.3 评估脚本做什么</h3>
+
+  <p>三个评估脚本实现的是<strong>事后验证逻辑</strong>——不是仿真执行逻辑，它们读取由外部系统（未开源的 World Model）生成的结果文件，然后和 ground truth 比较：</p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>electionSim_evaluation.py</strong> — 读取 <code>final_output.jsonl</code>，按 ANES 调查问卷编码（如 V201007a）统计 Democrat/Republican 投票比例，对 51 州逐一与真实选举结果比较 → 计算 RMSE + 州级准确率。<span class="hl-green">这就是 "92.2% state-level accuracy" 的计算方式</span>。</div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>ecoSim_evaluation.py</strong> — 读取模拟消费支出，对比中国统计局月度数据，计算 KL Divergence + RMSE。支持 GPT-4o / GPT-4o-mini / LLaMA3 / Qwen2.5 / DeepSeek-R1 五个模型对比。</div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>pressSim_evaluation.py</strong> — 极简脚本，对新闻反馈场景计算 RMSE + KL Divergence。</div></div>
+  </div>
+
+  <h3>7.4 从评估代码逆推仿真流程</h3>
+
+  <p>虽然仿真代码未公开，但从问卷结构和评估脚本可以逆向推断执行流程：</p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">①</div><div class="pipe-body"><strong>Sampling</strong> — 根据场景从千万池中按 <code>overlap_score</code> / <code>similarity</code> 抽样代表性子集（IPF 加权）</div></div>
+    <div class="pipe-step"><div class="pipe-num">②</div><div class="pipe-body"><strong>Profile Construction</strong> — 用人口统计标签 + 用户发帖文本构建 Agent persona prompt</div></div>
+    <div class="pipe-step"><div class="pipe-num">③</div><div class="pipe-body"><strong>Survey Simulation</strong> — 将标准化问卷（ANES 选举调查 / 消费支出问卷）发给 LLM，角色扮演为该用户回答</div></div>
+    <div class="pipe-step"><div class="pipe-num">④</div><div class="pipe-body"><strong>Aggregation</strong> — 汇总所有 Agent 回答，统计群体分布 → 输出 <code>final_output.jsonl</code></div></div>
+  </div>
+
+  <h3>7.5 论文 vs 代码：缺失对照表</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>论文描述的组件</th><th>代码状态</th><th>影响</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Social Environment Engine</td><td>❌ 未公开</td><td>无法验证环境注入的实现方式</td></tr>
+        <tr><td>User Engine（10M 池 + 分类器蒸馏）</td><td>⚠️ 仅有样本数据，LongFormer/BERT 模型未发布</td><td>无法复现标注流水线</td></tr>
+        <tr><td>Scenario Engine（4 种模板）</td><td>⚠️ 问卷 JSON 已有，但执行逻辑未公开</td><td>可推断结构，但无法直接运行</td></tr>
+        <tr><td>Behavior Engine（规则+LLM 混合）</td><td>❌ 未公开</td><td>无法验证 Agent 推理的 prompt 设计</td></tr>
+        <tr><td>IPF 校准</td><td>❌ 未公开</td><td>无法验证抽样权重计算</td></tr>
+        <tr><td>Prompt Templates</td><td>❌ 未公开</td><td>最关键的缺失——persona 如何注入 LLM 不可知</td></tr>
+        <tr><td>评估指标</td><td>✅ 已公开</td><td>可以复现论文表格中的数字计算</td></tr>
+        <tr><td>用户画像数据</td><td>✅ 样本已有 / 全量在 HuggingFace</td><td>可以用于自己的研究</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-pink">
+    <div class="callout-title">📌 对第 6 节对照表的修正</div>
+    第 6 节对照表"代码"行写了"开源 FudanDISC/SocioVerse"。<strong>严格来说这个描述有误导性</strong>——仓库确实是 Apache 2.0 许可证公开的，但核心仿真实现完全缺失。与 Smallville（完整可运行的 agent 循环）和 AgentSociety（完整 pip 包）相比，SocioVerse 的开源程度远低于表中暗示的水平。其真正公开的有价值资产是<span class="hl-pink">用户画像数据集</span>和<span class="hl">评估方法论</span>，而非仿真框架本身。
+  </div>
+
+  <div class="sv-link">
+    这个代码现状再次印证了社会仿真领域的普遍问题：<strong>数据比代码更有壁垒</strong>。SocioVerse 的真正护城河是那 1000 万条有标签的真人画像——评估脚本和仿真循环是可复现的工程工作，但这个量级的标注数据不是。如果要在自己的项目中复用 SocioVerse 的思路（真人池 + IPF 抽样 + LLM 角色扮演），其用户池数据（HuggingFace 上的 user ID + 标签）是最有直接价值的部分。
   </div>
 </section>
 

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deep-Dive 全览：53 篇论文 · 分类 · 时间线 · 一句话速查</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a;
+      --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa;
+      --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c;
+      --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; font-size: 14px; }
+
+    .hero { background: linear-gradient(135deg, #1b1340 0%, #0f1117 50%, #0a1628 100%); padding: 48px 24px 36px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(20px, 3vw, 28px); color: var(--cyan); margin-bottom: 10px; }
+    .hero .sub { color: var(--muted); font-size: 13px; max-width: 800px; margin: 0 auto; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .cat-header { margin: 36px 0 14px; padding: 10px 16px; border-radius: 8px; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .cat-header .cat-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #0f1117; flex-shrink: 0; }
+    .cat-header.cat-foundation { background: rgba(96,165,250,0.08); border-left: 3px solid var(--blue); color: var(--blue); }
+    .cat-header.cat-foundation .cat-icon { background: var(--blue); }
+    .cat-header.cat-memory { background: rgba(244,114,182,0.08); border-left: 3px solid var(--pink); color: var(--pink); }
+    .cat-header.cat-memory .cat-icon { background: var(--pink); }
+    .cat-header.cat-reflection { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); color: var(--accent); }
+    .cat-header.cat-reflection .cat-icon { background: var(--accent); }
+    .cat-header.cat-multi { background: rgba(52,211,153,0.08); border-left: 3px solid var(--green); color: var(--green); }
+    .cat-header.cat-multi .cat-icon { background: var(--green); }
+    .cat-header.cat-sim { background: rgba(251,191,36,0.08); border-left: 3px solid var(--yellow); color: var(--yellow); }
+    .cat-header.cat-sim .cat-icon { background: var(--yellow); }
+    .cat-header.cat-halluc { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); color: var(--red); }
+    .cat-header.cat-halluc .cat-icon { background: var(--red); }
+    .cat-header.cat-framework { background: rgba(34,211,238,0.08); border-left: 3px solid var(--cyan); color: var(--cyan); }
+    .cat-header.cat-framework .cat-icon { background: var(--cyan); }
+    .cat-header.cat-eval { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); color: var(--orange); }
+    .cat-header.cat-eval .cat-icon { background: var(--orange); }
+
+    .paper-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    .paper-table th { background: var(--bg3); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+    .paper-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; }
+    .paper-table tr:hover td { background: rgba(167,139,250,0.04); }
+    .paper-table .num { color: var(--muted); font-weight: 700; font-size: 12px; width: 30px; }
+    .paper-table .title-cell { font-weight: 600; color: var(--text); }
+    .paper-table .title-cell a { color: var(--text); text-decoration: none; }
+    .paper-table .title-cell a:hover { color: var(--cyan); text-decoration: underline; }
+    .paper-table .year { color: var(--yellow); font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .paper-table .desc { color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+    .paper-table .highlight { font-size: 12px; color: var(--cyan); }
+    .paper-table .code-yes { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+    .paper-table .code-no { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(248,113,113,0.08); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+    .paper-table .code-partial { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+
+    .timeline { margin: 32px 0; padding: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; }
+    .timeline h2 { font-size: 16px; color: var(--cyan); margin-bottom: 16px; }
+    .tl-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 10px; padding-left: 4px; border-left: 2px solid var(--border); padding-bottom: 8px; }
+    .tl-row:last-child { border-left-color: transparent; }
+    .tl-year { font-size: 12px; font-weight: 700; color: var(--yellow); min-width: 60px; flex-shrink: 0; }
+    .tl-items { font-size: 12.5px; color: var(--text); line-height: 1.8; }
+    .tl-items .tl-tag { font-size: 11px; padding: 1px 5px; border-radius: 3px; margin-right: 2px; }
+    .tl-items .tl-tag-core { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .tl-items .tl-tag-mem { background: rgba(244,114,182,0.12); color: var(--pink); }
+    .tl-items .tl-tag-sim { background: rgba(251,191,36,0.12); color: var(--yellow); }
+    .tl-items .tl-tag-fw { background: rgba(34,211,238,0.12); color: var(--cyan); }
+
+    .insight-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 24px 0; }
+    .insight-box h3 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
+    .insight-box p, .insight-box li { font-size: 13px; line-height: 1.8; }
+    .insight-box ul { padding-left: 18px; }
+
+    .nav-top { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 8px 16px; overflow-x: auto; white-space: nowrap; text-align: center; }
+    .nav-top a { color: var(--muted); text-decoration: none; font-size: 11px; padding: 4px 8px; border-radius: 5px; margin: 0 2px; }
+    .nav-top a:hover { color: var(--text); background: var(--bg3); }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 32px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 18px 0; }
+    .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-box .val { font-size: 22px; font-weight: 700; }
+    .stat-box .label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Deep-Dive 全览：从斯坦福小镇到 2026 前沿</h1>
+  <p class="sub">53 篇论文 · 8 大分类 · 按时间发展顺序 · 一句话速查 · 代码可用性标注<br>覆盖 2022.01 — 2026.04 的 Generative Agents 研究脉络</p>
+</div>
+
+<div class="nav-top">
+  <a href="#timeline">时间线</a>
+  <a href="#cat-foundation">基础范式</a>
+  <a href="#cat-memory">记忆系统</a>
+  <a href="#cat-reflection">反思与推理</a>
+  <a href="#cat-multi">多Agent协作</a>
+  <a href="#cat-sim">社会仿真</a>
+  <a href="#cat-halluc">幻觉与批判</a>
+  <a href="#cat-framework">框架与工具</a>
+  <a href="#cat-eval">评估与基准</a>
+  <a href="#insights">发展洞察</a>
+</div>
+
+<div class="container">
+
+<!-- ===== 统计概览 ===== -->
+<div class="stat-row">
+  <div class="stat-box"><div class="val" style="color:var(--cyan);">53</div><div class="label">Deep-Dive 总数</div></div>
+  <div class="stat-box"><div class="val" style="color:var(--green);">31</div><div class="label">有开源代码</div></div>
+  <div class="stat-box"><div class="val" style="color:var(--yellow);">2022–2026</div><div class="label">时间跨度</div></div>
+  <div class="stat-box"><div class="val" style="color:var(--pink);">8</div><div class="label">研究分类</div></div>
+  <div class="stat-box"><div class="val" style="color:var(--accent);">19</div><div class="label">核心论文（原始论文）</div></div>
+  <div class="stat-box"><div class="val" style="color:var(--orange);">96</div><div class="label">Papers-Reference 条目</div></div>
+</div>
+
+<!-- ===== 时间线 ===== -->
+<div class="timeline" id="timeline">
+  <h2>发展时间线：从 CoT 到万级仿真</h2>
+
+  <div class="tl-row">
+    <div class="tl-year">2022.01</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">CoT</span> Chain-of-Thought — 开启 LLM 推理时代的基础范式</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2022.07</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">Inner Monologue</span> 具身 Agent 的闭环反馈规划</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2022.10</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">ReAct</span> 推理+行动交替——Agent 基础循环确立</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.03</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">Reflexion</span> 语言级自我反思强化学习 · <span class="tl-tag tl-tag-core">CAMEL</span> 角色扮演多 Agent</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.04</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-sim">Generative Agents</span> <strong>斯坦福小镇发表 — 里程碑</strong></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.05</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">ToT</span> 树状搜索 · <span class="tl-tag tl-tag-core">Plan-and-Solve</span> · <span class="tl-tag tl-tag-core">Voyager</span> 开放世界终身学习 · <span class="tl-tag tl-tag-core">MAD</span> 多 Agent 辩论</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.08</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">ExpeL</span> 跨轨迹经验池 · <span class="tl-tag tl-tag-fw">MetaGPT</span> SOP 多 Agent</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.10</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">LATS</span> 统一树搜索 · <span class="tl-tag tl-tag-core">Self-Correct 反驳</span> · <span class="tl-tag tl-tag-sim">SOTOPIA</span> 社交评估 · <span class="tl-tag tl-tag-fw">ChatDev</span></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2023.12</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-sim">Concordia</span> DeepMind 社会仿真库</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.03</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">Abliteration</span> 安全消融</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.08</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-mem">HiAgent</span> 分层工作记忆 · <span class="tl-tag tl-tag-core">MegaAgent</span> 590 Agent 自动生成</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.09</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-fw">AgentTorch</span> 可微分百万仿真 · <span class="tl-tag tl-tag-core">Multi-Agent ToT</span> · <span class="tl-tag tl-tag-core">AIPatient</span></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.10</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-sim">OpenCity</span> 万人城市仿真 · <span class="tl-tag tl-tag-fw">OPTIMA</span> MAS 通信优化</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.11</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-sim">1000 People</span> Park 团队数字孪生 · <span class="tl-tag tl-tag-core">Sweet&Sour</span> 正向反思</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2024.12</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">MAR</span> 多 Agent 反思 · <span class="tl-tag tl-tag-mem">Memory Survey</span> 综述 · <span class="tl-tag tl-tag-core">Dual-Loop</span> 双环反思</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.02</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-mem">A-MEM</span> Zettelkasten · <span class="tl-tag tl-tag-sim">AgentSociety</span> 万人仿真</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.03</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-mem">RMM</span> 前瞻+回顾反思 · <span class="tl-tag tl-tag-mem">MemInsight</span> 自主记忆增强 · <span class="tl-tag tl-tag-core">ERL</span> 启发式池</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.04</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-mem">Mem0</span> 生产级记忆 · <span class="tl-tag tl-tag-sim">SocioVerse</span> 千万用户仿真 · <span class="tl-tag tl-tag-core">GEA</span> 通用具身</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.05</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-mem">MemoryOS</span> · <span class="tl-tag tl-tag-sim">Critical Perspectives</span> 批判综述 · <span class="tl-tag tl-tag-fw">Terminal-Bench</span></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.08</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-fw">AgentScope</span> 阿里多 Agent 框架</div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025.09–10</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">Hallucination Survey</span> · <span class="tl-tag tl-tag-core">Mitigating Hallucination</span></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2025–2026</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-fw">LangGraph</span> · <span class="tl-tag tl-tag-fw">A2A</span> 协议 · <span class="tl-tag tl-tag-core">Cross-Attn Retrieval</span> · <span class="tl-tag tl-tag-mem">Memory POMDP</span> · <span class="tl-tag tl-tag-mem">Evaluating Memory</span> · <span class="tl-tag tl-tag-core">Swarm Intelligence</span></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-year">2026.03–04</div>
+    <div class="tl-items"><span class="tl-tag tl-tag-core">Drop Hierarchy</span> · <span class="tl-tag tl-tag-fw">Google A2A</span> · <span class="tl-tag tl-tag-core">Embodied Hallucinations</span> · <span class="tl-tag tl-tag-core">PolicySim</span></div>
+  </div>
+</div>
+
+<!-- ===== 分类一：基础范式 ===== -->
+<div class="cat-header cat-foundation" id="cat-foundation">
+  <div class="cat-icon">A</div>
+  基础推理 &amp; Agent 循环范式（奠基层）
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">07</td><td class="title-cell"><a href="07-chain-of-thought.html">Chain-of-Thought</a></td><td class="year">2022.01</td><td class="desc">Few-shot 中间推理步骤让 LLM 能做数学和逻辑题</td><td class="highlight">开启 LLM 推理时代；GSM8K 首破 SOTA</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">09</td><td class="title-cell"><a href="09-inner-monologue.html">Inner Monologue</a></td><td class="year">2022.07</td><td class="desc">具身 Agent 用环境反馈闭环修正规划</td><td class="highlight">感知→规划→执行的闭环；Google Robotics</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">08</td><td class="title-cell"><a href="08-react.html">ReAct</a></td><td class="year">2022.10</td><td class="desc">推理(Thought)+行动(Act)交替——Agent 主循环范式</td><td class="highlight">确立 Thought→Action→Obs 循环；几乎所有 Agent 框架的祖先</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">10</td><td class="title-cell"><a href="10-reflexion.html">Reflexion</a></td><td class="year">2023.03</td><td class="desc">Agent 从失败中用自然语言自我反思，无需梯度</td><td class="highlight">语言级 RL；AlfWorld/HotpotQA 大幅提升</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">11</td><td class="title-cell"><a href="11-tree-of-thoughts.html">Tree of Thoughts</a></td><td class="year">2023.05</td><td class="desc">把线性 CoT 扩展为树状搜索+回溯</td><td class="highlight">BFS/DFS 搜索策略；Game of 24 显著提升</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">12</td><td class="title-cell"><a href="12-plan-and-solve.html">Plan-and-Solve</a></td><td class="year">2023.05</td><td class="desc">先拆解子步骤再逐步执行的零样本推理</td><td class="highlight">Zero-shot 超越 few-shot CoT</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">14</td><td class="title-cell"><a href="14-voyager.html">Voyager</a></td><td class="year">2023.05</td><td class="desc">Minecraft 中自主探索+代码生成+技能库的终身学习 Agent</td><td class="highlight">自主课程+可复用技能库；开放世界标杆</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">13</td><td class="title-cell"><a href="13-lats.html">LATS</a></td><td class="year">2023.10</td><td class="desc">MCTS 式统一框架：推理+行动+规划+反思全集成</td><td class="highlight">把 ReAct/ToT/Reflexion 统一为一个树搜索</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">04</td><td class="title-cell"><a href="04-abliteration.html">Abliteration</a></td><td class="year">2024.03</td><td class="desc">通过单向量消融绕过 LLM 安全拒绝机制</td><td class="highlight">揭示安全对齐的脆弱性；1 个残差方向</td><td><span class="code-partial">社区工具</span></td></tr>
+    <tr><td class="num">28</td><td class="title-cell"><a href="28-self-correct-limits.html">Self-Correct Limits</a></td><td class="year">2023.10</td><td class="desc">证明 LLM 无法在没有外部信号时自我纠错推理</td><td class="highlight">ICLR 2024；转向论文——反思需要外部 oracle</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">29</td><td class="title-cell"><a href="29-gea-embodied.html">GEA</a></td><td class="year">2025.04</td><td class="desc">统一多具身体的动作 tokenizer，一个模型控制多种机器人</td><td class="highlight">CVPR 2025；Apple + Georgia Tech</td><td><span class="code-no">未开源</span></td></tr>
+    <tr><td class="num">05</td><td class="title-cell"><a href="05-timesfm.html">TimesFM</a></td><td class="year">2023.10</td><td class="desc">Google 时间序列基础模型——Agent 世界模型的概念桥接</td><td class="highlight">Decoder-Only 零样本时序预测</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">01</td><td class="title-cell"><a href="01-drop-the-hierarchy.html">Drop the Hierarchy</a></td><td class="year">2026.03</td><td class="desc">证明扁平化（无角色/层级）多 Agent 可超越层级结构</td><td class="highlight">挑战 MetaGPT/ChatDev 的层级假设</td><td><span class="code-yes">AgentVerse</span></td></tr>
+    <tr><td class="num">03</td><td class="title-cell"><a href="03-policysim.html">PolicySim</a></td><td class="year">2026</td><td class="desc">LLM 社会模拟沙盒 + 主动式策略优化</td><td class="highlight">政策制定者视角的 Agent 仿真</td><td><span class="code-partial">部分</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类二：记忆系统 ===== -->
+<div class="cat-header cat-memory" id="cat-memory">
+  <div class="cat-icon">M</div>
+  记忆系统（Memory Stream 的后代）
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">19</td><td class="title-cell"><a href="19-generative-agents.html">Generative Agents (小镇)</a></td><td class="year">2023.04</td><td class="desc">25 NPC 沙盒仿真：记忆流+反思+规划=可信行为涌现</td><td class="highlight"><strong>里程碑</strong>；recency×importance×relevance 三维公式</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">18</td><td class="title-cell"><a href="18-hiagent.html">HiAgent</a></td><td class="year">2024.08</td><td class="desc">分层工作记忆：摘要层+关键事件层压缩长上下文</td><td class="highlight">30+ 步任务不爆上下文</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">06</td><td class="title-cell"><a href="06-memori.html">Memori</a></td><td class="year">2026.03</td><td class="desc">SQL-native 结构化记忆——关系型数据库派的生产方案</td><td class="highlight">规则/偏好/事实/技能分类存储</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">20</td><td class="title-cell"><a href="20-a-mem.html">A-MEM</a></td><td class="year">2025.02</td><td class="desc">Zettelkasten 卡片盒方法论应用于 Agent 记忆</td><td class="highlight">主动建链；"笔记+索引"双层结构</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">31</td><td class="title-cell"><a href="31-rmm.html">RMM</a></td><td class="year">2025.03</td><td class="desc">前瞻(Prospective)+回顾(Retrospective) 双轴反思记忆管理</td><td class="highlight">写入时就预判未来需要；双向反思</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">44</td><td class="title-cell"><a href="44-autonomous-memory-aug.html">MemInsight</a></td><td class="year">2025.03</td><td class="desc">Agent 自主决定何时增强记忆——LLM 驱动属性挖掘</td><td class="highlight">EMNLP 2025；AWS AI Labs；entity×conversation</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">30</td><td class="title-cell"><a href="30-mem0.html">Mem0</a></td><td class="year">2025.04</td><td class="desc">生产级 Agent 长期记忆 SDK：V3 ADD-only + 三信号检索</td><td class="highlight">26 种 vector store；LoCoMo 91.6；53k stars</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">21</td><td class="title-cell"><a href="21-memory-os.html">MemoryOS</a></td><td class="year">2025.05</td><td class="desc">OS 思想搬到记忆：调度+缓存+淘汰+持久化</td><td class="highlight">四层架构类比操作系统</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">24</td><td class="title-cell"><a href="24-memory-survey.html">Memory Survey</a></td><td class="year">2025.12</td><td class="desc">Agent 记忆领域最全综述（双维度分类空间）</td><td class="highlight">综述 100+ 论文；4 条研究路线总结</td><td><span class="code-no">综述</span></td></tr>
+    <tr><td class="num">43</td><td class="title-cell"><a href="43-evaluating-memory.html">Evaluating Memory</a></td><td class="year">2026.02</td><td class="desc">StructMemEval：线性/树状/图状三种记忆结构的定量对比</td><td class="highlight">首个记忆结构 benchmark</td><td><span class="code-partial">部分</span></td></tr>
+    <tr><td class="num">32</td><td class="title-cell"><a href="32-memory-pomdp.html">Memory POMDP</a></td><td class="year">2026.03</td><td class="desc">把 Agent 记忆形式化为 POMDP——理论框架</td><td class="highlight">retrieve() = belief update；理论互补</td><td><span class="code-no">理论</span></td></tr>
+    <tr><td class="num">26</td><td class="title-cell"><a href="26-cross-attention-retrieval.html">Cross-Attention Retrieval</a></td><td class="year">2025</td><td class="desc">ACAN 网络替代小镇手调三维公式——可训练的记忆检索</td><td class="highlight">从公式→神经网络；端到端可学习</td><td><span class="code-yes">GitHub</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类三：反思与经验学习 ===== -->
+<div class="cat-header cat-reflection" id="cat-reflection">
+  <div class="cat-icon">R</div>
+  反思、经验学习 &amp; 辩论（Reflection 的后代）
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">25</td><td class="title-cell"><a href="25-expel-erl.html">ExpeL / AutoGuide / ERL</a></td><td class="year">2023–2026</td><td class="desc">跨轨迹经验反思三代演化：聚合→条件化→检索</td><td class="highlight">AAAI 2024 / NeurIPS 2024；经验池不断进化</td><td><span class="code-yes">ExpeL GitHub</span></td></tr>
+    <tr><td class="num">27</td><td class="title-cell"><a href="27-mad-mar.html">MAD + MAR</a></td><td class="year">2023–2025</td><td class="desc">多 Agent 辩论式反思——对抗生成更好推理</td><td class="highlight">Du et al. (MIT) → MAR Persona Diversity</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">39</td><td class="title-cell"><a href="39-sweet-sour.html">Sweet&Sour</a></td><td class="year">2024.11</td><td class="desc">正向经验也值得反思——不只从失败学习</td><td class="highlight">NeurIPS 2024；ScienceWorld 基准</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">02</td><td class="title-cell"><a href="02-dual-loop-reflection.html">Dual-Loop Reflection</a></td><td class="year">2025.12</td><td class="desc">双环元认知反思——从单环失败到 RBB-LLM 架构</td><td class="highlight">区分操作环和元认知环</td><td><span class="code-no">无</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类四：多Agent协作 ===== -->
+<div class="cat-header cat-multi" id="cat-multi">
+  <div class="cat-icon">N</div>
+  多 Agent 协作 &amp; 通信优化
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">15</td><td class="title-cell"><a href="15-camel.html">CAMEL</a></td><td class="year">2023.03</td><td class="desc">AI↔AI 角色扮演对话驱动协作——多 Agent 的开山之作</td><td class="highlight">Inception prompting；自动化 agent 沟通</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">22</td><td class="title-cell"><a href="22-metagpt.html">MetaGPT</a></td><td class="year">2023.08</td><td class="desc">SOP 流水线驱动的虚拟软件公司——角色+文档=质量</td><td class="highlight">产品经理→架构师→工程师→QA 流水线</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">23</td><td class="title-cell"><a href="23-chatdev.html">ChatDev</a></td><td class="year">2023.10</td><td class="desc">Waterfall 瀑布式虚拟软件公司——全对话驱动</td><td class="highlight">需求→设计→代码→测试→文档全自动</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">16</td><td class="title-cell"><a href="16-multi-agent-tot-validator.html">Multi-Agent ToT Validator</a></td><td class="year">2024.09</td><td class="desc">多 Agent 并行推理+交叉验证</td><td class="highlight">ToT + 多 Agent 投票；去共识偏差</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">42</td><td class="title-cell"><a href="42-megaagent.html">MegaAgent</a></td><td class="year">2024.08</td><td class="desc">590 Agent 自动生成+动态任务分配</td><td class="highlight">ACL Findings 2025；对比 MetaGPT/ChatDev 的固定管线</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">45</td><td class="title-cell"><a href="45-optima.html">OPTIMA</a></td><td class="year">2024.10</td><td class="desc">MCTS 启发 DPO 优化多 Agent 通信——2.8× 性能 &lt;10% token</td><td class="highlight">ACL Findings 2025；Tsinghua THUNLP</td><td><span class="code-partial">需自训</span></td></tr>
+    <tr><td class="num">49</td><td class="title-cell"><a href="49-swarm-intelligence.html">Swarm Intelligence × LLM</a></td><td class="year">2025</td><td class="desc">蚁群/鸟群算法 + LLM Agent 的融合实验</td><td class="highlight">Frontiers in AI；生物启发路线</td><td><span class="code-no">无</span></td></tr>
+    <tr><td class="num">47</td><td class="title-cell"><a href="47-aipatient.html">AIPatient</a></td><td class="year">2024.09</td><td class="desc">6 Agent 协作医疗仿真 + MIMIC-III + Reasoning RAG</td><td class="highlight">Nature Comm Medicine 2025；94.15% QA 准确率</td><td><span class="code-partial">部分</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类五：社会仿真 ===== -->
+<div class="cat-header cat-sim" id="cat-sim">
+  <div class="cat-icon">S</div>
+  社会仿真 &amp; 大规模 Agent 模拟（小镇的直系后裔）
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">19</td><td class="title-cell"><a href="19-generative-agents.html">Generative Agents</a></td><td class="year">2023.04</td><td class="desc">斯坦福小镇——25 NPC 社会仿真的原点</td><td class="highlight"><strong>里程碑原文</strong></td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">37</td><td class="title-cell"><a href="37-concordia.html">Concordia</a></td><td class="year">2023.12</td><td class="desc">Google DeepMind 的 Entity×Component×Engine 仿真库</td><td class="highlight">可复用的社会仿真"游戏引擎"</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">34</td><td class="title-cell"><a href="34-1000-people.html">1,000 People</a></td><td class="year">2024.11</td><td class="desc">Park 团队用 2h 深度访谈复刻 1052 真人——个体保真路线</td><td class="highlight">85% 态度预测；斯坦福小镇直接续作</td><td><span class="code-partial">受控访问</span></td></tr>
+    <tr><td class="num">35</td><td class="title-cell"><a href="35-opencity.html">OpenCity</a></td><td class="year">2024.10</td><td class="desc">开源万人城市仿真——epoll LLM 调度+group-and-distill</td><td class="highlight">ACL 2025；清华 FIB Lab；1 万 Agent</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">17</td><td class="title-cell"><a href="17-agent-society.html">AgentSociety</a></td><td class="year">2025.02</td><td class="desc">清华万人级社会仿真——经济+社交+政治三线并行</td><td class="highlight">10K+ Agent；完整 pip 包</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">33</td><td class="title-cell"><a href="33-socioverse.html">SocioVerse</a></td><td class="year">2025.04</td><td class="desc">千万真实用户池+IPF 校准的社会仿真世界模型</td><td class="highlight">2024 大选 92.2% 州级准确率；10M 用户池</td><td><span class="code-partial">仅评估+数据</span></td></tr>
+    <tr><td class="num">46</td><td class="title-cell"><a href="46-agenttorch.html">AgentTorch</a></td><td class="year">2024.09</td><td class="desc">可微分 Agent 仿真框架——支持百万级+梯度回传</td><td class="highlight">MIT Media Lab；AAMAS 2024 Oral；loss.backward()</td><td><span class="code-yes">GitHub</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类六：幻觉与批判 ===== -->
+<div class="cat-header cat-halluc" id="cat-halluc">
+  <div class="cat-icon">!</div>
+  幻觉、批判 &amp; Agent 失败模式
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">40</td><td class="title-cell"><a href="40-hallucination-survey.html">Hallucination Survey</a></td><td class="year">2025.09</td><td class="desc">Agent 幻觉系统综述——5 阶段分类 + 传播链</td><td class="highlight">Agent-specific 失败模式首次系统整理</td><td><span class="code-no">综述</span></td></tr>
+    <tr><td class="num">41</td><td class="title-cell"><a href="41-mitigating-hallucination.html">Mitigating Hallucination</a></td><td class="year">2025.10</td><td class="desc">RAG + 推理 + Agentic 三路径缓解幻觉</td><td class="highlight">Survey 40 的配套"解药"</td><td><span class="code-no">综述</span></td></tr>
+    <tr><td class="num">48</td><td class="title-cell"><a href="48-embodied-hallucinations.html">Embodied Hallucinations</a></td><td class="year">2025.11</td><td class="desc">具身 Agent 感知-行动循环中的幻觉实证研究</td><td class="highlight">EMNLP Findings 2025；HEAL 数据集</td><td><span class="code-partial">HEAL</span></td></tr>
+    <tr><td class="num">36</td><td class="title-cell"><a href="36-critical-perspectives.html">Critical Perspectives</a></td><td class="year">2025.05</td><td class="desc">对 LLM 社会仿真的 35 篇文献根本性批判</td><td class="highlight">先验污染/多样性坍塌/LLM-as-Judge 循环</td><td><span class="code-no">综述</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类七：框架与工具 ===== -->
+<div class="cat-header cat-framework" id="cat-framework">
+  <div class="cat-icon">F</div>
+  框架、工具 &amp; 协议（工程落地层）
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">50</td><td class="title-cell"><a href="50-agentscope.html">AgentScope</a></td><td class="year">2025.08</td><td class="desc">阿里开发者导向的消息驱动多 Agent 框架</td><td class="highlight">极简 API；消息即一切</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">51</td><td class="title-cell"><a href="51-langgraph.html">LangGraph</a></td><td class="year">2025</td><td class="desc">LangChain 图式有状态 Agent 运行时</td><td class="highlight">29.6k stars；Klarna/Replit 生产使用</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">52</td><td class="title-cell"><a href="52-google-a2a.html">Google A2A</a></td><td class="year">2025–2026</td><td class="desc">Agent-to-Agent 互操作协议——横向通信标准</td><td class="highlight">Linux Foundation；补充 MCP（纵向工具调用）</td><td><span class="code-yes">规范+SDK</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 分类八：评估与基准 ===== -->
+<div class="cat-header cat-eval" id="cat-eval">
+  <div class="cat-icon">E</div>
+  评估、基准 &amp; 社交智能测试
+</div>
+<table class="paper-table">
+  <thead><tr><th>#</th><th>名称</th><th>年份</th><th>一句话描述</th><th>关键亮点</th><th>代码</th></tr></thead>
+  <tbody>
+    <tr><td class="num">38</td><td class="title-cell"><a href="38-sotopia.html">SOTOPIA</a></td><td class="year">2023.10</td><td class="desc">7 维社交智能评估框架——从对话中测社交能力</td><td class="highlight">CMU LTI；ICLR 2024；SOTOPIA-S4 扩展</td><td><span class="code-yes">GitHub</span></td></tr>
+    <tr><td class="num">53</td><td class="title-cell"><a href="53-terminal-bench.html">Terminal-Bench</a></td><td class="year">2025.05</td><td class="desc">89 任务终端/IDE Agent 基准——工业级验证</td><td class="highlight">JetBrains DPAI Arena；真实 CLI 任务</td><td><span class="code-yes">基准集</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 发展洞察 ===== -->
+<div class="insight-box" id="insights">
+  <h3>从小镇到 2026：五条关键发展脉络</h3>
+  <ul>
+    <li><strong>规模爆炸</strong>：25 人 (2023.04) → 1,000 人 (2024.11) → 10,000 人 (2025.02) → 10,000,000 人 (2025.04)。每 12 个月规模增长 3 个数量级。</li>
+    <li><strong>记忆从 append-only 到专业化</strong>：小镇的 memory stream 是"什么都扔进去"；后续分化为 Zettelkasten 建链 (A-MEM)、OS 调度 (MemoryOS)、生产 SDK (Mem0)、POMDP 理论化，最终 V3 Mem0 用实测证明 append-only 仍是最安全的写策略。</li>
+    <li><strong>反思从万能药到有条件工具</strong>：Reflexion (2023.03) 引爆"自我反思"热潮 → Self-Correct (2023.10) 泼冷水证明无外部信号则无效 → Sweet&Sour (2024.11) 证明正向经验同样重要 → ERL (2026) 把经验从文本升级为可检索的启发式池。</li>
+    <li><strong>从学术原型到工程落地</strong>：MetaGPT/ChatDev (2023) 是学术 demo → LangGraph/AgentScope (2025) 是生产框架 → A2A (2025-2026) 是跨厂商互操作标准。三年内从"能跑"到"能部署"到"能互通"。</li>
+    <li><strong>评估从定性到定量</strong>：小镇靠"情人节派对真的发生了"定性评估 → SOTOPIA 7 维量表 (2023.10) → LOCOMO 长对话 benchmark → StructMemEval 结构对比 → Terminal-Bench 工业验证。评估基础设施的成熟度决定了整个领域的可信度。</li>
+  </ul>
+</div>
+
+<div class="insight-box">
+  <h3>小镇架构的"五根柱子"在后续工作中的演化</h3>
+  <table class="paper-table" style="margin-top:12px;">
+    <thead><tr><th>小镇组件</th><th>原始设计 (2023)</th><th>2024–2026 演化方向</th><th>代表工作</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Memory Stream</strong></td><td>线性列表 + 三维加权</td><td>图/树结构、OS 调度、可学习检索、生产 SDK</td><td>A-MEM, MemoryOS, ACAN, Mem0</td></tr>
+      <tr><td><strong>Reflection</strong></td><td>importance 超阈值触发合成</td><td>辩论式、双环、正向反思、跨轨迹经验池</td><td>MAD/MAR, Dual-Loop, Sweet&Sour, ExpeL/ERL</td></tr>
+      <tr><td><strong>Planning</strong></td><td>层级日程分解</td><td>树搜索、MCTS、Plan-and-Solve、终身学习</td><td>ToT, LATS, Voyager</td></tr>
+      <tr><td><strong>Agent Loop</strong></td><td>Perceive→Retrieve→Plan→Act</td><td>ReAct 标准化、工具调用、MCP/A2A 协议</td><td>ReAct, LangGraph, A2A</td></tr>
+      <tr><td><strong>Social Simulation</strong></td><td>25 人手写 persona</td><td>千人访谈、万人合成、千万真人池、可微分</td><td>1000 People, AgentSociety, SocioVerse, AgentTorch</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="insight-box">
+  <h3>尚未覆盖的潜在缺口</h3>
+  <ul>
+    <li><strong>安全与对齐</strong>：53 篇中仅 Abliteration (04) 和 Critical Perspectives (36) 涉及安全面。随着 Agent 能力增强，对齐研究（如 Constitutional AI for Agents）是明显空白。</li>
+    <li><strong>经济激励 / 博弈论</strong>：社会仿真大多假设 Agent 是"善意"的；缺少带博弈论动机的 Agent（如拍卖、欺骗、策略性信息隐藏）。</li>
+    <li><strong>持续学习（Continual Learning）</strong>：Voyager 的 skill library 是一种形式，但真正的 catastrophic forgetting 问题在 Agent 记忆领域还没有被严肃对待。</li>
+    <li><strong>多模态 Agent</strong>：GEA (29) 涉及具身多模态，但纯视觉/音频 Agent 的记忆和反思几乎未被覆盖。</li>
+    <li><strong>真实世界部署后的 longitudinal study</strong>：所有论文都是"实验室时间尺度"（几天到几周），缺少 Agent 持续运行数月后的退化/漂移分析。</li>
+  </ul>
+</div>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--cyan);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">Deep-Dive 全览 · 53 篇论文索引 · 生成日期：2026-04-20</p>
+</div>
+
+</body>
+</html>
