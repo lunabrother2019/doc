@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>代码复现计划：从斯坦福小镇到仿真模拟系统</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; font-size: 14px; }
+    .hero { background: linear-gradient(135deg, #0a2818 0%, #0f1117 40%, #1b1340 80%, #28200a 100%); padding: 56px 24px 44px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: clamp(22px, 3.5vw, 30px); color: var(--green); margin-bottom: 12px; }
+    .hero .sub { color: var(--muted); font-size: 14px; max-width: 860px; margin: 0 auto; line-height: 1.8; }
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,17,23,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 8px 16px; overflow-x: auto; white-space: nowrap; text-align: center; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: 12px; padding: 5px 10px; border-radius: 6px; display: inline-block; margin: 2px; }
+    .nav a:hover { color: var(--text); background: var(--bg3); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+    .section { margin-bottom: 52px; }
+    .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; color: var(--accent); margin: 24px 0 10px; font-weight: 600; }
+    h4 { font-size: 14.5px; color: var(--blue); margin: 18px 0 8px; font-weight: 600; }
+    p, li { margin-bottom: 10px; font-size: 14.5px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--bg3); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; color: var(--cyan); }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-cyan { background: rgba(34,211,238,0.12); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 10px; padding: 16px 20px; margin: 16px 0 20px; font-size: 14px; line-height: 1.8; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout-pink { background: rgba(244,114,182,0.06); border-left: 3px solid var(--pink); }
+    .callout-red { background: rgba(248,113,113,0.06); border-left: 3px solid var(--red); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 6px; font-size: 13.5px; }
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .pipeline { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 22px; }
+    .pipe-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .pipe-step .pipe-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; background: rgba(52,211,153,0.15); color: var(--green); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .pipe-step .pipe-body { flex: 1; font-size: 13.5px; line-height: 1.75; }
+    .pipe-step .pipe-body strong { color: var(--blue); }
+    .formula { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; margin: 16px 0 20px; font-family: "Courier New", monospace; font-size: 13px; color: var(--cyan); white-space: pre; overflow-x: auto; }
+    .formula .label { font-size: 12px; color: var(--muted); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin-bottom: 8px; display: block; }
+    .phase { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 16px 0 24px; }
+    .phase-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .phase-num { font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+    .phase-title { font-size: 16px; font-weight: 600; }
+    .phase-duration { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .todo { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: 13.5px; }
+    .todo-box { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 3px; }
+    .todo-box.done { background: var(--green); border-color: var(--green); }
+    .discuss { background: rgba(251,191,36,0.06); border: 1px dashed rgba(251,191,36,0.3); border-radius: 10px; padding: 14px 18px; margin: 16px 0 20px; font-size: 13.5px; line-height: 1.8; }
+    .discuss::before { content: "💬 待讨论"; display: block; font-weight: 600; color: var(--yellow); margin-bottom: 6px; font-size: 12px; }
+    .cross-ref { max-width: 1100px; margin: 12px auto 0; padding: 8px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+    .cross-ref-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .cross-ref a { color: var(--blue); text-decoration: none; padding: 3px 10px; border-radius: 6px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>代码复现计划：从斯坦福小镇到仿真模拟系统</h1>
+  <p class="sub">基于 64 篇 deep-dive 的研究积累，制定仿真模拟系统的代码复现路线图。<br>目标：构建一个可验证的、可规模化的 Agent 仿真框架。</p>
+</div>
+
+<nav class="nav">
+  <a href="#goal">目标定义</a>
+  <a href="#architecture">五层架构</a>
+  <a href="#phases">四阶段计划</a>
+  <a href="#frameworks">框架选型</a>
+  <a href="#memory">记忆系统</a>
+  <a href="#scale">规模化</a>
+  <a href="#validation">验证方案</a>
+  <a href="#risks">风险与待讨论</a>
+  <a href="#references">参考 Deep-Dive</a>
+</nav>
+
+<div class="cross-ref">
+  <span class="cross-ref-label">关联：</span>
+  <a href="../deep-dive/00-index-summary.html">DD 全览 (64篇)</a>
+  <a href="../deep-dive/19-generative-agents.html">DD19 小镇</a>
+  <a href="../challenge/recsys-agent-landscape.html">RecSys 全景</a>
+  <a href="../challenge/validation-gap.html">验证鸿沟</a>
+  <a href="../challenge/open-problems.html">五大未解难题</a>
+</div>
+
+<div class="container">
+
+<!-- ══════ 目标定义 ══════ -->
+<section class="section" id="goal">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">0</div><h2>目标定义</h2></div>
+
+  <div class="callout callout-key">
+    <div class="callout-title">核心目标</div>
+    构建一个<span class="hl-green">可验证</span>的 Agent 仿真系统：Agent 的行为能与真实数据做定量对比（KS 检验 / 分布对齐），而不仅仅是"看起来像"。
+  </div>
+
+  <div class="discuss">
+    <strong>需要确定的关键问题：</strong>
+    <ol>
+      <li><strong>仿真什么场景？</strong> 社会行为（小镇式）/ 推荐消费 / 游戏经济 / 专业领域？</li>
+      <li><strong>目标规模？</strong> 25-100（深认知原型）/ 1K-10K（中等）/ 100K+（统计意义）？</li>
+      <li><strong>有没有可对标的真实数据？</strong> 这决定了能否做验证——没有真实数据的仿真只是"讲故事"。</li>
+      <li><strong>是做研究（发论文）还是做产品（工程落地）？</strong> 前者追求新意，后者追求稳定。</li>
+      <li><strong>LLM 预算？</strong> 纯 API（贵但简单）/ 本地模型（需 GPU 但长期便宜）/ 混合？</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══════ 五层架构 ══════ -->
+<section class="section" id="architecture">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">1</div><h2>仿真系统五层架构（综合 64 篇最佳实践）</h2></div>
+
+  <div class="formula"><span class="label">五层架构总览</span>
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 5: 验证层                                              │
+│   KS 检验 · 行为分布对齐 · 因果干预 · A/B 等价               │
+│   参考: Agent4Rec(DD57) · AFL(DD59) · Beyond Playtesting(DD56)│
+├─────────────────────────────────────────────────────────────┤
+│ Layer 4: Agent 认知层                                        │
+│   Memory Stream · Reflection · Planning                      │
+│   参考: 小镇(DD19) · Mem0(DD30) · ALCS(DD64)               │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 3: Agent 交互层                                        │
+│   社交通信 · 交易/博弈 · 反馈闭环                             │
+│   参考: OASIS(DD55) · MMOAgent(DD56) · AFL(DD59)            │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 2: 环境层                                              │
+│   物理/数字环境 · 推荐/分发系统 · 事件注入                    │
+│   参考: Concordia(DD37) · RecAgent(DD54) · OpenCity(DD35)    │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 1: 基础设施层                                          │
+│   LLM 后端 · 通信协议(MCP/A2A) · 持久化 · 异步调度           │
+│   参考: MCP(DD62) · AgentScope(DD50) · LangGraph(DD51)      │
+└─────────────────────────────────────────────────────────────┘</div>
+
+  <div class="callout callout-insight">
+    <div class="callout-title">关键设计原则（来自 64 篇的教训）</div>
+    <ul style="margin-bottom:0;">
+      <li><strong>Memory 是 ADD-only</strong> — Mem0 V3 实测证明 LLM 做 UPDATE/DELETE 会误删有效记忆（LoCoMo 71.4→91.6）</li>
+      <li><strong>Reflection 需要外部信号</strong> — Self-Correct (DD28) 证明无外部 oracle 的自我反思无效</li>
+      <li><strong>规模和认知深度是 tradeoff</strong> — OASIS 百万 Agent 无记忆 vs 小镇 25 Agent 深记忆，目前无法两全</li>
+      <li><strong>验证决定可信度</strong> — 没有验证的仿真是"讲故事"，有验证的仿真才是"做科学"</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════ 四阶段计划 ══════ -->
+<section class="section" id="phases">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">2</div><h2>四阶段实施计划</h2></div>
+
+  <!-- Phase 1 -->
+  <div class="phase">
+    <div class="phase-head">
+      <span class="phase-num" style="background:rgba(96,165,250,0.15);color:var(--blue);">P1</span>
+      <span class="phase-title" style="color:var(--blue);">理解核心架构</span>
+      <span class="phase-duration">~2 周</span>
+    </div>
+    <p>目标：跑通小镇 + Concordia，理解 Memory/Reflection/Planning 的数据流。</p>
+    <div class="todo"><div class="todo-box done"></div>克隆小镇仓库 <code>joonspk-research/generative_agents</code>，本地跑通 ✅ <span style="color:var(--green);font-size:12px;">已完成 · 路径: <code>/opt/workspace/hehe/agentic_collab</code></span></div>
+    <div class="todo"><div class="todo-box"></div>阅读 <code>memory_stream.py</code>，理解 recency×importance×relevance 三维公式</div>
+    <div class="todo"><div class="todo-box"></div>阅读 <code>reflection.py</code>，理解 importance 累计触发 → LLM 合成 insight</div>
+    <div class="todo"><div class="todo-box"></div>阅读 <code>plan.py</code>，理解日→小时→分钟的层级分解</div>
+    <div class="todo"><div class="todo-box"></div><code>pip install concordia</code>，跑官方 example</div>
+    <div class="todo"><div class="todo-box"></div>理解 Concordia 的 Entity×Component×Engine 设计模式</div>
+    <div class="todo"><div class="todo-box"></div>写对比笔记：小镇的直接实现 vs Concordia 的 ECS 模块化，各自优缺点</div>
+    <div class="discuss">
+      <strong>P1 结束时的决策点：</strong>选择基础框架。小镇代码适合快速原型，Concordia 适合模块化扩展。如果你的仿真场景和小镇差异大（比如推荐系统），Concordia 的 ECS 更容易适配。
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase">
+    <div class="phase-head">
+      <span class="phase-num" style="background:rgba(52,211,153,0.15);color:var(--green);">P2</span>
+      <span class="phase-title" style="color:var(--green);">构建仿真场景</span>
+      <span class="phase-duration">~2 周</span>
+    </div>
+    <p>目标：用选定框架搭建你自己的仿真场景，Agent 能在环境中执行基本行为。</p>
+    <div class="todo"><div class="todo-box"></div>定义 Entity：Agent 的 persona 数据结构（demographics + traits + backstory）</div>
+    <div class="todo"><div class="todo-box"></div>定义 Environment：仿真世界的状态空间 + 可执行动作 + 观察接口</div>
+    <div class="todo"><div class="todo-box"></div>实现 Agent Loop：Perceive → Retrieve → Plan → Act 主循环</div>
+    <div class="todo"><div class="todo-box"></div>实现基础 Memory：至少支持 add() + search() + get_all()</div>
+    <div class="todo"><div class="todo-box"></div>跑通 2-5 个 Agent 的最小仿真</div>
+    <div class="todo"><div class="todo-box"></div>确认 Agent 行为"看起来合理"（定性验证）</div>
+    <div class="discuss">
+      <strong>P2 关键设计决策：</strong>
+      <ol>
+        <li>Persona 从哪来？手写（小镇式）/ 真实数据初始化（RecAgent/SocioVerse 式）/ LLM 生成？</li>
+        <li>Memory 后端选什么？内存列表（原型）/ SQLite（轻量持久化）/ Mem0 SDK（生产级）？</li>
+        <li>LLM 调用怎么管理？直接 API / LangGraph 编排 / MCP 协议？</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase">
+    <div class="phase-head">
+      <span class="phase-num" style="background:rgba(244,114,182,0.15);color:var(--pink);">P3</span>
+      <span class="phase-title" style="color:var(--pink);">加记忆深度 + 验证</span>
+      <span class="phase-duration">~2 周</span>
+    </div>
+    <p>目标：给 Agent 加 reflection + 三信号检索，并建立验证 pipeline。</p>
+    <div class="todo"><div class="todo-box"></div>实现 Reflection 触发器（importance 累计 or emotion-driven）</div>
+    <div class="todo"><div class="todo-box"></div>实现三信号检索：semantic + BM25 + entity boost（参考 Mem0 V3 DD30）</div>
+    <div class="todo"><div class="todo-box"></div>实现 Agent 间社交通信（对话生成 + 信息传播）</div>
+    <div class="todo"><div class="todo-box"></div>找到可对标的真实数据集</div>
+    <div class="todo"><div class="todo-box"></div>实现验证 pipeline：Agent 行为分布 vs 真实数据的 KS 检验</div>
+    <div class="todo"><div class="todo-box"></div>跑验证，记录差距，分析原因</div>
+    <div class="discuss">
+      <strong>P3 的"记忆压缩"实验（ALCS 启发）：</strong>
+      <ol>
+        <li>给每条 reflection 摘要加一个"压缩损失"分数（简化版 Hessian）</li>
+        <li>当分数低于阈值时，自动回溯 raw memory 而非使用摘要</li>
+        <li>这是一个<span class="hl-pink">研究空白</span>——目前没有任何系统做过（DD64 分析）</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div class="phase">
+    <div class="phase-head">
+      <span class="phase-num" style="background:rgba(251,191,36,0.15);color:var(--yellow);">P4</span>
+      <span class="phase-title" style="color:var(--yellow);">规模化 + 优化</span>
+      <span class="phase-duration">持续</span>
+    </div>
+    <p>目标：从 5 Agent 扩展到目标规模，优化成本和延迟。</p>
+    <div class="todo"><div class="todo-box"></div>如果 >100 Agent：实现 prompt cache 共享（参考 Agent4Rec $16/1000人）</div>
+    <div class="todo"><div class="todo-box"></div>如果 >1K Agent：实现异步调度 + batch LLM 调用（参考 OpenCity DD35）</div>
+    <div class="todo"><div class="todo-box"></div>如果 >10K Agent：SFT 蒸馏到本地 7B 模型（参考 FireAct/AgentTuning DD61）</div>
+    <div class="todo"><div class="todo-box"></div>如果 >100K Agent：activation probability 控制活跃比例（参考 OASIS DD55）</div>
+    <div class="todo"><div class="todo-box"></div>因果干预实验：改变条件 → 观察仿真结果变化 → 对比真实数据</div>
+    <div class="todo"><div class="todo-box"></div>A/B 等价验证（终极目标）：仿真结论 vs 真实 A/B 测试一致性</div>
+    <div class="discuss">
+      <strong>规模化的成本模型：</strong>
+      <table style="width:100%;margin-top:8px;">
+        <tr><td>25 Agent</td><td>~$5/次运行</td><td>直接 API</td></tr>
+        <tr><td>1K Agent</td><td>~$16-50/次</td><td>prompt cache + batch</td></tr>
+        <tr><td>10K Agent</td><td>~$200-500/次</td><td>需要本地模型或 SFT</td></tr>
+        <tr><td>100K+ Agent</td><td>需要本地 GPU 集群</td><td>SFT 7B + activation sampling</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 框架选型 ══════ -->
+<section class="section" id="frameworks">
+  <div class="sec-head"><div class="sec-num" style="background:var(--blue);">3</div><h2>框架选型对照</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>框架</th><th>规模</th><th>认知深度</th><th>模块化</th><th>适合场景</th><th>DD</th><th>安装</th></tr></thead>
+      <tbody>
+        <tr><td><strong>小镇原版</strong></td><td>25</td><td>最深</td><td>低（一体化）</td><td>学习/理解架构</td><td><a href="../deep-dive/19-generative-agents.html">19</a></td><td>clone</td></tr>
+        <tr><td><strong>Concordia</strong></td><td>数十-数百</td><td>深</td><td>高（ECS）</td><td>社会仿真研究</td><td><a href="../deep-dive/37-concordia.html">37</a></td><td>pip install</td></tr>
+        <tr><td><strong>AgentScope</strong></td><td>数百-数千</td><td>中</td><td>高（消息驱动）</td><td>通用多 Agent</td><td><a href="../deep-dive/50-agentscope.html">50</a></td><td>pip install</td></tr>
+        <tr><td><strong>CrewAI</strong></td><td>数十</td><td>中</td><td>高（角色声明）</td><td>任务型 Agent 团队</td><td><a href="../deep-dive/62-mcp-autogen-crewai.html">62</a></td><td>pip install</td></tr>
+        <tr><td><strong>OASIS</strong></td><td>百万级</td><td>浅（无记忆）</td><td>中</td><td>社交媒体群体仿真</td><td><a href="../deep-dive/55-oasis.html">55</a></td><td>pip install</td></tr>
+        <tr><td><strong>AgentTorch</strong></td><td>百万级</td><td>可微分</td><td>中</td><td>需要梯度回传</td><td><a href="../deep-dive/46-agenttorch.html">46</a></td><td>pip install</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-green">
+    <div class="callout-title">推荐起步方案</div>
+    <p><strong>Concordia 做框架骨架</strong> + <strong>Mem0 SDK 做记忆后端</strong> + <strong>小镇的 reflection 逻辑移植过来</strong>。这个组合兼顾了模块化（Concordia）、记忆生产级能力（Mem0 26 种 vector store）、和认知深度（小镇 reflection）。</p>
+  </div>
+</section>
+
+<!-- ══════ 记忆系统 ══════ -->
+<section class="section" id="memory">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink);">4</div><h2>记忆系统设计（核心中的核心）</h2></div>
+
+  <p>基于 64 篇 deep-dive 的记忆系统最佳实践汇总：</p>
+
+  <h3>记忆写入策略</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>策略</th><th>代表</th><th>优点</th><th>缺点</th><th>实测数据</th></tr></thead>
+      <tbody>
+        <tr><td><strong>ADD-only + hash 去重</strong></td><td>Mem0 V3</td><td>不会误删有效记忆</td><td>冗余增长</td><td>LoCoMo 71.4→91.6</td></tr>
+        <tr><td>ADD/UPDATE/DELETE</td><td>Mem0 论文版</td><td>存储更紧凑</td><td>LLM 误删风险高</td><td>LoCoMo 71.4</td></tr>
+        <tr><td>Append-only + recency decay</td><td>小镇原版</td><td>最简单</td><td>无去重</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>建议</strong>：用 <span class="hl-green">ADD-only + hash 去重</span>（Mem0 V3 已验证）。</p>
+
+  <h3>记忆检索策略</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>策略</th><th>代表</th><th>信号</th></tr></thead>
+      <tbody>
+        <tr><td>三维加权公式</td><td>小镇</td><td>0.5·recency + 0.3·importance + 0.2·relevance</td></tr>
+        <tr><td>三信号融合</td><td>Mem0 V3</td><td>semantic + BM25 + entity boost</td></tr>
+        <tr><td>可学习检索</td><td>ACAN (DD26)</td><td>Cross-Attention 神经网络替代手调</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>记忆压缩（研究空白）</h3>
+  <div class="callout callout-pink">
+    <div class="callout-title">ALCS (DD64) 揭示的三个空白</div>
+    <ol style="margin-bottom:0;">
+      <li><strong>压缩损失度量</strong> — 给 reflection 摘要标注"这条摘要丢了多少信息"</li>
+      <li><strong>回溯诊断</strong> — 当摘要不可信时自动回溯 raw memory</li>
+      <li><strong>最优遗忘</strong> — Bayesian 框架下的最优遗忘速率（替代 ad-hoc 的 exponential decay）</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══════ 规模化 ══════ -->
+<section class="section" id="scale">
+  <div class="sec-head"><div class="sec-num" style="background:var(--orange);">5</div><h2>规模化路线图</h2></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>规模</th><th>核心瓶颈</th><th>解法</th><th>参考 DD</th><th>成本估算</th></tr></thead>
+      <tbody>
+        <tr><td>25-100</td><td>无</td><td>直接调 API</td><td>小镇(19)</td><td>~$5/次</td></tr>
+        <tr><td>100-1K</td><td>LLM 成本</td><td>prompt cache 共享 + 批量调用</td><td>Agent4Rec(57)</td><td>~$16-50/次</td></tr>
+        <tr><td>1K-10K</td><td>延迟</td><td>epoll 异步调度 + group-and-distill</td><td>OpenCity(35)</td><td>~$200-500/次</td></tr>
+        <tr><td>10K-100K</td><td>成本</td><td>SFT 蒸馏到 7B 本地模型</td><td>FireAct/AgentTuning(61)</td><td>需 GPU 集群</td></tr>
+        <tr><td>100K+</td><td>所有</td><td>activation probability + 分层认知</td><td>OASIS(55)</td><td>需大规模 GPU</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="discuss">
+    <strong>规模 vs 认知深度的 tradeoff：</strong>是给所有 Agent 同等认知深度（小镇式），还是分层——少数"关键 Agent"有完整 memory+reflection，多数"背景 Agent"只有简单规则？后者可能是当前技术条件下唯一可行的大规模方案。AgentSociety (DD17) 和 OpenCity (DD35) 都用了类似策略。
+  </div>
+</section>
+
+<!-- ══════ 验证方案 ══════ -->
+<section class="section" id="validation">
+  <div class="sec-head"><div class="sec-num" style="background:var(--red);">6</div><h2>验证方案（不可跳过）</h2></div>
+
+  <div class="callout callout-red">
+    <div class="callout-title">没有验证的仿真 = 讲故事</div>
+    <p>这是 <a href="../challenge/validation-gap.html">challenge/validation-gap.html</a> 的核心论点：Agent 仿真要成为"科学"而非"艺术"，必须有可量化的验证。</p>
+  </div>
+
+  <h3>四级验证体系</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">L1</div><div class="pipe-body"><strong>行为分布对齐</strong>（最低标准）— Agent 群体行为统计分布 vs 真实数据（KS 检验）<br><em>参考：Agent4Rec 评分分布 KS 通过</em></div></div>
+    <div class="pipe-step"><div class="pipe-num">L2</div><div class="pipe-body"><strong>社会现象涌现</strong>（中等标准）— 信息茧房 / 从众 / 极化是否自然出现<br><em>参考：RecAgent 信息茧房 + OASIS 群体极化</em></div></div>
+    <div class="pipe-step"><div class="pipe-num">L3</div><div class="pipe-body"><strong>因果干预响应</strong>（高标准）— 改变条件后仿真结果是否合理变化<br><em>参考：Beyond Playtesting 黑市干预 27.4%→1.5%</em></div></div>
+    <div class="pipe-step"><div class="pipe-num">L4</div><div class="pipe-body"><strong>A/B 等价</strong>（终极目标，尚无人达到）— 仿真结论 vs 真实 A/B 测试一致<br><em>参考：RecoWorld (DD59) 正在尝试但是 position paper</em></div></div>
+  </div>
+
+  <h3>最适合验证的领域</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>领域</th><th>Ground Truth 密度</th><th>反馈速度</th><th>评估指标成熟度</th><th>综合可行性</th></tr></thead>
+      <tbody>
+        <tr><td><strong>推荐系统</strong></td><td>极高（点击/购买日志）</td><td>秒级</td><td>极成熟（NDCG/Recall）</td><td><span class="hl-green">最高</span></td></tr>
+        <tr><td>游戏/MMO</td><td>高（服务器日志）</td><td>分钟级</td><td>中等</td><td>高</td></tr>
+        <tr><td>社交媒体</td><td>中（公开帖子）</td><td>小时级</td><td>中等</td><td>中</td></tr>
+        <tr><td>社会行为</td><td>低（调查数据）</td><td>月级</td><td>低</td><td>低</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════ 风险与待讨论 ══════ -->
+<section class="section" id="risks">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">7</div><h2>风险与待讨论</h2></div>
+
+  <h3>技术风险</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>风险</th><th>影响</th><th>缓解</th></tr></thead>
+      <tbody>
+        <tr><td>LLM 行为偏差（善良偏差/位置偏差）</td><td>Agent 行为系统性偏离真人</td><td>Agent4Rec 已发现低评分偏少；需要 debias</td></tr>
+        <tr><td>记忆爆炸（长期运行）</td><td>上下文溢出 / 检索变慢</td><td>ADD-only + 定期 compaction</td></tr>
+        <tr><td>规模成本失控</td><td>实验跑不起</td><td>先小规模验证，确认有效再扩大</td></tr>
+        <tr><td>Reflection 质量不可控</td><td>合成的 insight 可能是幻觉</td><td>加压缩损失度量（ALCS 启发）</td></tr>
+        <tr><td>框架锁定</td><td>换框架成本高</td><td>模块化设计，memory/reflection/planning 可独立替换</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>开放讨论项</h3>
+  <div class="discuss">
+    <ol>
+      <li><strong>认知分层策略</strong>：是否给不同 Agent 不同的认知深度？"主角"有完整记忆+反思，"路人"只有规则？这和游戏中 LOD (Level of Detail) 思想类似。</li>
+      <li><strong>时间模型</strong>：仿真中的"一天"对应现实多长时间？小镇是 1:1 实时（太慢），SocioVerse 是一次性问卷（太简单），需要找到中间点。</li>
+      <li><strong>涌现 vs 可控</strong>：Ubisoft Teammates 用行为树约束 Agent（可控但无惊喜），小镇完全自主（有惊喜但不可控）。仿真需要哪种？</li>
+      <li><strong>多模型 vs 单模型</strong>：oh-my-openagent 式的多模型路由在仿真中有意义吗？比如"主角 Agent 用 Opus，背景 Agent 用 Haiku"？</li>
+      <li><strong>数据隐私</strong>：如果用真实用户数据初始化 persona（SocioVerse 式），隐私合规怎么处理？</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══════ 参考 Deep-Dive ══════ -->
+<section class="section" id="references">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">8</div><h2>关键参考 Deep-Dive（按复现优先级）</h2></div>
+
+  <h3>必读（复现骨架）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>DD</th><th>名称</th><th>复现价值</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../deep-dive/19-generative-agents.html">19</a></td><td>Generative Agents (小镇)</td><td>理解 memory/reflection/planning 的最佳方式是跑一遍代码</td></tr>
+        <tr><td><a href="../deep-dive/30-mem0.html">30</a></td><td>Mem0 V3</td><td>生产级记忆后端；V3 ADD-only 策略是最佳实践</td></tr>
+        <tr><td><a href="../deep-dive/37-concordia.html">37</a></td><td>Concordia</td><td>最优雅的仿真框架骨架（ECS 设计模式）</td></tr>
+        <tr><td><a href="../deep-dive/64-alcs-memory-compression.html">64</a></td><td>ALCS</td><td>记忆压缩的数学工具——给仿真加"可信度"</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>重要参考（验证 + 规模化）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>DD</th><th>名称</th><th>参考价值</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>Agent4Rec / AgentCF</td><td>KS 验证方法 + 情绪驱动 reflection</td></tr>
+        <tr><td><a href="../deep-dive/54-recagent.html">54</a></td><td>RecAgent</td><td>三层认知记忆 + Agent↔RecSys 闭环</td></tr>
+        <tr><td><a href="../deep-dive/61-agent-eval-finetune.html">61</a></td><td>AgentBench / FireAct / AgentTuning</td><td>评测框架 + SFT 蒸馏到小模型</td></tr>
+        <tr><td><a href="../deep-dive/55-oasis.html">55</a></td><td>OASIS</td><td>百万级仿真的工程方案</td></tr>
+        <tr><td><a href="../deep-dive/35-opencity.html">35</a></td><td>OpenCity</td><td>万人级异步调度策略</td></tr>
+        <tr><td><a href="../deep-dive/28-self-correct-limits.html">28</a></td><td>Self-Correct Limits</td><td>反思何时有效何时无效——避免踩坑</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <a href="../index1.html" style="color:var(--green);font-weight:600;">← 返回导航中心</a>
+  <p style="margin-top:8px;">代码复现计划 · 仿真模拟系统 · 创建日期：2026-04-22</p>
+  <p style="margin-top:4px;">基于 <a href="../deep-dive/00-index-summary.html">64 篇 Deep-Dive</a> 研究积累</p>
+</div>
+
+</body>
+</html>
