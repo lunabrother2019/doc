@@ -519,7 +519,23 @@ Round N: Δ_N = ?
     </table>
   </div>
 
-  <h3>4.4 A/B 验证的最短路径</h3>
+  <h3>4.4 2025-2026 最新可复现代码（DD65-66）</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>项目</th><th>年份</th><th>核心创新</th><th>代码</th><th>对我们的价值</th></tr></thead>
+      <tbody>
+        <tr><td><strong>LLM User Simulator</strong></td><td>AAAI 2025</td><td>Logical+Statistical ensemble；可量化仿真保真度</td><td><a href="https://github.com/Applied-Machine-Learning-Lab/LLM_User_Simulator" target="_blank">✅</a></td><td>L1 保真度评估方法</td></tr>
+        <tr><td><strong>UserMirrorer</strong></td><td>ACL 2026</td><td>SFT+DPO 微调 simulator；hard sample mining；10K 样本即达最优</td><td><a href="https://github.com/Joinn99/UserMirrorer" target="_blank">✅</a></td><td><span class="hl-green">L1 最佳解——从根本上绕过 frozen-LLM 偏差</span></td></tr>
+        <tr><td><strong>TriRec</strong></td><td>2026.03</td><td>User+Item+Platform 三方 Agent 博弈</td><td><a href="https://github.com/Marfekey/TriRec" target="_blank">✅</a></td><td>多方公平性扩展</td></tr>
+        <tr><td><strong>OmniBehavior</strong></td><td>2026.04</td><td>快手 200 用户 90 天行为 benchmark；暴露 hyper-activity/homogenization/utopian 三大偏差</td><td>❌</td><td>L1/L2 验证标尺</td></tr>
+        <tr><td><strong>SimUSER</strong></td><td>ACL Ind. 2025</td><td>Smallville 四模块 + offline A/B 验证</td><td>❌</td><td>L3 A/B 方法论参考</td></tr>
+        <tr><td><strong>PUB</strong></td><td>SIGIR 2025</td><td>Big Five 人格驱动用户行为</td><td>❌</td><td>更丰富的 persona 初始化</td></tr>
+        <tr><td><strong>Lusifer</strong></td><td>ICMI 2025</td><td>每次交互增量更新 profile + explainable rationale</td><td>❌</td><td>Profile 动态演化机制</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>4.5 A/B 验证的最短路径（更新版）</h3>
   <div class="formula"><span class="label">最短 A/B 验证 Pipeline</span>
 数据层:  KuaiRand（15 种策略 log 作为 ground-truth）
            ↓

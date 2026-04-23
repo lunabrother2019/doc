@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度解读65：推荐仿真新浪潮 — LLM User Simulator + SimUSER + Lusifer + PUB</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0f1117; --bg2: #1a1d27; --bg3: #242837; --border: #2d2d3a; --text: #e2e8f0; --muted: #8b95a5; --accent: #a78bfa; --blue: #60a5fa; --green: #34d399; --red: #f87171; --orange: #fb923c; --yellow: #fbbf24; --cyan: #22d3ee; --pink: #f472b6; }
+    html { scroll-behavior: smooth; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 13px; }
+    .hero { background: linear-gradient(135deg, #0a2818 0%, #0f1117 50%, #1b1340 100%); padding: 28px 16px 20px; text-align: center; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: 20px; color: var(--green); margin-bottom: 6px; }
+    .hero .sub { color: var(--muted); font-size: 12px; max-width: 700px; margin: 0 auto; line-height: 1.6; }
+    .hero .paper-ref { display: inline-block; margin-top: 8px; font-size: 11px; color: var(--accent); background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); border-radius: 6px; padding: 4px 10px; }
+    .personal-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-left: 8px; background: rgba(244,114,182,0.15); color: #f472b6; border: 1px dashed #f472b6; vertical-align: middle; }
+    .container { max-width: 860px; margin: 0 auto; padding: 16px 16px 40px; }
+    .section { margin-bottom: 28px; }
+    .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+    .sec-num { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #0f1117; flex-shrink: 0; }
+    .sec-head h2 { font-size: 16px; font-weight: 600; }
+    h3 { font-size: 14px; color: var(--accent); margin: 16px 0 6px; font-weight: 600; }
+    p, li { margin-bottom: 6px; }
+    ul, ol { padding-left: 20px; margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hl { background: rgba(251,191,36,0.12); color: var(--yellow); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .callout { border-radius: 8px; padding: 10px 14px; margin: 10px 0 12px; font-size: 12.5px; line-height: 1.6; }
+    .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
+    .callout-insight { background: rgba(34,211,238,0.06); border-left: 3px solid var(--cyan); }
+    .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
+    .callout-warn { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); }
+    .callout .callout-title { font-weight: 600; margin-bottom: 4px; font-size: 12px; }
+    .table-wrap { overflow-x: auto; margin: 10px 0 16px; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { background: var(--bg3); color: var(--accent); font-weight: 600; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    .sv-link { background: rgba(167,139,250,0.06); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; line-height: 1.6; }
+    .sv-link::before { content: "与斯坦福小镇的关联"; display: block; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 11px; }
+    .footer { text-align: center; color: var(--muted); font-size: 11px; padding: 16px; border-top: 1px solid var(--border); margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>推荐仿真新浪潮 2025 — 四篇用户模拟器 <span class="personal-badge">后加</span></h1>
+  <p class="sub">从 prompt-only 到 logical+statistical ensemble / Smallville 四模块 / profile 动态演化 / 人格心理学驱动——2025 年推荐用户仿真的四条新路线。</p>
+  <div style="margin-top:10px;">
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2412.16984" target="_blank">LLM User Simulator</a> · AAAI 2025 · ✅代码</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2504.12722" target="_blank">SimUSER</a> · ACL Industry 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2405.13362" target="_blank">Lusifer</a> · IEEE ICMI 2025</div>
+    <div class="paper-ref"><a href="https://arxiv.org/abs/2506.04551" target="_blank">PUB</a> · SIGIR 2025</div>
+  </div>
+</div>
+
+<div class="container">
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--green);">1</div><h2>四篇对照总览</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>论文</th><th>年份</th><th>机构</th><th>核心创新</th><th>验证方式</th><th>代码</th></tr></thead>
+      <tbody>
+        <tr><td><strong>LLM User Simulator</strong></td><td>AAAI 2025</td><td>CityU HK + 快手</td><td>Logical + Statistical 双模型 ensemble；可量化仿真保真度</td><td>5 数据集 fidelity 评估</td><td><a href="https://github.com/Applied-Machine-Learning-Lab/LLM_User_Simulator" target="_blank">✅</a></td></tr>
+        <tr><td><strong>SimUSER</strong></td><td>ACL Ind. 2025</td><td>—</td><td>Smallville 四模块（persona/memory/perception/brain）；<span class="hl-green">offline A/B 验证</span></td><td>thumbnail CTR / exposure effect / 真实 A/B</td><td>❌</td></tr>
+        <tr><td><strong>Lusifer</strong></td><td>ICMI 2025</td><td>U of Windsor</td><td>每次交互后 LLM 增量更新 user profile + explainable rationale</td><td>MovieLens100K 对比 CF</td><td>❌</td></tr>
+        <tr><td><strong>PUB</strong></td><td>SIGIR 2025</td><td>RMIT</td><td>Big Five 人格特质（OCEAN）驱动用户行为生成</td><td>Amazon review 行为分布对齐</td><td>❌</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--cyan);">2</div><h2>LLM User Simulator：双模型 ensemble（唯一有代码）</h2></div>
+  <p><strong>CityU Hong Kong + 快手</strong>（Zijian Zhang 等）。核心设计：不只靠 LLM prompt，而是用<span class="hl">逻辑模型</span>（LLM 提取 item 特征 + 蒸馏用户情绪 + 显式偏好规则）和<span class="hl-green">统计模型</span>（从交互 log 捕捉行为模式）做 ensemble。两个模型各自产出预测，组合后生成高保真用户行为。</p>
+  <p>关键贡献：<strong>可量化仿真保真度</strong>——不只是"看起来像"，而是有指标衡量 simulator 和真人的差距。产出的合成数据可直接训练 RL 推荐器（A2C/DQN/PPO/TRPO）。</p>
+  <p><strong>代码</strong>：<a href="https://github.com/Applied-Machine-Learning-Lab/LLM_User_Simulator" target="_blank">GitHub</a>（26 stars，last push 2025-01-06）</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--accent);">3</div><h2>SimUSER：最接近 L3 的工作（无代码）</h2></div>
+  <p>四模块架构直接继承 Smallville：<strong>persona</strong>（从历史数据自动推断，含 background+personality）、<strong>memory</strong>（episodic + knowledge-graph）、<strong>perception</strong>（处理推荐内容含缩略图/评论）、<strong>brain</strong>（决策）。</p>
+  <div class="callout callout-green">
+    <div class="callout-title">最重要的贡献：已做 offline A/B 验证</div>
+    验证了 thumbnail 对 CTR 的影响、曝光效应（mere-exposure effect）、评论对 engagement 的影响——这些微观行为现象与真人行为一致。更关键的是：<span class="hl-green">用 offline A/B 结果调参后，真实用户 engagement 提升</span>——罕见的端到端验证。
+  </div>
+  <p>遗憾：<strong>无公开代码</strong>（GitHub 404）。但其四模块设计和 A/B 验证方法论可以复现。</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--yellow);">4</div><h2>Lusifer：Profile 动态演化</h2></div>
+  <p><strong>University of Windsor</strong>（Danial Ebrat 等），IEEE ICMI 2025。核心创新：每次交互后 LLM <span class="hl">增量更新 user profile</span> 并生成偏好变化的自然语言解释。只用最近 40 条交互（强调 recency），处理冷启动靠文本元数据推理而非协同过滤。</p>
+  <p>与 AFL (DD59) 的区别：Lusifer 只做 user side simulator，不做双 Agent 共演化。但其"profile 增量更新+可解释 rationale"机制可以嫁接到任何 Agent 架构上。</p>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink);">5</div><h2>PUB：心理学人格驱动</h2></div>
+  <p><strong>RMIT University</strong>（Chenglong Ma 等），SIGIR 2025。唯一把<span class="hl-pink">Big Five 人格特质（OCEAN）</span>正式嵌入 RecSys simulator 的工作。从行为 log + review 用 psycholinguistic correlates 推断人格（如 category entropy→Openness，review consistency→Conscientiousness），然后生成人格条件化的交互数据。</p>
+  <p>发现：高 Openness 用户探索范围更广，高 Conscientiousness 用户评分更一致——与心理学文献一致。</p>
+
+  <div class="sv-link">
+    PUB 的人格驱动思路和 Agent4Rec 的三维社交特质（activity/conformity/diversity）互补：Agent4Rec 用行为学维度，PUB 用心理学维度。两者结合可能产生更真实的 persona 初始化。
+  </div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><div class="sec-num" style="background:var(--orange);">6</div><h2>对复现计划的影响</h2></div>
+  <div class="callout callout-key">
+    <div class="callout-title">关键判断</div>
+    <ul style="margin-bottom:0;">
+      <li><strong>LLM User Simulator</strong> 的"可量化保真度"方法可直接用于我们的 L1 实验</li>
+      <li><strong>SimUSER</strong> 的 A/B 验证方法论是我们 L3 路线的最佳参考（虽然无代码需自己实现）</li>
+      <li><strong>Lusifer</strong> 的 profile 增量更新可嫁接到 RecAgent 上，观察对闭环稳定性（L2）的影响</li>
+      <li><strong>PUB</strong> 的 Big Five 人格可作为更丰富的 persona 初始化方案</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  深度解读 65 · 推荐仿真新浪潮 · AAAI/ACL/ICMI/SIGIR 2025
+  <br><a href="54-recagent.html">DD54</a> · <a href="57-recsys-user-simulation.html">DD57</a> · <a href="59-recsys-feedback-loop.html">DD59</a> · <a href="../reproduction/recsys-hard-problems.html">难题分析</a>
+</div>
+
+</body>
+</html>
