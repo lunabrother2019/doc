@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AFL 复现日志 — Agentic Feedback Loop</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; --cyan:#22d3ee; --green:#4ade80; --pink:#f472b6; --orange:#fb923c; --yellow:#facc15; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font:15px/1.7 'SF Mono','Cascadia Code','Consolas',monospace; padding:24px; max-width:960px; margin:0 auto; }
+    h1 { font-size:1.5em; color:var(--cyan); border-bottom:2px solid var(--cyan); padding-bottom:8px; margin-bottom:16px; }
+    h2 { font-size:1.2em; color:var(--green); margin:24px 0 8px; }
+    h3 { font-size:1em; color:var(--orange); margin:16px 0 6px; }
+    .badge { display:inline-block; border:2px dashed var(--pink); color:var(--pink); padding:2px 10px; border-radius:6px; font-size:0.8em; margin-left:8px; }
+    .meta { color:var(--dim); font-size:0.9em; margin-bottom:16px; }
+    .sec { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0; }
+    table { width:100%; border-collapse:collapse; margin:8px 0; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; font-size:0.9em; }
+    th { background:rgba(34,211,238,0.1); color:var(--cyan); }
+    code { background:rgba(34,211,238,0.1); padding:2px 6px; border-radius:4px; font-size:0.9em; }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto; font-size:0.85em; margin:8px 0; }
+    a { color:var(--cyan); }
+    .status-ok { color:var(--green); }
+    .status-pending { color:var(--yellow); }
+    .status-fail { color:var(--pink); }
+    .change-log { border-left:3px solid var(--orange); padding-left:12px; margin:8px 0; }
+    .change-log .entry { margin:8px 0; }
+    .change-log .date { color:var(--orange); font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<h1>AFL 复现日志 <span class="badge">后加</span></h1>
+<p class="meta">
+  论文: <a href="https://arxiv.org/abs/2410.20027">Agentic Feedback Loop Modeling for Recommender Systems</a> · SIGIR 2025 · USTC+Meta<br>
+  代码: <a href="https://github.com/Lanyu0303/AFL">github.com/Lanyu0303/AFL</a><br>
+  Deep Dive: <a href="../deep-dive/59-recsys-feedback-loop.html">DD59 — AFL + BiLLP + RecoWorld</a><br>
+  复现环境: 腾讯云 49.233.189.223 · <code>/opt/workspace/hehe/AFL</code>
+</p>
+
+<!-- ==================== 原理 ==================== -->
+<h2>1. 原理概述</h2>
+<div class="sec">
+  <h3>核心思想：双 Agent 反馈闭环</h3>
+  <p>AFL 同时构建两个 LLM Agent：<strong>Rec Agent</strong>（推荐方）和 <strong>User Agent</strong>（用户方），通过多轮文本反馈交互，互相改进。</p>
+
+  <h3>三步实验流程</h3>
+  <table>
+    <tr><th>步骤</th><th>脚本</th><th>作用</th><th>输入</th><th>输出</th></tr>
+    <tr>
+      <td><strong>Step 1</strong></td>
+      <td><code>evaluate_rec.py</code></td>
+      <td>推荐评估：Rec Agent 主导，每轮推荐→用户反馈→写入双方 memory→下轮改进</td>
+      <td>LastFM 用户历史 + SASRec 先验推荐</td>
+      <td>NDCG/Recall 指标，双方 memory 存档</td>
+    </tr>
+    <tr>
+      <td><strong>Step 2a</strong></td>
+      <td><code>evaluate_user_step1.py</code></td>
+      <td>用户模拟训练：在 A/B 数据上积累交互 memory</td>
+      <td>LastFM A/B 数据 + SASRec 模型</td>
+      <td>User Agent memory 存档</td>
+    </tr>
+    <tr>
+      <td><strong>Step 2b</strong></td>
+      <td><code>evaluate_user_step2.py</code></td>
+      <td>用户模拟评估：加载 memory 预测用户行为</td>
+      <td>Step 2a 的 memory</td>
+      <td>用户预测准确度</td>
+    </tr>
+  </table>
+
+  <h3>每轮交互流程</h3>
+  <pre>
+┌─────────────────────────────────────────────────┐
+│  Rec Agent                    User Agent         │
+│  ┌──────────┐                ┌──────────┐       │
+│  │ 历史记录  │                │ 听歌历史  │       │
+│  │ + memory │                │ + memory │       │
+│  │ + SASRec │                │ + SASRec │       │
+│  │  先验    │                │  评分    │       │
+│  └────┬─────┘                └────┬─────┘       │
+│       │                          │              │
+│       │  推荐 item + 理由         │              │
+│       ├─────────────────────────→│              │
+│       │                          │              │
+│       │  接受/拒绝 + 原因         │              │
+│       │←─────────────────────────┤              │
+│       │                          │              │
+│       ▼                          ▼              │
+│  memory.append(feedback)    memory.append(...)  │
+│                                                 │
+│  ═══ 下一轮 epoch ═══                           │
+└─────────────────────────────────────────────────┘</pre>
+
+  <h3>对应 Generative Agents (Smallville) 的概念映射</h3>
+  <table>
+    <tr><th>AFL 组件</th><th>Smallville 对应</th><th>说明</th></tr>
+    <tr><td><code>RecAgent.memory</code> / <code>UserAgent.memory</code></td><td>Memory Stream</td><td>每轮 feedback 存入 memory 列表</td></tr>
+    <tr><td>每轮 feedback 分析</td><td>Reflection</td><td>LLM 看历史反馈 → 产生 insight → 改进策略</td></tr>
+    <tr><td>SASRec 先验推荐</td><td>Planning 初始方向</td><td>传统模型提供冷启动依据</td></tr>
+    <tr><td>Rec ↔ User 对话</td><td>Multi-agent Interaction</td><td>双向文本交互形成闭环</td></tr>
+  </table>
+
+  <h3>关键代码文件</h3>
+  <table>
+    <tr><th>文件</th><th>作用</th></tr>
+    <tr><td><code>utils/agent.py</code></td><td>RecAgent + UserModelAgent 类定义，memory 管理</td></tr>
+    <tr><td><code>utils/api_request.py</code></td><td>LLM API 调用层（GPT / GLM）</td></tr>
+    <tr><td><code>utils/model.py</code></td><td>SASRec 推荐模型定义</td></tr>
+    <tr><td><code>constant/lastfm_*_prompt.py</code></td><td>Prompt 模板（system/user/memory 版本）</td></tr>
+    <tr><td><code>afl/evaluate_rec.py</code></td><td>Step1 推荐评估主循环</td></tr>
+    <tr><td><code>afl/evaluate_user_step1.py</code></td><td>Step2a 用户模拟训练</td></tr>
+    <tr><td><code>afl/evaluate_user_step2.py</code></td><td>Step2b 用户模拟评估</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 代码修改 ==================== -->
+<h2>2. 代码修改记录</h2>
+<div class="sec">
+  <div class="change-log">
+    <div class="entry">
+      <span class="date">2026-04-23</span> — <code>utils/api_request.py</code>: 增加 GLM 适配
+      <ul>
+        <li>新增 <code>glm_api()</code> 函数，调用智谱 <code>https://open.bigmodel.cn/api/paas/v4/chat/completions</code></li>
+        <li>在 <code>api_request()</code> 入口增加 <code>"glm" in args.model</code> 分支</li>
+        <li>GLM API 兼容 OpenAI 格式，payload 结构不变</li>
+        <li>模型: <code>glm-4-flash</code>（免费/低价，适合验证）</li>
+      </ul>
+    </div>
+    <div class="entry">
+      <span class="date">2026-04-23</span> — <code>scripts/evaluate_rec_glm.sh</code>: 新建 GLM 版运行脚本
+      <ul>
+        <li>MODEL 改为 <code>glm-4-flash</code></li>
+        <li>MP（并行数）从 16 降到 4（降低 API 并发压力）</li>
+        <li>自动创建输出目录</li>
+      </ul>
+    </div>
+    <div class="entry">
+      <span class="date">2026-04-23</span> — <code>utils/agent.py</code> L123: CPU 兼容
+      <ul>
+        <li><code>torch.load(path)</code> → <code>torch.load(path, map_location=self.device)</code></li>
+        <li>原代码 GPU 保存的模型在无 GPU 环境下会报错，加 <code>map_location</code> 后自动 fallback 到 CPU</li>
+        <li>SASRec 嵌入维度仅 64，CPU 推理毫秒级，无需 GPU</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 环境 ==================== -->
+<h2>3. 环境配置</h2>
+<div class="sec">
+  <table>
+    <tr><th>项目</th><th>状态</th><th>备注</th></tr>
+    <tr><td>服务器</td><td class="status-ok">✅</td><td>腾讯云 49.233.189.223, 139G 可用</td></tr>
+    <tr><td>Python</td><td class="status-ok">✅</td><td>3.9.19</td></tr>
+    <tr><td>PyTorch</td><td class="status-ok">✅</td><td>2.8.0+cu128 (CPU mode, no GPU)</td></tr>
+    <tr><td>jsonlines</td><td class="status-ok">✅</td><td>4.0.0</td></tr>
+    <tr><td>数据集 (LastFM)</td><td class="status-ok">✅</td><td><code>data/lastfm/</code></td></tr>
+    <tr><td>SASRec 模型</td><td class="status-ok">✅</td><td><code>output/lastfm/SASRec.pt</code></td></tr>
+    <tr><td>GLM API</td><td class="status-ok">✅</td><td>glm-4-flash, key 已配置</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 遇到的坑 ==================== -->
+<h2>4. 遇到的坑 &amp; 修复</h2>
+<div class="sec">
+  <table>
+    <tr><th>#</th><th>问题</th><th>原因</th><th>修复</th></tr>
+    <tr>
+      <td>1</td>
+      <td>只支持 GPT API</td>
+      <td><code>api_request.py</code> 只有 <code>gpt_api()</code></td>
+      <td>新增 <code>glm_api()</code>，endpoint 改为智谱 <code>open.bigmodel.cn</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>GPU 模型在 CPU 上加载失败</td>
+      <td><code>torch.load()</code> 缺 <code>map_location</code></td>
+      <td><code>agent.py</code> L123: 加 <code>map_location=self.device</code></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>PyTorch 2.6+ <code>weights_only</code> 报错</td>
+      <td>模型用旧版 pickle 方式保存，新版默认 <code>weights_only=True</code></td>
+      <td>加 <code>weights_only=False</code></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><code>ModuleNotFoundError: SASRecModules_ori</code></td>
+      <td>模型 pickle 里绑定了 <code>afl/SASRecModules_ori.py</code> 的模块名</td>
+      <td><code>agent.py</code>: 加 <code>sys.path.append(os.path.join(parent_dir, "afl"))</code></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>GLM 生成多个 "Reason:...Item:..." 对导致解析卡死</td>
+      <td><code>split_rec_reponse</code> 要求 <code>len(matches)==1</code>，GLM 常给多个推荐</td>
+      <td><code>regular_function.py</code>: 所有 <code>!=1</code> 改为 <code>==0</code>，取第一个 match</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>SASRec 模型内部 device 仍为 cuda</td>
+      <td><code>torch.load(map_location)</code> 只管 tensor 搬迁，不改模型的 <code>self.device</code> 属性</td>
+      <td>load 后加 <code>model.device = self.device; model.to(self.device)</code></td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>multiprocessing worker 找不到 <code>__main__.SASRec</code></td>
+      <td>模型 pickle 序列化了 <code>__main__.SASRec</code>，worker 的 <code>__main__</code> 没有这个类</td>
+      <td>在所有 <code>evaluate_*.py</code> 顶部加 <code>from utils.model import SASRec</code></td>
+    </tr>
+  </table>
+</div>
+
+<!-- ==================== 运行记录 ==================== -->
+<h2>5. 运行记录</h2>
+<div class="sec">
+  <div class="change-log">
+    <div class="entry">
+      <span class="date">2026-04-23 18:00</span> — Step 1 (epoch=1, baseline): <code>evaluate_rec.py</code>
+      <ul>
+        <li>122 个测试数据点，MP=1，glm-4-flash</li>
+        <li class="status-ok">✅ 完成 — Hit@1 = 34/122 = <strong>27.87%</strong></li>
+        <li>输出: <code>data/lastfm_rec_eval/glm_rec_epoch1.jsonl</code></li>
+      </ul>
+    </div>
+    <div class="entry">
+      <span class="date">2026-04-23 18:40</span> — Step 1 (epoch=4, 带反馈闭环): <code>evaluate_rec.py</code>
+      <ul>
+        <li>122 个测试数据点，max_epoch=4，MP=1</li>
+        <li>每条最多 4 轮 Rec↔User 交互，约 5-10 秒/条</li>
+        <li class="status-ok">✅ 完成 — Hit@1 = 37/122 = <strong>30.33%</strong> (+2.46%)</li>
+        <li>输出: <code>data/lastfm_rec_eval/glm_rec_epoch4.jsonl</code></li>
+        <li>Memory: <code>data/lastfm_rec_save/</code></li>
+      </ul>
+    </div>
+    <div class="entry">
+      <span class="date">2026-04-23 19:10</span> — Step 2a (用户模拟训练): <code>evaluate_user_step1.py</code>
+      <ul>
+        <li>LastFM A/B 数据集，60 条，max_epoch=4，temperature=0.0</li>
+        <li class="status-ok">✅ 完成 — Hit@1 = 16/60 = <strong>26.67%</strong></li>
+        <li>输出: <code>data/lastfm_ab_step1/glm_user_step1.jsonl</code></li>
+        <li>Memory: <code>data/lastfm_ab_save/user_SASRec_glm_glm-4-flash_4_1_1_20_20/</code> (60 files)</li>
+      </ul>
+    </div>
+    <div class="entry">
+      <span class="date">2026-04-23 19:45</span> — Step 2b (用户模拟评估): <code>evaluate_user_step2.py</code>
+      <ul>
+        <li>加载 Step2a memory，60 条×20 候选 = 1200 次 API 调用</li>
+        <li class="status-ok">✅ 完成 — Recall=<strong>11.83%</strong>, Precision=<strong>81.61%</strong></li>
+        <li>输出: <code>data/lastfm_ab_step2/glm_user_step2.jsonl</code></li>
+      </ul>
+    </div>
+
+    <h3 style="color:var(--cyan); margin-top:16px;">结果汇总</h3>
+    <table>
+      <tr><th>实验</th><th>模型</th><th>Hit@1</th><th>说明</th></tr>
+      <tr><td>Step1 epoch=1</td><td>glm-4-flash</td><td>27.87%</td><td>Baseline，无反馈</td></tr>
+      <tr><td>Step1 epoch=4</td><td>glm-4-flash</td><td><strong>30.33%</strong></td><td>4轮反馈闭环，+2.46%</td></tr>
+      <tr><td>论文 epoch=1</td><td>gpt-4o-mini</td><td>~26%</td><td>论文 Table 2 参考</td></tr>
+      <tr><td>���文 epoch=4</td><td>gpt-4o-mini</td><td>~29%</td><td>论文报告 +11.52% 相对提升</td></tr>
+    </table>
+
+    <h3 style="color:var(--cyan); margin-top:16px;">用户模拟结果 (Step 2)</h3>
+    <table>
+      <tr><th>指���</th><th>GLM-4-flash (本次)</th><th>说明</th></tr>
+      <tr><td>Step2a Hit@1</td><td>26.67%</td><td>用户模拟训练阶段命中率</td></tr>
+      <tr><td>Step2b Global Recall</td><td>11.83%</td><td>用户行为预测的全局召回率</td></tr>
+      <tr><td>Step2b Global Precision</td><td><strong>81.61%</strong></td><td>预测"接受"的准确率很高</td></tr>
+      <tr><td>Step2b Avg Recall</td><td>11.83%</td><td>平均召回</td></tr>
+      <tr><td>Step2b Avg Precision</td><td><strong>79.88%</strong></td><td>平均精确率</td></tr>
+    </table>
+    <p style="color:var(--dim); margin-top:8px;">
+      <strong>分析</strong>：Precision 很高（~80%）说明 GLM 预测"用户会接受"时大多正确；Recall 低（~12%）说明 GLM 过于保守，大量实际会接受的 item 被预测为拒绝。
+      这与 GLM-4-flash 作为较弱模型的 instruction following 能力有关——它倾向于回复"No"。
+    </p>
+  </div>
+</div>
+
+<!-- ==================== footer ==================== -->
+<hr style="border-color:var(--border); margin-top:32px;">
+<p style="color:var(--dim); font-size:0.85em; margin-top:8px;">
+  AFL 复现日志 · 2026-04-23 起 · 配合 <a href="recsys-code-plan.html">RecSys 复现计划</a>
+</p>
+
+</body>
+</html>
