@@ -257,12 +257,17 @@
       <tr><td>Step1 epoch=1</td><td>glm-4-flash</td><td>27.87%</td><td>Baseline，无反馈</td></tr>
       <tr><td>Step1 epoch=4</td><td>glm-4-flash</td><td><strong>30.33%</strong></td><td>4轮反馈闭环，+2.46%</td></tr>
       <tr><td>论文 epoch=1</td><td>gpt-4o-mini</td><td>~26%</td><td>论文 Table 2 参考</td></tr>
-      <tr><td>���文 epoch=4</td><td>gpt-4o-mini</td><td>~29%</td><td>论文报告 +11.52% 相对提升</td></tr>
+      <tr><td>论文 epoch=4</td><td>gpt-4o-mini</td><td>~29%</td><td>论文报告 +11.52% 相对提升</td></tr>
+      <tr style="border-top:2px solid var(--orange);"><td>Step1 epoch=1</td><td>glm-4-plus</td><td><strong>35.25%</strong></td><td>更强模型 baseline 更高</td></tr>
+      <tr><td>Step1 epoch=4</td><td>glm-4-plus</td><td><strong>38.52%</strong></td><td>+3.27% 绝对 / +9.3% 相对提升</td></tr>
     </table>
+    <p style="color:var(--dim); margin-top:8px;">
+      <strong>结论</strong>：更强的模型 → 反馈闭环效果更明显。glm-4-flash 太弱无法从多轮反馈中有效学习，glm-4-plus 趋势与论文一致。GLM-5 因限流无法测试。
+    </p>
 
     <h3 style="color:var(--cyan); margin-top:16px;">用户模拟结果 (Step 2)</h3>
     <table>
-      <tr><th>指���</th><th>GLM-4-flash (本次)</th><th>说明</th></tr>
+      <tr><th>指标</th><th>GLM-4-flash (本次)</th><th>说明</th></tr>
       <tr><td>Step2a Hit@1</td><td>26.67%</td><td>用户模拟训练阶段命中率</td></tr>
       <tr><td>Step2b Global Recall</td><td>11.83%</td><td>用户行为预测的全局召回率</td></tr>
       <tr><td>Step2b Global Precision</td><td><strong>81.61%</strong></td><td>预测"接受"的准确率很高</td></tr>
