@@ -281,6 +281,59 @@
   </div>
 </div>
 
+<!-- ==================== 分析 ==================== -->
+<h2>6. 为什么模型越强闭环效果越好</h2>
+<div class="sec">
+  <h3>传统推荐 vs AFL 的区别</h3>
+  <pre>
+传统推荐（单向）:
+  推荐模型 → 推荐歌曲 → 用户点击/跳过
+  模型只知道"没点"，不知道为什么
+
+AFL（双向对话）:
+  Rec Agent:  "推荐 Metallica，因为你最近听了很多重金属"
+  User Agent: "拒绝，我听重金属只是因为朋友分享的，其实我更喜欢流行摇滚"
+  Rec Agent:  (记住这个反馈) "那推荐 Paramore，流行摇滚风格"
+  User Agent: "接受"</pre>
+  <p>关键区别：反馈不再是 0/1 信号，而是<strong>自然语言解释</strong>。Rec Agent 能从"为什么被拒绝"中学到更精准的用户偏好。</p>
+
+  <h3>闭环依赖的三个 LLM 能力</h3>
+  <table>
+    <tr><th>能力</th><th>弱模型 (flash)</th><th>强模型 (plus)</th></tr>
+    <tr>
+      <td><strong>理解反馈</strong></td>
+      <td>只理解到"不喜欢" → 下轮换完全不同风格 → 跑偏</td>
+      <td>理解到"风格对但太吵" → 推荐同风格安静的 → 越来越准</td>
+    </tr>
+    <tr>
+      <td><strong>生成有用反馈</strong></td>
+      <td>"I don't like this song." ← 没有信息量</td>
+      <td>"I prefer melodic vocals rather than heavy screaming." ← Rec Agent 可据此调整</td>
+    </tr>
+    <tr>
+      <td><strong>格式遵循</strong></td>
+      <td>常给多个推荐（"Alternatively..."），解析失败重试引入噪声</td>
+      <td>严格遵循 Reason/Item/Decision 格式，解析稳定</td>
+    </tr>
+  </table>
+
+  <h3>结论</h3>
+  <p>闭环机制本身是好的，但它依赖 LLM 同时扮演好"推荐者"和"用户"两个角色：</p>
+  <ul>
+    <li><strong>模型太弱</strong>：两个角色都演不好，反馈质量低 → 多轮交互引入噪声 → 效果不升反降（flash: -1.64%）</li>
+    <li><strong>模型够强</strong>：反馈有信息量 → 多轮越来越准（plus: +3.27%，相对 +9.3%）</li>
+    <li><strong>论文用 GPT-4o-mini</strong>：报告 +11.52% 相对提升，与 plus 趋势一致</li>
+  </ul>
+
+  <h3>模型对比总表</h3>
+  <table>
+    <tr><th>模型</th><th>epoch=1</th><th>epoch=4</th><th>绝对提升</th><th>相对提升</th></tr>
+    <tr><td>glm-4-flash</td><td>27.87%</td><td>26.23%</td><td style="color:var(--pink);">-1.64%</td><td>-</td></tr>
+    <tr><td><strong>glm-4-plus</strong></td><td>35.25%</td><td><strong>38.52%</strong></td><td style="color:var(--green);">+3.27%</td><td style="color:var(--green);">+9.3%</td></tr>
+    <tr><td>论文 gpt-4o-mini</td><td>~26%</td><td>~29%</td><td>+3%</td><td>+11.52%</td></tr>
+  </table>
+</div>
+
 <!-- ==================== footer ==================== -->
 <hr style="border-color:var(--border); margin-top:32px;">
 <p style="color:var(--dim); font-size:0.85em; margin-top:8px;">
