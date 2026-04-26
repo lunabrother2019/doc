@@ -28,6 +28,9 @@
     .hl-green { background: rgba(52,211,153,0.12); color: var(--green); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
     .hl-pink { background: rgba(244,114,182,0.12); color: var(--pink); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
     .hl-red { background: rgba(248,113,113,0.12); color: var(--red); padding: 1px 4px; border-radius: 3px; font-weight: 500; }
+    .new-badge { display: inline-block; border: 1.5px dashed var(--pink); color: var(--pink); font-size: 10px; padding: 0px 5px; border-radius: 3px; margin-left: 4px; font-weight: 600; vertical-align: middle; }
+    .running-badge { display: inline-block; border: 1.5px solid var(--green); color: var(--green); font-size: 10px; padding: 0px 5px; border-radius: 3px; margin-left: 4px; font-weight: 600; vertical-align: middle; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
     .callout { border-radius: 8px; padding: 10px 14px; margin: 8px 0 10px; font-size: 12.5px; line-height: 1.6; }
     .callout-key { background: rgba(167,139,250,0.08); border-left: 3px solid var(--accent); }
     .callout-green { background: rgba(52,211,153,0.06); border-left: 3px solid var(--green); }
@@ -56,7 +59,7 @@
 
 <div class="hero">
   <h1>推荐系统×Agent 仿真：代码复现与学习计划</h1>
-  <p class="sub">覆盖 23 篇论文 · 16 篇有代码 · 按可用性分级 · 从跑通到实验的完整路径 · 成本估算</p>
+  <p class="sub">覆盖 26 篇论文 · 20 篇有代码 · 按可用性分级 · 从跑通到实验的完整路径 · 成本估算 · <span class="new-badge">+3 新增 2026-04-26</span></p>
 </div>
 
 <div class="container">
@@ -71,9 +74,9 @@
       <thead><tr><th>#</th><th>名称</th><th>年份</th><th>类型</th><th>GitHub</th><th>DD</th><th>复现优先级</th></tr></thead>
       <tbody>
         <tr><td>1</td><td><strong>RecAgent (YuLan-Rec)</strong></td><td>TOIS 2024</td><td>用户仿真</td><td><a href="https://github.com/RUC-GSAI/YuLan-Rec" target="_blank">RUC-GSAI/YuLan-Rec</a></td><td><a href="../deep-dive/54-recagent.html">54</a></td><td>⚠️ 依赖过时需修复</td></tr>
-        <tr><td>2</td><td><strong>Agent4Rec</strong></td><td>SIGIR 2024</td><td>用户仿真</td><td><a href="https://github.com/LehengTHU/Agent4Rec" target="_blank">LehengTHU/Agent4Rec</a></td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td><span class="hl-green">★★★ 首选起步</span></td></tr>
-        <tr><td>3</td><td><strong>AgentCF</strong></td><td>WWW 2024</td><td>协同学习</td><td>agiresearch/AgentRecSys</td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>★★</td></tr>
-        <tr><td>4</td><td><strong>AgentCF++</strong></td><td>SIGIR 2025</td><td>跨域记忆</td><td><a href="https://github.com/jhliu0807/AgentCF-plus" target="_blank">jhliu0807/AgentCF-plus</a></td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>★★</td></tr>
+        <tr><td>2</td><td><strong>Agent4Rec</strong></td><td>SIGIR 2024</td><td>用户仿真</td><td><a href="https://github.com/LehengTHU/Agent4Rec" target="_blank">LehengTHU/Agent4Rec</a></td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td><span class="hl-green">★★★ 首选起步</span></td></tr>
+        <tr><td>3</td><td><strong>AgentCF</strong></td><td>WWW 2024</td><td>协同学习</td><td>agiresearch/AgentRecSys</td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td>★★</td></tr>
+        <tr><td>4</td><td><strong>AgentCF++</strong></td><td>SIGIR 2025</td><td>跨域记忆</td><td><a href="https://github.com/jhliu0807/AgentCF-plus" target="_blank">jhliu0807/AgentCF-plus</a></td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td>★★</td></tr>
         <tr><td>5</td><td><strong>OASIS</strong></td><td>2024.11</td><td>百万级仿真</td><td><a href="https://github.com/camel-ai/oasis" target="_blank">camel-ai/oasis</a></td><td><a href="../deep-dive/55-oasis.html">55</a></td><td>★★ 规模化参考</td></tr>
         <tr><td>6</td><td><strong>InteRecAgent</strong></td><td>TOIS 2025</td><td>Agent-as-Brain</td><td><a href="https://github.com/microsoft/RecAI" target="_blank">microsoft/RecAI</a></td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td><td>★ 交互式推荐</td></tr>
         <tr><td>7</td><td><strong>MACRec</strong></td><td>SIGIR 2024</td><td>多Agent协作</td><td><a href="https://github.com/wzf2000/MACRec" target="_blank">wzf2000/MACRec</a></td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td><td>★</td></tr>
@@ -81,12 +84,15 @@
         <tr><td>9</td><td><strong>AFL</strong></td><td>SIGIR 2025</td><td>反馈闭环</td><td><a href="https://github.com/Lanyu0303/AFL" target="_blank">Lanyu0303/AFL</a></td><td><a href="../deep-dive/59-recsys-feedback-loop.html">59</a></td><td><span class="hl-green">★★★ L2 核心</span></td></tr>
         <tr><td>10</td><td><strong>LLM User Simulator</strong></td><td>AAAI 2025</td><td>双模型ensemble</td><td><a href="https://github.com/Applied-Machine-Learning-Lab/LLM_User_Simulator" target="_blank">Applied-ML-Lab/...</a></td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td><td>★★ 保真度方法</td></tr>
         <tr><td>11</td><td><strong>UserMirrorer</strong></td><td>ACL 2026</td><td>SFT/DPO 微调</td><td><a href="https://github.com/Joinn99/UserMirrorer" target="_blank">Joinn99/UserMirrorer</a></td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td><td><span class="hl-green">★★★ L1 最佳解</span></td></tr>
-        <tr><td>12</td><td><strong>TriRec</strong></td><td>2026.03</td><td>三方Agent</td><td><span style="color:var(--red);">❌ 仅 README 占位</span></td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td><td>⚠️ 无实际代码</td></tr>
+        <tr><td>12</td><td><strong>TriRec</strong> <span class="running-badge">复现中</span></td><td>2026.03</td><td>三方Agent</td><td><a href="https://github.com/lunabrother2019/triRec" target="_blank">lunabrother2019/triRec</a> · <a href="trirec-reproduction-log.html">复现日志</a></td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td><td><span class="hl-green">★★★ 真实数据实验中</span></td></tr>
         <tr><td>13</td><td><strong>RecSim NG</strong></td><td>Google</td><td>仿真环境</td><td><a href="https://github.com/google-research/recsim_ng" target="_blank">google-research/recsim_ng</a></td><td>—</td><td>★★ 环境骨架</td></tr>
         <tr><td>14</td><td><strong>Open Bandit Pipeline</strong></td><td>ZOZO</td><td>OPE 评估</td><td><a href="https://github.com/st-tech/zr-obp" target="_blank">st-tech/zr-obp</a></td><td>—</td><td>★★ L3 评估工具</td></tr>
         <tr><td>15</td><td><strong>MemRec</strong></td><td>2026.01</td><td>跨用户协同记忆图</td><td><a href="https://github.com/rutgerswiselab/memrec" target="_blank">rutgerswiselab/memrec</a></td><td>—</td><td>★★ 记忆图 + H@1 +28.98%</td></tr>
         <tr><td>16</td><td><strong>UserSimCRS v2</strong></td><td>ECIR 2026</td><td>传统 vs LLM 模拟器 A/B 对比工具包</td><td><a href="https://github.com/iai-group/UserSimCRS" target="_blank">iai-group/UserSimCRS</a></td><td>—</td><td>★★ L3 评估参考</td></tr>
         <tr><td>17</td><td><strong>CSHI</strong></td><td>WWW 2025</td><td>解决 LLM 仿真数据泄漏（recall 降 12-18%→零）</td><td><a href="https://github.com/zlxxlz1026/CSHI" target="_blank">zlxxlz1026/CSHI</a></td><td>—</td><td>★★ 泄漏防护必备</td></tr>
+        <tr style="background:rgba(244,114,182,0.04);"><td>18</td><td><strong>iAgent</strong> <span class="new-badge">新增 2025.02</span></td><td>ACL Findings 2025</td><td>用户侧"盾牌"Agent 重排</td><td><a href="https://github.com/WujiangXu/iAgent" target="_blank">WujiangXu/iAgent</a></td><td>—</td><td>★★ 与 TriRec ���补视角</td></tr>
+        <tr style="background:rgba(244,114,182,0.04);"><td>19</td><td><strong>ToolRec</strong> <span class="new-badge">新增 2024.05</span></td><td>SIGIR 2024</td><td>LLM + tool-calling 推荐</td><td><a href="https://github.com/Go0day/ToolRec-Code" target="_blank">Go0day/ToolRec-Code</a></td><td>—</td><td>★ tool-learning 范式</td></tr>
+        <tr style="background:rgba(244,114,182,0.04);"><td>20</td><td><strong>EasyRL4Rec</strong> <span class="new-badge">新增 2024.02</span></td><td>SIGIR 2024</td><td>RL 推荐库（AFL/BiLLP 底座）</td><td><a href="https://github.com/chongminggao/EasyRL4Rec" target="_blank">chongminggao/EasyRL4Rec</a></td><td>—</td><td>★★ 15+ RL 策略 + 5 数据集</td></tr>
       </tbody>
     </table>
   </div>
@@ -96,12 +102,12 @@
     <table>
       <thead><tr><th>#</th><th>名称</th><th>年份</th><th>价值</th><th>DD</th></tr></thead>
       <tbody>
-        <tr><td>15</td><td><strong>SimUSER</strong></td><td>ACL Ind. 2025</td><td>offline A/B 验证方法论——L3 最直接参考</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
-        <tr><td>16</td><td><strong>OmniBehavior</strong></td><td>CAS+快手 2026.04</td><td>三大偏差 benchmark（hyper-activity/homogenization/utopian）</td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td></tr>
-        <tr><td>17</td><td><strong>PUB</strong></td><td>SIGIR 2025</td><td>Big Five 人格驱动 persona 初始化</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
-        <tr><td>18</td><td><strong>Lusifer</strong></td><td>ICMI 2025</td><td>Profile 增量更新 + explainable rationale</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
-        <tr><td>19</td><td><strong>RecMind</strong></td><td>2023</td><td>Self-Inspiring planning（全局状态回溯）</td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td></tr>
-        <tr><td>20</td><td><strong>RecoWorld</strong></td><td>WWW 2026</td><td>Gym-like 验证环境蓝图</td><td><a href="../deep-dive/59-recsys-feedback-loop.html">59</a></td></tr>
+        <tr><td>21</td><td><strong>SimUSER</strong></td><td>ACL Ind. 2025</td><td>offline A/B 验证方法论——L3 最直接参考</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
+        <tr><td>22</td><td><strong>OmniBehavior</strong></td><td>CAS+快手 2026.04</td><td>三大偏差 benchmark（hyper-activity/homogenization/utopian）</td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td></tr>
+        <tr><td>23</td><td><strong>PUB</strong></td><td>SIGIR 2025</td><td>Big Five 人格驱动 persona 初始化</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
+        <tr><td>24</td><td><strong>Lusifer</strong></td><td>ICMI 2025</td><td>Profile 增量更新 + explainable rationale</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
+        <tr><td>25</td><td><strong>RecMind</strong></td><td>2023</td><td>Self-Inspiring planning（全局状态回溯）</td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td></tr>
+        <tr><td>26</td><td><strong>RecoWorld</strong></td><td>WWW 2026</td><td>Gym-like 验证环境蓝图</td><td><a href="../deep-dive/59-recsys-feedback-loop.html">59</a></td></tr>
       </tbody>
     </table>
   </div>
@@ -115,6 +121,8 @@
         <tr><td><strong>KuaiRec</strong></td><td>近 100% 密度全交互矩阵</td><td><a href="https://kuairec.com" target="_blank">直接下载</a></td><td>完美验证基准</td></tr>
         <tr><td><strong>Open Bandit Dataset</strong></td><td>2600 万曝光 + propensity score + 真实 A/B</td><td><a href="https://github.com/st-tech/zr-obp" target="_blank">GitHub</a></td><td>含 propensity 的 OPE 验证</td></tr>
         <tr><td><strong>MovieLens-1M</strong></td><td>6K 用户 × 4K 电影 × 1M 评分</td><td>直接下载</td><td>Agent4Rec/RecAgent 基础数据</td></tr>
+        <tr style="background:rgba(244,114,182,0.04);"><td><strong>Amazon CDs & Vinyl 2023</strong> <span class="new-badge">新增</span></td><td>124K 用户 × 89K 物品 × 155 万评分 (5-core)</td><td><a href="https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023" target="_blank">HuggingFace</a></td><td>TriRec 真实数据实验</td></tr>
+        <tr style="background:rgba(244,114,182,0.04);"><td><strong>EasyRL4Rec 内置 5 数据集</strong> <span class="new-badge">新增</span></td><td>Coat / ML-1M / Yahoo / KuaiRec / KuaiRand</td><td><a href="https://github.com/chongminggao/EasyRL4Rec" target="_blank">GitHub</a></td><td>AFL/BiLLP RL 实验基座</td></tr>
       </tbody>
     </table>
   </div>
@@ -166,7 +174,7 @@
     <h4>读代码</h4>
     <div class="todo"><div class="todo-box"></div>UserMirrorer 的 SFT/DPO 训练流程 + hard sample mining</div>
     <div class="todo"><div class="todo-box"></div>LLM User Simulator 的 logical+statistical ensemble</div>
-    <div class="todo"><div class="todo-box"></div>TriRec 的 item self-promotion + platform re-ranking</div>
+    <div class="todo"><div class="todo-box" style="background:var(--green);color:#000;">✓</div>TriRec 的 item self-promotion + platform re-ranking — <span style="color:var(--green);">自行实现 925 行，真实数据实验中</span> · <a href="trirec-reproduction-log.html">复现日志</a></div>
   </div>
 
   <div class="phase">
@@ -266,7 +274,10 @@
       <span class="phase-title" style="color:var(--accent);">扩展方向（可选）</span>
       <span class="phase-dur">持续</span>
     </div>
-    <div class="todo"><div class="todo-box"></div>TriRec 三方 Agent 博弈 → 公平性研究</div>
+    <div class="todo"><div class="todo-box" style="background:var(--green);color:#000;">✓</div>TriRec 三方 Agent 博弈 → 公平性研究 — <span style="color:var(--green);">已自行实现 + 真实数据实验中</span></div>
+    <div class="todo"><div class="todo-box"></div>iAgent 用户盾牌 Agent → 与 TriRec 互补（用户视角 vs 平台视角）<span class="new-badge">新增</span></div>
+    <div class="todo"><div class="todo-box"></div>ToolRec tool-calling → 对比 InteRecAgent 的 Agent-as-Brain <span class="new-badge">新增</span></div>
+    <div class="todo"><div class="todo-box"></div>EasyRL4Rec → AFL/BiLLP 的 RL 底座，15+ 策略对比 <span class="new-badge">新增</span></div>
     <div class="todo"><div class="todo-box"></div>PUB Big Five 人格 → 更丰富的 persona 初始化</div>
     <div class="todo"><div class="todo-box"></div>ALCS 记忆压缩 → 给 reflection 加置信度（理论贡献）</div>
     <div class="todo"><div class="todo-box"></div>OASIS 百万级规模 → 社交传播现象仿真</div>
@@ -301,10 +312,11 @@
 记忆后端:  内置三层 (起步) → Mem0 SDK (生产级)
 User Sim:  frozen GPT-3.5 (baseline) → UserMirrorer SFT (进阶)
 推荐引擎:  MF (起步) → LightGCN / DNN (对比)
+RL 底座:   EasyRL4Rec (15+ RL 策略, AFL/BiLLP 基座) ← 新增
 仿真环境:  RecSim NG (Gym-like, 理论分析)
 评估工具:  Open Bandit Pipeline (OPE: IPS/DR)
-数据集:    MovieLens-1M (起步) → KuaiRand (A/B 验证)
-LLM API:   OpenAI GPT-3.5/4 → 本地 Qwen/LLaMA (降成本)</div>
+数据集:    MovieLens-1M (起步) → Amazon CDs (TriRec) → KuaiRand (A/B)
+LLM API:   智谱 GLM-4 (免费起步) → OpenAI GPT-4 → 本地 Qwen/LLaMA</div>
 </section>
 
 <!-- ══════ 论文→DD 快速索引 ══════ -->
@@ -315,12 +327,13 @@ LLM API:   OpenAI GPT-3.5/4 → 本地 Qwen/LLaMA (降成本)</div>
     <table>
       <thead><tr><th>方向</th><th>论文</th><th>DD</th></tr></thead>
       <tbody>
-        <tr><td rowspan="2"><strong>用户仿真（早期）</strong></td><td>RecAgent / Agent4Rec / AgentCF / AgentCF++</td><td><a href="../deep-dive/54-recagent.html">54</a>, <a href="../deep-dive/57-recsys-user-simulation.html">57</a></td></tr>
+        <tr><td rowspan="2"><strong>用户仿真（早期）</strong></td><td>RecAgent / Agent4Rec / AgentCF / AgentCF++</td><td><a href="../deep-dive/54-recagent.html">54</a>, <a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td></tr>
         <tr><td>OASIS（百万级）</td><td><a href="../deep-dive/55-oasis.html">55</a></td></tr>
         <tr><td rowspan="2"><strong>用户仿真（新浪潮）</strong></td><td>LLM User Simulator / SimUSER / Lusifer / PUB</td><td><a href="../deep-dive/65-recsys-sim-new-wave.html">65</a></td></tr>
         <tr><td>UserMirrorer / OmniBehavior / TriRec</td><td><a href="../deep-dive/66-recsys-benchmark-alignment.html">66</a></td></tr>
-        <tr><td><strong>Agent-as-Brain</strong></td><td>InteRecAgent / RecMind / MACRec</td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td></tr>
-        <tr><td><strong>闭环/规划/验证</strong></td><td>AFL / BiLLP / RecoWorld</td><td><a href="../deep-dive/59-recsys-feedback-loop.html">59</a></td></tr>
+        <tr><td><strong>Agent-as-Brain</strong></td><td>InteRecAgent / RecMind / MACRec / ToolRec <span class="new-badge">新增</span></td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td></tr>
+        <tr><td><strong>Agent-as-Shield</strong> <span class="new-badge">新增</span></td><td>iAgent（用户侧 Agent 重排抵抗平台偏差）</td><td>—</td></tr>
+        <tr><td><strong>闭环/规划/验证</strong></td><td>AFL / BiLLP / RecoWorld / EasyRL4Rec <span class="new-badge">新增</span></td><td><a href="../deep-dive/59-recsys-feedback-loop.html">59</a></td></tr>
         <tr><td><strong>综述</strong></td><td>RecSys Agent Survey</td><td><a href="../deep-dive/60-recsys-agent-survey.html">60</a></td></tr>
         <tr><td><strong>评测/微调</strong></td><td>AgentBench / FireAct / AgentTuning</td><td><a href="../deep-dive/61-agent-eval-finetune.html">61</a></td></tr>
         <tr><td><strong>记忆理论</strong></td><td>Mem0 V3 / ALCS / Memory POMDP</td><td><a href="../deep-dive/30-mem0.html">30</a>, <a href="../deep-dive/64-alcs-memory-compression.html">64</a>, <a href="../deep-dive/32-memory-pomdp.html">32</a></td></tr>
@@ -330,7 +343,7 @@ LLM API:   OpenAI GPT-3.5/4 → 本地 Qwen/LLaMA (降成本)</div>
 
   <div class="callout callout-key">
     <div class="callout-title">📌 总结</div>
-    23 篇论文 · 17 篇有代码 · 4 个数据集 · 5 阶段复现计划 · ~$160-300 + 1 GPU · ~2 个月。核心路径：Agent4Rec baseline → UserMirrorer 替代 frozen-LLM → AFL 闭环稳定性实验 → KuaiRand A/B 方向预测。新增：MemRec 记忆图 / UserSimCRS A/B 工具包 / CSHI 防泄漏。
+    26 篇论文 · 20 篇有代码 · 4 个数据集 · 5 阶段复现计划 · ~$160-300 + 1 GPU · ~2 个月。核心路径：Agent4Rec baseline → UserMirrorer 替代 frozen-LLM → AFL 闭环稳定性实验 → KuaiRand A/B 方向预测。<br>已完成复现：<span style="color:var(--green);">AFL(glm-4-flash/plus) + TriRec(自实现925行，真实数据实验中)</span>。<br><span style="color:var(--pink);">2026-04-26 新增 3 篇</span>：iAgent 用户盾牌 (ACL'25) / ToolRec tool-calling (SIGIR'24) / EasyRL4Rec RL底座 (SIGIR'24)。
   </div>
 </section>
 
@@ -338,7 +351,7 @@ LLM API:   OpenAI GPT-3.5/4 → 本地 Qwen/LLaMA (降成本)</div>
 
 <div class="footer">
   <a href="index1.html">复现总计划</a> · <a href="recsys-hard-problems.html">难题分析</a> · <a href="../challenge/recsys-agent-landscape.html">RecSys 全景</a> · <a href="../deep-dive/00-index-summary.html">DD 全览</a> · <a href="../index1.html">导航中心</a>
-  <p style="margin-top:6px;">推荐系统×Agent 仿真代码复现计划 · 20 篇论文 · 2026-04-23</p>
+  <p style="margin-top:6px;">推荐系统×Agent 仿真代码复现计划 · 26 篇论文 · 更新 2026-04-26</p>
 </div>
 
 </body>

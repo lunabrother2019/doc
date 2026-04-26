@@ -116,9 +116,9 @@
       <thead><tr><th>#</th><th>名称</th><th>论文原标题</th><th>年份</th><th>机构</th><th>范式</th><th>一句话</th><th>DD</th><th>代码</th></tr></thead>
       <tbody>
         <tr><td>1</td><td><strong>RecAgent</strong></td><td><a href="https://arxiv.org/abs/2306.02552" target="_blank">User Behavior Simulation with Large Language Model based Agents</a></td><td>TOIS 2024</td><td>RUC GSAI</td><td>仿真</td><td>1000 Agent 三层认知记忆 × 推荐闭环</td><td><a href="../deep-dive/54-recagent.html">54</a></td><td>✅</td></tr>
-        <tr><td>2</td><td><strong>Agent4Rec</strong></td><td><a href="https://arxiv.org/abs/2310.10108" target="_blank">On Generative Agents in Recommendation</a></td><td>SIGIR 2024</td><td>NUS+清华+USTC</td><td>仿真</td><td>情绪驱动反思 + KS 验证 + filter bubble</td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>✅</td></tr>
-        <tr><td>3</td><td><strong>AgentCF</strong></td><td><a href="https://arxiv.org/abs/2310.09233" target="_blank">AgentCF: Collaborative Learning with Autonomous Language Agents for Recommender Systems</a></td><td>WWW 2024</td><td>RUC+WeChat</td><td>仿真</td><td>User+Item 双 Agent 协同反思替代 CF</td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>✅</td></tr>
-        <tr><td>4</td><td><strong>AgentCF++</strong></td><td><a href="https://arxiv.org/abs/2502.13843" target="_blank">Memory-Enhanced Popularity-Aware Multi-Domain Recommendation via LLM Agents</a></td><td>SIGIR 2025</td><td>复旦+MSRA</td><td>仿真</td><td>跨域 dual-layer memory + 兴趣组共享</td><td><a href="../deep-dive/57-recsys-user-simulation.html">57</a></td><td>✅</td></tr>
+        <tr><td>2</td><td><strong>Agent4Rec</strong></td><td><a href="https://arxiv.org/abs/2310.10108" target="_blank">On Generative Agents in Recommendation</a></td><td>SIGIR 2024</td><td>NUS+清华+USTC</td><td>仿真</td><td>情绪驱动反思 + KS 验证 + filter bubble</td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td>✅</td></tr>
+        <tr><td>3</td><td><strong>AgentCF</strong></td><td><a href="https://arxiv.org/abs/2310.09233" target="_blank">AgentCF: Collaborative Learning with Autonomous Language Agents for Recommender Systems</a></td><td>WWW 2024</td><td>RUC+WeChat</td><td>仿真</td><td>User+Item 双 Agent 协同反思替代 CF</td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td>✅</td></tr>
+        <tr><td>4</td><td><strong>AgentCF++</strong></td><td><a href="https://arxiv.org/abs/2502.13843" target="_blank">Memory-Enhanced Popularity-Aware Multi-Domain Recommendation via LLM Agents</a></td><td>SIGIR 2025</td><td>复旦+MSRA</td><td>仿真</td><td>跨域 dual-layer memory + 兴趣组共享</td><td><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a></td><td>✅</td></tr>
         <tr><td>5</td><td><strong>OASIS</strong></td><td><a href="https://arxiv.org/abs/2411.11581" target="_blank">OASIS: Open Agent Social Interaction Simulations with One Million Agents</a></td><td>2024.11</td><td>PKU+CAMEL-AI</td><td>仿真</td><td>百万 Agent 社交平台 × 推荐算法内置</td><td><a href="../deep-dive/55-oasis.html">55</a></td><td>✅</td></tr>
         <tr><td>6</td><td><strong>InteRecAgent</strong></td><td><a href="https://arxiv.org/abs/2308.16505" target="_blank">Recommender AI Agent: Integrating Large Language Models for Interactive Recommendations</a></td><td>TOIS 2025</td><td>MSRA</td><td>交互</td><td>LLM-as-Brain + RecModel-as-Tool</td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td><td>✅</td></tr>
         <tr><td>7</td><td><strong>RecMind</strong></td><td><a href="https://arxiv.org/abs/2308.14296" target="_blank">RecMind: Large Language Model Powered Agent For Recommendation</a></td><td>2023</td><td>Amazon</td><td>推荐</td><td>Self-Inspiring planning（全局状态回溯）</td><td><a href="../deep-dive/58-recsys-agent-brain.html">58</a></td><td>—</td></tr>
@@ -245,7 +245,7 @@
   <h3>路线 A：快速了解全貌（2 篇）</h3>
   <ol>
     <li><a href="../deep-dive/60-recsys-agent-survey.html">DD60 Survey</a> — 三大范式 + 统一架构</li>
-    <li><a href="../deep-dive/57-recsys-user-simulation.html">DD57 Agent4Rec/AgentCF</a> — 最核心的仿真路线</li>
+    <li><a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">DD57 Agent4Rec/AgentCF</a> — 最核心的仿真路线</li>
   </ol>
 
   <h3>路线 B：理解验证问题（3 篇）</h3>
@@ -273,7 +273,7 @@
 <div class="footer">
   <a href="../index1.html" style="color:var(--green);font-weight:600;">← 返回导航中心</a>
   <p style="margin-top:8px;">推荐系统 × Generative Agents 全景图 · 13 篇论文 · 2023-2026 · 生成日期：2026-04-21</p>
-  <p style="margin-top:4px;">Deep-Dive: <a href="../deep-dive/54-recagent.html">54</a> · <a href="../deep-dive/55-oasis.html">55</a> · <a href="../deep-dive/56-mmo-simulation.html">56</a> · <a href="../deep-dive/57-recsys-user-simulation.html">57</a> · <a href="../deep-dive/58-recsys-agent-brain.html">58</a> · <a href="../deep-dive/59-recsys-feedback-loop.html">59</a> · <a href="../deep-dive/60-recsys-agent-survey.html">60</a></p>
+  <p style="margin-top:4px;">Deep-Dive: <a href="../deep-dive/54-recagent.html">54</a> · <a href="../deep-dive/55-oasis.html">55</a> · <a href="../deep-dive/56-mmo-simulation.html">56</a> · <a href="../deep-dive/57-agent4rec-agentcf-user-simulation.html">57</a> · <a href="../deep-dive/58-recsys-agent-brain.html">58</a> · <a href="../deep-dive/59-recsys-feedback-loop.html">59</a> · <a href="../deep-dive/60-recsys-agent-survey.html">60</a></p>
 </div>
 
 </body>

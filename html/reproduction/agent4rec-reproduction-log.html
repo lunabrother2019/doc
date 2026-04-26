@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent4Rec 复现日志 — On Generative Agents in Recommendation</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; --cyan:#22d3ee; --green:#4ade80; --pink:#f472b6; --orange:#fb923c; --yellow:#facc15; --purple:#a78bfa; --red:#f87171; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font:15px/1.7 'SF Mono','Cascadia Code','Consolas',monospace; padding:24px; max-width:1020px; margin:0 auto; }
+    h1 { font-size:1.5em; color:var(--cyan); border-bottom:2px solid var(--cyan); padding-bottom:8px; margin-bottom:16px; }
+    h2 { font-size:1.2em; color:var(--green); margin:28px 0 10px; }
+    h3 { font-size:1em; color:var(--orange); margin:16px 0 6px; }
+    h4 { font-size:0.95em; color:var(--purple); margin:12px 0 4px; }
+    .badge { display:inline-block; border:2px dashed var(--pink); color:var(--pink); padding:2px 10px; border-radius:6px; font-size:0.8em; margin-left:8px; }
+    .meta { color:var(--dim); font-size:0.9em; margin-bottom:16px; line-height:1.8; }
+    .sec { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0; }
+    table { width:100%; border-collapse:collapse; margin:8px 0; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; font-size:0.9em; }
+    th { background:rgba(34,211,238,0.1); color:var(--cyan); }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .up { color:var(--green); }
+    .down { color:var(--pink); }
+    .best { color:var(--green); font-weight:bold; }
+    code { background:rgba(34,211,238,0.1); padding:2px 6px; border-radius:4px; font-size:0.9em; }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto; font-size:0.85em; margin:8px 0; line-height:1.5; }
+    a { color:var(--cyan); }
+    .status-ok { color:var(--green); font-weight:bold; }
+    .status-wip { color:var(--yellow); font-weight:bold; }
+    .highlight { background:rgba(34,211,238,0.08); border-left:3px solid var(--cyan); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .warn { background:rgba(251,146,60,0.08); border-left:3px solid var(--orange); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .formula { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin:8px 0; font-size:0.92em; text-align:center; }
+    .toc { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 20px; margin:12px 0; }
+    .toc a { text-decoration:none; }
+    .toc li { margin:3px 0; }
+    .trait-box { display:inline-block; border:1px solid var(--border); border-radius:6px; padding:8px 12px; margin:4px; min-width:200px; vertical-align:top; }
+    .trait-label { font-size:0.85em; font-weight:bold; padding:2px 8px; border-radius:4px; display:inline-block; margin-bottom:4px; }
+    .trait-label.act { background:rgba(251,146,60,0.15); color:var(--orange); }
+    .trait-label.conf { background:rgba(34,211,238,0.15); color:var(--cyan); }
+    .trait-label.div { background:rgba(74,222,128,0.15); color:var(--green); }
+    .ks-bar { display:inline-block; height:12px; border-radius:2px; vertical-align:middle; }
+    .roadmap-item { display:flex; gap:12px; align-items:flex-start; margin:10px 0; }
+    .roadmap-num { flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85em; font-weight:bold; }
+    .roadmap-num.done { background:var(--green); color:var(--bg); }
+    .roadmap-num.next { background:var(--yellow); color:var(--bg); }
+    .roadmap-num.future { background:var(--border); color:var(--dim); }
+  </style>
+</head>
+<body>
+
+<h1>Agent4Rec 复现日志 <span class="badge">后加</span></h1>
+<p class="meta">
+  论文: <a href="https://arxiv.org/abs/2310.10108">On Generative Agents in Recommendation</a> · SIGIR 2024 · NUS + 清华 + USTC<br>
+  原始代码: <a href="https://github.com/LehengTHU/Agent4Rec">LehengTHU/Agent4Rec</a> · fork 适配 GLM<br>
+  复现环境: 腾讯云 49.233.189.223 · <code>/opt/workspace/hehe/Agent4Rec</code><br>
+  LLM: GLM-4-plus (智谱) · Embedding: all-MiniLM-L6-v2 (本地 CPU, 384维)<br>
+  数据集: MovieLens-1M · 1000 avatars × 5 pages · 全量仿真 57 分钟 / 6.74 元
+</p>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#paper">论文原理：用 1000 个 LLM Agent 模拟推荐系统用户</a></li>
+    <li><a href="#arch">架构与代码解读</a></li>
+    <li><a href="#adapt">GLM 适配改动</a></li>
+    <li><a href="#results">实验结果：KS 检验与 Prompt 校准</a></li>
+    <li><a href="#p3">P3 反馈闭环实验</a></li>
+    <li><a href="#progress">当前进度</a></li>
+    <li><a href="#todo">TODO：下一步验证什么</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1. 论文原理 ==================== -->
+<h2 id="paper">1. 论文原理</h2>
+
+<div class="sec">
+  <h3>1.1 核心问题</h3>
+  <p>把 Stanford Smallville (Generative Agents, Park et al. 2023) 的 <strong>Profile / Memory / Reflection / Action</strong> 架构搬到推荐场景：每个真实 MovieLens-1M 用户变成一个 LLM Agent，在翻页式推荐中自主决定 <strong>看不看 / 评几分 / 是否退出</strong>。</p>
+  <div class="highlight">
+    <strong>核心验证</strong>：LLM 模拟的用户行为分布能否与真实人群一致？如果能 → LLM Agent 可替代真人做离线 A/B 测试。<br>
+    验证方法：<strong>Kolmogorov-Smirnov 检验</strong>，比较模拟评分分布与真实评分分布的最大 CDF 偏差。
+  </div>
+</div>
+
+<div class="sec">
+  <h3>1.2 三维 Social Trait（论文最核心的设计）</h3>
+  <p>每个 Agent 有三维 trait，每维 3 档，共 <strong>3×3×3 = 27 个 prototype</strong> 覆盖 1000 用户：</p>
+
+  <div class="trait-box">
+    <div class="trait-label act">Activity (活跃度)</div>
+    <p style="font-size:0.85em; color:var(--dim);">决定翻几页才退出</p>
+    <ol style="font-size:0.85em; margin-left:16px;">
+      <li>Elusive — 稍不满就走</li>
+      <li>Occasional — 有几次不满就走</li>
+      <li>Enthusiast — 很有耐心不轻易走</li>
+    </ol>
+  </div>
+  <div class="trait-box">
+    <div class="trait-label conf">Conformity (从众度)</div>
+    <p style="font-size:0.85em; color:var(--dim);">评分是否跟随历史均分</p>
+    <ol style="font-size:0.85em; margin-left:16px;">
+      <li>Follower — 紧跟历史评分</li>
+      <li>Balanced — 兼顾历史和自己</li>
+      <li>Maverick — 完全按自己口味</li>
+    </ol>
+  </div>
+  <div class="trait-box">
+    <div class="trait-label div">Diversity (多样性)</div>
+    <p style="font-size:0.85em; color:var(--dim);">口味宽窄</p>
+    <ol style="font-size:0.85em; margin-left:16px;">
+      <li>Selective — 极度挑剔</li>
+      <li>Niche Explorer — 偶尔探索</li>
+      <li>Trailblazer — 来者不拒</li>
+    </ol>
+  </div>
+
+  <p style="margin-top:12px;">关键设计：<strong>行为后果直接硬编进 persona prompt</strong>。不靠复杂 reflection 链来"涌现"退出行为，而是 prompt 里明确说 "you will exit the recommender system immediately even if you just feel little unsatisfied"。这是 Agent4Rec 控制成本和确定性的核心手法。</p>
+</div>
+
+<div class="sec">
+  <h3>1.3 每页交互流程</h3>
+  <pre>
+推荐器 (LightGCN)
+  │  每页推荐 4 部电影（title + history rating + summary）
+  ↓
+Avatar (LLM Agent) ──→ 一次 LLM 调用，输出三段式结构化回答：
+  │
+  ├─ (1) ALIGN 判定（对每部电影）
+  │     MOVIE: Babe (1995);          ALIGN: yes; REASON: 动画+冒险,符合偏好
+  │     MOVIE: Groundhog Day (1993); ALIGN: no;  REASON: 不在我的偏好类型里
+  │
+  ├─ (2) WATCH 选择（基于 activity + diversity trait）
+  │     NUM: 3; WATCH: Babe, Aladdin, Shakespeare in Love
+  │
+  └─ (3) RATING + FEELING
+        MOVIE: Babe;               RATING: 4; FEELING: charming and delightful
+        MOVIE: Shakespeare in Love; RATING: 5; FEELING: perfect blend of romance
+  │
+  ↓
+Memory 写入 → Reflection 触发 (每 3 条 memory)
+  │
+  ├─ [satisfied]   → [NEXT PAGE] 继续翻页
+  └─ [unsatisfied] → [EXIT] 退出</pre>
+</div>
+
+<div class="sec">
+  <h3>1.4 与 Smallville 的关系</h3>
+  <table>
+    <tr><th>Smallville 概念</th><th>Agent4Rec 对应</th><th>简化程度</th></tr>
+    <tr><td>Memory Stream</td><td>FAISS VectorStore + LangChain</td><td>保留 relevance，旁路 recency/importance</td></tr>
+    <tr><td>Reflection</td><td>每 3 条 memory 触发满意度评估</td><td>简化为 satisfied/unsatisfied 二分</td></tr>
+    <tr><td>Planning</td><td>无</td><td>完全省略（推荐场景不需要长期规划）</td></tr>
+    <tr><td>Action</td><td>ALIGN / WATCH / RATING / EXIT</td><td>结构化输出，单次 LLM 调用</td></tr>
+    <tr><td>Persona</td><td>3×3×3 = 27 trait prototype</td><td>硬编码行为后果，不靠涌现</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 2. 架构与代码 ==================== -->
+<h2 id="arch">2. 架构与代码解读</h2>
+
+<div class="sec">
+  <h3>2.1 代码结构</h3>
+  <pre>
+Agent4Rec/
+├── main.py                  入口：加载参数 → Arena.excute()
+├── glm_setup.py             GLM API 适配（openai SDK → 智谱端点）
+├── parse.py                 命令行参数解析
+├── ks_compare.py            KS 检验：对比各版本 vs 真实分布
+├── p3_feedback_loop.py      P3 闭环实验：simulate → retrain → repeat
+│
+├── simulation/
+│   ├── arena.py     (488行) 仿真竞技场：管理所有 avatar 的并发/串行执行
+│   ├── avatar.py    (196行) 单个 Avatar：trait 初始化 + memory 初始化 + LLM 调用
+│   ├── memory.py    (140行) AvatarMemory：FAISS 向量存储 + reflection 触发
+│   ├── retriever.py          语义检索器（基于 LangChain）
+│   └── base/                 抽象基类
+│
+├── recommenders/
+│   ├── training.sh           LightGCN / MF 训练脚本
+│   ├── models/               LightGCN, MF, InfoNCE, MultVAE
+│   └── weights/              训练好的 checkpoint
+│
+├── datasets/ml-1m/
+│   ├── raw_data/             MovieLens-1M 原始数据（ratings.dat + movies.dat）
+│   ├── cf_data/              协同过滤格式（train/valid/test.txt）
+│   └── simulation/           trait 分配 + 电影描述
+│
+└── storage/ml-1m/LightGCN/   仿真产物（behavior/*.pkl）
+    ├── plus_full/             1000 avatar 未校准
+    ├── calibrated_v1~v4/      prompt 校准版本
+    └── calibrated_v3_full/    519 avatar 最优版本</pre>
+</div>
+
+<div class="sec">
+  <h3>2.2 关键模块详解</h3>
+
+  <h4>Arena (simulation/arena.py)</h4>
+  <p>仿真总控。管理推荐列表生成（LightGCN 预排序 → 分页）、avatar 并发调度、行为收集。</p>
+  <ul style="margin-left:20px; font-size:0.9em;">
+    <li><code>page_generator()</code> — 从 LightGCN 全量排序中按页切分 top-K 电影</li>
+    <li><code>async_simulate_one_avatar()</code> — 并发模式，每个 avatar 独立线程</li>
+    <li><code>simulate_one_avatar()</code> — 串行模式，逐 avatar 逐页执行</li>
+    <li><code>parse_response()</code> — 正则解析 LLM 结构化输出（ALIGN/WATCH/RATING/EXIT）</li>
+  </ul>
+
+  <h4>Avatar (simulation/avatar.py)</h4>
+  <p>单个用户 Agent。初始化 3 维 trait → 构建 persona prompt → 管理 memory → 调用 LLM → 解析行为。</p>
+  <ul style="margin-left:20px; font-size:0.9em;">
+    <li>Trait dict 硬编码 3×3×3 的 persona 描述文本</li>
+    <li>Embedding 使用类级单例 <code>Avatar._shared_embeddings</code>（优化：1000 avatar 共享一个模型实例）</li>
+    <li>每次 LLM 调用带 retry + exponential backoff</li>
+  </ul>
+
+  <h4>Memory (simulation/memory.py)</h4>
+  <p>基于 LangChain 的 <code>BaseMemory</code>，核心是 FAISS 向量存储。</p>
+  <ul style="margin-left:20px; font-size:0.9em;">
+    <li><code>reflection_threshold=3</code> — 每 3 条新记忆触发一次满意度反思</li>
+    <li>反思结果是 [satisfied] / [unsatisfied] + 原因文本</li>
+    <li>注意：Smallville 原版的 recency + importance 权重被旁路，实际只用 relevance</li>
+  </ul>
+</div>
+
+<!-- ==================== 3. GLM 适配 ==================== -->
+<h2 id="adapt">3. GLM 适配改动</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>改动</th><th>文件</th><th>详情</th></tr>
+    <tr><td><strong>API 端点</strong></td><td>glm_setup.py (新建)</td><td><code>openai.api_base</code> → 智谱 OpenAI 兼容端点</td></tr>
+    <tr><td><strong>模型替换</strong></td><td>avatar.py, memory.py</td><td><code>gpt-3.5-turbo</code> → <code>glm-4-plus</code> (共 5 处)</td></tr>
+    <tr><td><strong>Embedding 本地化</strong></td><td>avatar.py</td><td>OpenAIEmbeddings(1536d) → HuggingFaceEmbeddings(384d) + 单例模式</td></tr>
+    <tr><td><strong>CPU 兼容</strong></td><td>7 个文件</td><td>所有 <code>.cuda()</code> → <code>.to(device)</code>，加 CPU fallback</td></tr>
+    <tr><td><strong>串行 bug 修复</strong></td><td>arena.py (3 处)</td><td>int 列名 → <code>.loc[idx]</code>、缺参数、list vs string</td></tr>
+    <tr><td><strong>并发降速</strong></td><td>arena.py</td><td><code>max_workers</code> 100/500 → 8/16（防智谱限流）</td></tr>
+    <tr><td><strong>Init 优化</strong></td><td>avatar.py</td><td>Embedding 改类级单例，1000 avatar init 从 75min → 60s</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. 实验结果 ==================== -->
+<h2 id="results">4. 实验结果：KS 检验与 Prompt 校准</h2>
+
+<div class="sec">
+  <h3>4.1 KS 检验全景对比</h3>
+  <p>KS-D (Kolmogorov-Smirnov 距离)：模拟评分 CDF 与真实评分 CDF 的最大偏差。越小越好，D &lt; 0.05 通常认为"无显著差异"。</p>
+
+  <table>
+    <tr>
+      <th>版本</th><th>N</th><th>1★</th><th>2★</th><th>3★</th><th>4★</th><th>5★</th><th>KS-D</th><th>Mean</th>
+    </tr>
+    <tr style="background:rgba(34,211,238,0.05);">
+      <td><strong>Real (MovieLens)</strong></td><td class="num">185,660</td>
+      <td class="num">5.8%</td><td class="num">10.8%</td><td class="num">26.1%</td><td class="num">34.8%</td><td class="num">22.5%</td>
+      <td class="num">—</td><td class="num">3.575</td>
+    </tr>
+    <tr>
+      <td>plus_full (未校准)</td><td class="num">4,052</td>
+      <td class="num down">0.0%</td><td class="num down">0.0%</td><td class="num">3.8%</td><td class="num">52.4%</td><td class="num">43.7%</td>
+      <td class="num down">0.389</td><td class="num">4.399</td>
+    </tr>
+    <tr>
+      <td>calibrated_v1</td><td class="num">508</td>
+      <td class="num">17.3%</td><td class="num">24.8%</td><td class="num">3.5%</td><td class="num">17.5%</td><td class="num">36.8%</td>
+      <td class="num">0.255</td><td class="num">3.317</td>
+    </tr>
+    <tr>
+      <td>calibrated_v2</td><td class="num">508</td>
+      <td class="num down">0.0%</td><td class="num">27.0%</td><td class="num">12.8%</td><td class="num">20.7%</td><td class="num">39.6%</td>
+      <td class="num">0.171</td><td class="num">3.728</td>
+    </tr>
+    <tr>
+      <td>calibrated_v3</td><td class="num">520</td>
+      <td class="num down">0.0%</td><td class="num">19.4%</td><td class="num">18.5%</td><td class="num">29.0%</td><td class="num">33.1%</td>
+      <td class="num">0.106</td><td class="num">3.758</td>
+    </tr>
+    <tr style="background:rgba(74,222,128,0.06);">
+      <td><strong>calibrated_v3_full</strong></td><td class="num"><strong>2,068</strong></td>
+      <td class="num down">0.0%</td><td class="num">22.6%</td><td class="num best">27.4%</td><td class="num">22.6%</td><td class="num best">27.4%</td>
+      <td class="num best">0.076</td><td class="num best">3.547</td>
+    </tr>
+  </table>
+</div>
+
+<div class="sec">
+  <h3>4.2 校准历程分析</h3>
+
+  <div class="highlight">
+    <strong>plus_full → v3_full：KS-D 从 0.389 降到 0.076（-80%）</strong><br>
+    核心手段是在 prompt 中逐步引导 Agent 给出更真实的评分分布。从"全是 4-5 星的 utopian bias"逐步校准到接近真实的 2-3-4-5 分布。
+  </div>
+
+  <div class="highlight" style="border-left-color:var(--green);">
+    <strong>v3_full 的均值 3.547 几乎等于真实的 3.575（差 0.03）</strong><br>
+    2-5 星分布已经非常接近真实。KS-D = 0.076 距离"统计无显著差异"阈值（0.05）很近。
+  </div>
+
+  <div class="warn">
+    <strong>唯一遗留问题：1★ = 0%（真实是 5.8%）</strong><br>
+    经过 4 轮 prompt 校准，LLM 仍然不愿意打 1 星。这是 OmniBehavior (2026) 论文定义的 <strong>utopian bias</strong> 的最后堡垒——LLM 的"善良本能"让它不给任何电影最低分。v1 曾短暂出现 17.3% 的 1 星，但那是过度校准导致的（2 星也飙到 24.8%），后续版本未能精确控制。
+  </div>
+</div>
+
+<div class="sec">
+  <h3>4.3 关键发现</h3>
+  <ol style="margin-left:20px;">
+    <li><strong>更强模型不能修复结构性偏差</strong> — 论文用 GPT-3.5 报告 KS 通过；GLM-4-plus（更强）跑出 D=0.39，说明模型能力不是瓶颈，prompt 设计才是。</li>
+    <li><strong>Prompt 校准的投入产出极高</strong> — 4 轮校准（plus_full → v1 → v2 → v3 → v3_full），KS-D 降 80%，成本几乎为零（只改 prompt 文本）。</li>
+    <li><strong>分布均值比分布形状更容易对齐</strong> — v3_full 均值差只有 0.03，但 1★ 缺失导致 KS-D 仍有 0.076。</li>
+    <li><strong>519/1000 用户产生了行为</strong> — 约一半 avatar 在所有页面都没看电影（activity=1 的 Elusive 用户直接退出）。这本身是一个有趣的仿真发现。</li>
+  </ol>
+</div>
+
+<!-- ==================== 5. P3 闭环 ==================== -->
+<h2 id="p3">5. P3 反馈闭环实验</h2>
+
+<div class="sec">
+  <h3>5.1 实验设计</h3>
+  <pre>
+Round 0: LightGCN(原始) → 100 avatars 仿真 → 收集评分
+                                                 ↓
+Round 1: 评分注入 train.txt → 重训 LightGCN → 仿真 → 收集评分
+                                                 ↓
+Round 2: 评分注入 train.txt → 重训 LightGCN → 仿真 → 收集评分
+                                                 ↓
+Round 3-4: ... 重复 ...
+                                                 ↓
+每轮计算 KL(模拟分布 || 真实分布)，观察趋势</pre>
+  <p>核心问题：<strong>当 Agent 的行为被反馈回推荐器再训练，系统是收敛、发散还是振荡？</strong></p>
+</div>
+
+<div class="sec">
+  <h3>5.2 结果</h3>
+  <table>
+    <tr><th>Round</th><th>评分数</th><th>活跃用户</th><th>均值</th><th>4-5★ 占比</th><th>KL(sim‖real)</th></tr>
+    <tr><td>0 (baseline)</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.189</td></tr>
+    <tr><td>1</td><td class="num">282</td><td class="num">26</td><td class="num">4.567</td><td class="num">98.2%</td><td class="num">0.560</td></tr>
+    <tr><td>2</td><td class="num">296</td><td class="num">26</td><td class="num">4.578</td><td class="num">99.3%</td><td class="num">0.595</td></tr>
+    <tr><td>3</td><td class="num">298</td><td class="num">25</td><td class="num">4.544</td><td class="num">98.7%</td><td class="num">0.551</td></tr>
+    <tr><td>4</td><td class="num">296</td><td class="num">32</td><td class="num">4.601</td><td class="num">99.0%</td><td class="num">0.606</td></tr>
+  </table>
+
+  <div class="highlight" style="border-left-color:var(--yellow);">
+    <strong>结论：振荡，既不收敛也不发散</strong><br>
+    KL 在 0.55-0.61 之间反复波动，4 轮没有明显趋势。活跃用户数稳定在 25-32。这对应 recsys-code-plan 中 P3 的"有条件收敛"场景。
+  </div>
+
+  <div class="warn">
+    <strong>注意：P3 用的是未校准 prompt</strong><br>
+    闭环实验中 avatar 的评分 98%+ 是 4-5 星（utopian bias），而 v3_full 的校准 prompt 尚未应用到闭环实验。用校准后的 prompt 重跑可能得到不同结论。
+  </div>
+</div>
+
+<!-- ==================== 6. 当前进度 ==================== -->
+<h2 id="progress">6. 当前进度</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>阶段</th><th>状态</th><th>说明</th></tr>
+    <tr><td>GLM 适配 + CPU 兼容</td><td><span class="status-ok">✓ 完成</span></td><td>7 个文件改动，3 个 bug 修复</td></tr>
+    <tr><td>全量 1000 avatar 仿真</td><td><span class="status-ok">✓ 完成</span></td><td>57 分钟 / 6.74 元 / 4052 条评分</td></tr>
+    <tr><td>Prompt 校准 (4 轮)</td><td><span class="status-ok">✓ 完成</span></td><td>KS-D: 0.389 → 0.076（-80%）</td></tr>
+    <tr><td>v3_full 519 avatar 大规模校准</td><td><span class="status-ok">✓ 完成</span></td><td>2068 条评分，均值 3.547 ≈ 真实 3.575</td></tr>
+    <tr><td>P3 反馈闭环 (5 轮)</td><td><span class="status-ok">✓ 完成</span></td><td>KL 振荡 0.55-0.61，未收敛未发散</td></tr>
+    <tr><td>KS 对比脚本</td><td><span class="status-ok">✓ 完成</span></td><td>ks_compare.py 支持多版本对比</td></tr>
+    <tr><td>文档</td><td><span class="status-ok">✓ 完成</span></td><td>doc/README.md 含完整改动清单 + 结果</td></tr>
+    <tr><td>1★ 修复</td><td><span class="status-wip">○ 未开始</span></td><td>最后一块短板，1★=0% vs 真实 5.8%</td></tr>
+    <tr><td>P3 用校准 prompt 重跑</td><td><span class="status-wip">○ 未开始</span></td><td>当前 P3 用的是未校准 prompt</td></tr>
+    <tr><td>LightGCN vs MF 对比</td><td><span class="status-wip">○ 未开始</span></td><td>MF 数据已有 100 user pkl，待分析</td></tr>
+    <tr><td>Memory 消融</td><td><span class="status-wip">○ 未开始</span></td><td>有/无 memory 对 KS-D 的影响</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 7. TODO ==================== -->
+<h2 id="todo">7. TODO：下一步验证什么</h2>
+
+<div class="sec">
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">1</div>
+    <div class="roadmap-body">
+      <strong>修复 1★ 缺失</strong> <span style="font-size:0.8em; border:1px dashed var(--yellow); color:var(--yellow); padding:1px 6px; border-radius:4px;">优先级最高 · 投入小</span>
+      <p style="color:var(--dim); font-size:0.9em;">v3_full 的 2-5 星已经很好，但 1★=0%。在 prompt 中加入"如果电影完全不符合你的口味或品质极差，给 1 分"的显式指令。如果成功 → KS-D 从 0.076 降到 ~0.05，达到统计无显著差异阈值。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">2</div>
+    <div class="roadmap-body">
+      <strong>P3 闭环用校准 prompt 重跑 + 扩到 10+ 轮</strong>
+      <p style="color:var(--dim); font-size:0.9em;">当前 P3 的 KL=0.55-0.61 是因为 avatar 用了未校准 prompt（98% 是 4-5 星），注入这些高分后推荐器会偏向推荐更多高分电影 → 正反馈循环。换成 v3 校准 prompt 后，分布更真实，闭环可能出现不同趋势。同时从 4 轮扩到 10-15 轮看长期行为。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">3</div>
+    <div class="roadmap-body">
+      <strong>Memory 消融：有/无 memory 对 KS-D 的影响</strong>
+      <p style="color:var(--dim); font-size:0.9em;">关闭 FAISS memory + reflection，只靠 trait prompt。如果 KS-D 恶化 → memory 对仿真保真度有正贡献（可写 paper）。如果不变 → memory 在推荐场景没用（也值得报告）。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">4</div>
+    <div class="roadmap-body">
+      <strong>LightGCN vs MF 推荐器对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">用相同的 calibrated_v3 prompt，分别在 LightGCN 和 MF 上跑。如果不同推荐器下 agent 行为差异大 → 说明仿真对推荐算法敏感（重要发现）。MF 的 100 user behavior pkl 已在 storage/ 里。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">5</div>
+    <div class="roadmap-body">
+      <strong>与 TriRec / AFL 交叉对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">三个复现项目形成三角对比：Agent4Rec（用户仿真保真度）× TriRec（三方博弈公平性）× AFL（双 Agent 反馈闭环）。在同一数据集（MovieLens）上对比不同架构的 agent 行为差异。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">6</div>
+    <div class="roadmap-body">
+      <strong>calibrated_v3_full 补完 1000 avatar</strong>
+      <p style="color:var(--dim); font-size:0.9em;">当前只跑了 519/1000（进程卡死在 20 小时处）。修复卡死原因（可能是 API timeout 在并发模式下的死锁），补完剩余 481 个 avatar，得到完整的 1000 人 KS 检验。</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

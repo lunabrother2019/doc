@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>TriRec 复现日志 — Tri-Party Agent-Based Recommendation</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; --cyan:#22d3ee; --green:#4ade80; --pink:#f472b6; --orange:#fb923c; --yellow:#facc15; --purple:#a78bfa; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font:15px/1.7 'SF Mono','Cascadia Code','Consolas',monospace; padding:24px; max-width:1020px; margin:0 auto; }
+    h1 { font-size:1.5em; color:var(--cyan); border-bottom:2px solid var(--cyan); padding-bottom:8px; margin-bottom:16px; }
+    h2 { font-size:1.2em; color:var(--green); margin:28px 0 10px; }
+    h3 { font-size:1em; color:var(--orange); margin:16px 0 6px; }
+    h4 { font-size:0.95em; color:var(--purple); margin:12px 0 4px; }
+    .badge { display:inline-block; border:2px dashed var(--pink); color:var(--pink); padding:2px 10px; border-radius:6px; font-size:0.8em; margin-left:8px; }
+    .badge-ok { border-color:var(--green); color:var(--green); }
+    .badge-wip { border-color:var(--yellow); color:var(--yellow); }
+    .meta { color:var(--dim); font-size:0.9em; margin-bottom:16px; line-height:1.8; }
+    .sec { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0; }
+    table { width:100%; border-collapse:collapse; margin:8px 0; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; font-size:0.9em; }
+    th { background:rgba(34,211,238,0.1); color:var(--cyan); }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .up { color:var(--green); }
+    .down { color:var(--pink); }
+    code { background:rgba(34,211,238,0.1); padding:2px 6px; border-radius:4px; font-size:0.9em; }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto; font-size:0.85em; margin:8px 0; line-height:1.5; }
+    a { color:var(--cyan); }
+    .status-ok { color:var(--green); font-weight:bold; }
+    .status-wip { color:var(--yellow); font-weight:bold; }
+    .status-todo { color:var(--dim); }
+    .highlight { background:rgba(34,211,238,0.08); border-left:3px solid var(--cyan); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .warn { background:rgba(251,146,60,0.08); border-left:3px solid var(--orange); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .formula { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin:8px 0; font-size:0.92em; text-align:center; }
+    .toc { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 20px; margin:12px 0; }
+    .toc a { text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .toc li { margin:3px 0; }
+    .metric-card { display:inline-block; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 16px; margin:4px; min-width:130px; text-align:center; }
+    .metric-card .label { font-size:0.8em; color:var(--dim); }
+    .metric-card .value { font-size:1.3em; font-weight:bold; color:var(--cyan); }
+    .metric-card .delta { font-size:0.85em; }
+    .progress-bar { background:var(--border); border-radius:4px; height:8px; margin:6px 0; }
+    .progress-fill { background:var(--green); border-radius:4px; height:100%; }
+    .agent-box { border:1px solid var(--border); border-radius:8px; padding:12px; margin:8px 0; }
+    .agent-box.item { border-color:var(--orange); }
+    .agent-box.user { border-color:var(--cyan); }
+    .agent-box.platform { border-color:var(--green); }
+    .agent-label { font-size:0.85em; font-weight:bold; padding:2px 8px; border-radius:4px; display:inline-block; margin-bottom:6px; }
+    .agent-label.item { background:rgba(251,146,60,0.15); color:var(--orange); }
+    .agent-label.user { background:rgba(34,211,238,0.15); color:var(--cyan); }
+    .agent-label.platform { background:rgba(74,222,128,0.15); color:var(--green); }
+    .file-tree { font-size:0.9em; line-height:1.6; }
+    .file-tree .dir { color:var(--cyan); }
+    .file-tree .py { color:var(--green); }
+    .file-tree .lines { color:var(--dim); font-size:0.85em; }
+    .file-tree .desc { color:var(--dim); }
+    .roadmap-item { display:flex; gap:12px; align-items:flex-start; margin:10px 0; }
+    .roadmap-num { flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85em; font-weight:bold; }
+    .roadmap-num.done { background:var(--green); color:var(--bg); }
+    .roadmap-num.next { background:var(--yellow); color:var(--bg); }
+    .roadmap-num.future { background:var(--border); color:var(--dim); }
+    .roadmap-body { flex:1; }
+  </style>
+</head>
+<body>
+
+<h1>TriRec 复现日志 <span class="badge">后加</span></h1>
+<p class="meta">
+  论文: Breaking User-Centric Agency: A Tri-Party Framework for Agent-Based Recommendation<br>
+  代码: <a href="https://github.com/lunabrother2019/triRec">github.com/lunabrother2019/triRec</a> · 自行实现 · 925 行 Python<br>
+  复现环境: 腾讯云 49.233.189.223 · <code>/opt/workspace/research/triRec</code><br>
+  LLM: GLM-4-flash (智谱免费额度) · Embedding: all-MiniLM-L6-v2 (本地 CPU, 384维)<br>
+  实验日期: 2026-04-25 · 总耗时 56 分钟 · 50 用户 / 286 物品 (合成数据)
+</p>
+
+<!-- TOC -->
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#paper">论文解读：TriRec 三方代理推荐</a></li>
+    <li><a href="#metrics">指标详解：看懂实验结果</a></li>
+    <li><a href="#arch">系统架构与代码解读</a></li>
+    <li><a href="#results">实验结果与分析</a></li>
+    <li><a href="#pitfalls">踩坑记录</a></li>
+    <li><a href="#progress">当前进度</a></li>
+    <li><a href="#roadmap">后续路线图</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1. 论文解读 ==================== -->
+<h2 id="paper">1. 论文解读：TriRec 三方代理推荐</h2>
+
+<div class="sec">
+  <h3>1.1 核心问题</h3>
+  <p>传统推荐系统只考虑 <strong>用户偏好</strong>（user-centric）：给用户推最想看的东西。但推荐是一个<strong>三方博弈</strong>：</p>
+  <table>
+    <tr><th>参与方</th><th>诉求</th><th>传统系统中的地位</th></tr>
+    <tr><td><strong>User (用户)</strong></td><td>看到自己喜欢的内容</td><td>核心优化目标</td></tr>
+    <tr><td><strong>Item (物品/商家)</strong></td><td>获得曝光、触达目标用户</td><td>被动等待被推荐</td></tr>
+    <tr><td><strong>Platform (平台)</strong></td><td>生态公平、长期健康</td><td>隐式硬编码规则</td></tr>
+  </table>
+  <p style="margin-top:10px;">TriRec 的创新：让三方都成为有自主能力的 <strong>LLM Agent</strong>，各自有记忆、有策略、能博弈。</p>
+</div>
+
+<div class="sec">
+  <h3>1.2 两阶段流水线</h3>
+  <pre>
+┌──────────────────────────────────────────────────────────────┐
+│                    TriRec Pipeline                            │
+│                                                              │
+│  ┌─────────── Stage 1: Item ↔ User ──────────┐              │
+│  │                                            │              │
+│  │  Item Agent ──(个性化推广)──→ User Agent    │              │
+│  │     "这张专辑的爵士风格              "根据我的听歌历史  │
+│  │      很适合你偏好的氛围"              给每个候选打分"   │
+│  │                                            │              │
+│  │  输出: {item_id: user_score} × 50 候选     │              │
+│  └────────────────────────────────────────────┘              │
+│                         ↓                                    │
+│  ┌─────────── Stage 2: Platform Rerank ───────┐              │
+│  │                                            │              │
+│  │  Platform Agent                            │              │
+│  │  输入: user_scores + item_embeddings       │              │
+│  │  目标: relevance × fairness × exposure     │              │
+│  │  方法: 逐位贪心, 高位重精准/低位重公平      │              │
+│  │                                            │              │
+│  │  输出: top-10 re-ranked list               │              │
+│  └────────────────────────────────────────────┘              │
+└──────────────────────────────────────────────────────────────┘</pre>
+
+  <h4>Stage 1 — Item Promotion + User Evaluation</h4>
+  <p><strong>Item Agent</strong> 拿到用户画像后，为自己（物品）写一段<em>个性化推广文案</em>，突出最匹配该用户口味的卖点。<strong>User Agent</strong> 阅读所有候选物品的推广文案，结合自己的历史偏好，逐个打分 1-5 分。</p>
+  <p>关键洞察：Item Agent 的推广不是无差别广告，而是<em>针对每个用户定制</em>的——同一张专辑对爵士爱好者和摇滚爱好者说的话不同。</p>
+
+  <h4>Stage 2 — Platform Multi-Objective Rerank</h4>
+  <p>Platform Agent 拿到 User 打分后，不是简单按分数排序，而是用<strong>多目标贪心算法</strong>逐位选择：</p>
+  <ul style="margin:6px 0 0 20px;">
+    <li>高排位 (pos 1-3)：权重偏向<strong>相关性</strong>（用户满意度优先）</li>
+    <li>低排位 (pos 7-10)：权重偏向<strong>公平性</strong>（给少曝光类别机会）</li>
+    <li>位置权重公式：<code>alpha_k = 1 / (1 + 0.3 × pos)</code></li>
+  </ul>
+</div>
+
+<div class="sec">
+  <h3>1.3 与 Generative Agents 的关系</h3>
+  <p>TriRec 把 Smallville 的 Agent 架构（记忆 + 反思 + 行动）具象化到推荐场景：</p>
+  <table>
+    <tr><th>Smallville 概念</th><th>TriRec 对应</th></tr>
+    <tr><td>Memory Stream</td><td>UserMemory (交互历史) / ItemMemory (物品属性)</td></tr>
+    <tr><td>Reflection → Profile</td><td>LLM 从历史交互中生成用户偏好画像</td></tr>
+    <tr><td>Planning</td><td>Item Agent 制定个性化推广策略</td></tr>
+    <tr><td>Action & Interaction</td><td>Stage 1 的 Item↔User 交互 + Stage 2 的 Platform 调控</td></tr>
+    <tr><td>Multi-Agent Dynamics</td><td>三方（User/Item/Platform）各自优化不同目标</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 2. 指标详解 ==================== -->
+<h2 id="metrics">2. 指标详解：看懂实验结果</h2>
+
+<div class="sec">
+  <h3>2.1 准确率指标 (越高越好)</h3>
+
+  <div class="agent-box">
+    <div class="agent-label item">NDCG@K — Normalized Discounted Cumulative Gain</div>
+    <p><strong>一句话</strong>：推荐列表前 K 个结果的<em>排序质量</em>。不仅看推没推对，还看推对的排在第几位。</p>
+    <div class="formula">
+      DCG@K = Σ<sub>i=1..K</sub> rel(i) / log₂(i+1)<br>
+      NDCG@K = DCG@K / IDCG@K
+    </div>
+    <p><strong>直觉</strong>：用户喜欢的物品排在第 1 位得 1.0 分，排在第 2 位得 0.63 分，排在第 5 位只得 0.39 分。排位越靠前贡献越大（对数衰减）。最后除以"理想排序"得到归一化分数。</p>
+    <p><strong>实验中</strong>：NDCG@5 = 0.0545 意味着平均而言，每个用户的 top-5 推荐列表达到了理想排序质量的 5.45%。数字不高，因为我们用的是合成数据 + 只有 1 个正例。</p>
+  </div>
+
+  <div class="agent-box" style="margin-top:12px;">
+    <div class="agent-label item">Hit@K — 命中率</div>
+    <p><strong>一句话</strong>：前 K 个推荐中有没有<em>至少命中 1 个</em>用户真正喜欢的物品。</p>
+    <div class="formula">
+      Hit@K = (命中用户数) / (总用户数)
+    </div>
+    <p><strong>直觉</strong>：最简单粗暴的指标——推荐列表前 5 个里有没有用户喜欢的东西？有 = 1，没有 = 0，所有用户取平均。</p>
+    <p><strong>实验中</strong>：Hit@5 = 0.10 意味着 50 个用户中有 5 个人在 top-5 里看到了自己测试集中喜欢的物品。</p>
+  </div>
+
+  <div class="agent-box" style="margin-top:12px;">
+    <div class="agent-label item">MRR — Mean Reciprocal Rank</div>
+    <p><strong>一句话</strong>：正确答案排在第几位的<em>倒数</em>，所有用户取平均。</p>
+    <div class="formula">
+      MRR = (1/N) × Σ 1/rank<sub>i</sub>
+    </div>
+    <p><strong>直觉</strong>：正确物品排第 1 得 1.0 分，排第 2 得 0.5 分，排第 10 得 0.1 分，没出现得 0 分。关注的是"第一个正确答案出现得多快"。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <h3>2.2 公平性指标 (越低越好)</h3>
+
+  <div class="agent-box">
+    <div class="agent-label platform">DGU@K — Distributional Group Unfairness</div>
+    <p><strong>一句话</strong>：不同物品类别（如 Rock/Jazz/Pop）在推荐列表中的<em>曝光分布</em>与理想均匀分布的偏差。</p>
+    <div class="formula">
+      DGU@K = (1/G) × Σ<sub>g</sub> |actual_share(g) − ideal_share(g)|<br>
+      其中 ideal_share = 1/G (G=类别数), actual_share 按位置加权曝光
+    </div>
+    <p><strong>直觉</strong>：假设有 10 个音乐流派，理想情况每个流派占 10% 曝光。如果 Rock 占了 50%、Jazz 占 0%，DGU 就很高。DGU 衡量的是<strong>平均不公平程度</strong>。</p>
+    <p><strong>实验中</strong>：DGU@10 从 0.029 降到 0.019，说明 TriRec 让各类别曝光更均匀了。</p>
+  </div>
+
+  <div class="agent-box" style="margin-top:12px;">
+    <div class="agent-label platform">MGU@K — Maximal Group Unfairness</div>
+    <p><strong>一句话</strong>：与 DGU 类似，但只看<em>最不公平的那一组</em>——被压制最严重或垄断最厉害的类别。</p>
+    <div class="formula">
+      MGU@K = max<sub>g</sub> |actual_share(g) − ideal_share(g)|
+    </div>
+    <p><strong>直觉</strong>：DGU 是所有类别不公平的平均值，MGU 是最大值。比如 10 个类别中 9 个分布均匀，但 Hip-Hop 完全没曝光——DGU 可能不高，但 MGU 会很高。MGU 抓的是<strong>最极端的不公平</strong>。</p>
+    <p><strong>实验中</strong>：MGU@10 从 0.066 降到 0.040，最受压制的类别也改善了。</p>
+  </div>
+
+  <div class="agent-box" style="margin-top:12px;">
+    <div class="agent-label platform">EIU@K — Expected Item Utility</div>
+    <p><strong>一句话</strong>：所有出现过的物品获得的<em>平均曝光价值</em>。衡量曝光是集中在少数热门物品还是分散给更多物品。</p>
+    <div class="formula">
+      EIU@K = (1/|出现物品数|) × Σ<sub>item</sub> Σ<sub>pos</sub> 1/log₂(pos+2)
+    </div>
+    <p><strong>直觉</strong>：如果只有 10 个物品反复出现在所有用户的推荐列表里，每个物品平均曝光很高 → EIU 高。如果 200 个物品都有机会出现，平均曝光就低 → EIU 低。<strong>EIU 下降说明曝光更分散（更多物品有机会）</strong>，这是公平性提升的信号。</p>
+    <p><strong>实验中</strong>：EIU 从 1.067 降到 0.817，说明 TriRec 让更多物品获得了曝光。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <h3>2.3 指标间的关系</h3>
+  <div class="highlight">
+    <strong>传统零和假设</strong>：提升准确率(NDCG/Hit) → 推热门物品 → 冷门类别曝光减少 → 公平性(DGU/MGU)恶化<br>
+    <strong>TriRec 的突破</strong>：三方 Agent 博弈后，准确率和公平性<em>同时</em>提升。关键在于 Item Agent 的个性化推广让冷门物品也能找到目标用户（而非让所有人看热门物品）。
+  </div>
+</div>
+
+<!-- ==================== 3. 系统架构 ==================== -->
+<h2 id="arch">3. 系统架构与代码解读</h2>
+
+<div class="sec">
+  <h3>3.1 代码结构</h3>
+  <pre class="file-tree"><span class="dir">triRec/</span>  <span class="lines">(925 行 Python)</span>
+├── <span class="py">main.py</span>              <span class="lines">(193行)</span>  <span class="desc">入口：全流程编排，三组对照实验</span>
+├── <span class="py">config.py</span>             <span class="lines"> (21行)</span>  <span class="desc">配置：API key、路径、超参数</span>
+│
+├── <span class="dir">data/</span>
+│   ├── <span class="py">loader.py</span>        <span class="lines">(106行)</span>  <span class="desc">合成数据生成 + CSV/JSON 加载 + train/valid/test 切分</span>
+│   └── <span class="py">encoder.py</span>       <span class="lines">(112行)</span>  <span class="desc">sentence-transformers 编码 + 磁盘缓存</span>
+│
+├── <span class="dir">agents/</span>
+│   ├── <span class="py">item_agent.py</span>    <span class="lines"> (38行)</span>  <span class="desc">Stage 1: 为每个(物品,用户)对生成个性化推广文案</span>
+│   ├── <span class="py">user_agent.py</span>    <span class="lines"> (67行)</span>  <span class="desc">User Agent: 批量评估候选物品，LLM 打分 1-5</span>
+│   └── <span class="py">platform_agent.py</span><span class="lines">(111行)</span>  <span class="desc">Stage 2: 多目标逐位贪心 re-ranking</span>
+│
+├── <span class="dir">memory/</span>
+│   └── <span class="py">agent_memory.py</span>  <span class="lines"> (88行)</span>  <span class="desc">UserMemory (画像+历史) / ItemMemory (属性+描述)</span>
+│
+├── <span class="dir">evaluate/</span>
+│   └── <span class="py">metrics.py</span>      <span class="lines">(126行)</span>  <span class="desc">NDCG, MRR, Hit, DGU, MGU, EIU 全套计算</span>
+│
+└── <span class="dir">utils/</span>
+    ├── <span class="py">llm_client.py</span>    <span class="lines"> (89行)</span>  <span class="desc">GLM API 封装 + prompt_hash 磁盘缓存 + 指数退避重试</span>
+    └── <span class="py">similarity.py</span>    <span class="lines"> (19行)</span>  <span class="desc">cosine similarity + top-K 检索</span></pre>
+</div>
+
+<div class="sec">
+  <h3>3.2 三个 Agent 详解</h3>
+
+  <div class="agent-box item">
+    <div class="agent-label item">Item Agent — 物品自我推广</div>
+    <p><strong>文件</strong>：<code>agents/item_agent.py</code></p>
+    <p><strong>做什么</strong>：对每个 (物品, 目标用户) 组合，生成 2-3 句个性化推广文案。</p>
+    <p><strong>输入</strong>：物品元数据 + 物品自我介绍 + 用户偏好画像</p>
+    <p><strong>输出</strong>：一段推广文字（如 "This jazz album features smooth saxophone solos that match your preference for relaxing evening music"）</p>
+    <p><strong>API 调用</strong>：每个候选物品 1 次 → 50 候选 × 50 用户 = 2500 次（有缓存）</p>
+    <pre>prompt = f"""You are a product promotion agent.
+[Product Information] {item_text}
+[Product Self-Description] {item_memory.description}
+[Target User Profile] {user_profile}
+Write a short personalized promotion (2-3 sentences)..."""</pre>
+  </div>
+
+  <div class="agent-box user" style="margin-top:12px;">
+    <div class="agent-label user">User Agent — 用户候选评估</div>
+    <p><strong>文件</strong>：<code>agents/user_agent.py</code></p>
+    <p><strong>做什么</strong>：阅读候选物品的推广文案，批量打分 1-5。</p>
+    <p><strong>输入</strong>：用户画像 + 近期历史 + 候选物品列表（每批 10 个）</p>
+    <p><strong>输出</strong>：<code>{item_id: score}</code>，score ∈ {1,2,3,4,5}</p>
+    <p><strong>解析策略</strong>：正则匹配 <code>ID=item_xxx SCORE=N</code>，未匹配的默认 3 分（中性）</p>
+    <p><strong>API 调用</strong>：50 候选 / 10 每批 = 5 次/用户 → 250 次（有缓存）</p>
+  </div>
+
+  <div class="agent-box platform" style="margin-top:12px;">
+    <div class="agent-label platform">Platform Agent — 多目标重排序</div>
+    <p><strong>文件</strong>：<code>agents/platform_agent.py</code></p>
+    <p><strong>做什么</strong>：不用 LLM，纯算法实现逐位贪心重排。</p>
+    <p><strong>核心公式</strong>：</p>
+    <div class="formula">
+      score(item, pos) = α<sub>k</sub> × relevance + (1 − α<sub>k</sub>) × (0.6 × fairness + 0.4 × item_utility)<br><br>
+      α<sub>k</sub> = 1 / (1 + 0.3 × pos)&nbsp;&nbsp;&nbsp;← 高位重相关性，低位重公平<br>
+      relevance = 0.7 × (user_score/5) + 0.3 × cosine_sim&nbsp;&nbsp;&nbsp;← LLM 打分 + embedding 相似度混合<br>
+      fairness = 1 − DGU(当前已选列表 ∪ {item})&nbsp;&nbsp;&nbsp;← 加入后类别分布越均匀，得分越高<br>
+      item_utility = CTR(pos) × exposure_bonus&nbsp;&nbsp;&nbsp;← 历史少曝光的物品获得加成
+    </div>
+    <p><strong>逐位贪心</strong>：每个位置独立选最优物品。位置 0 的 α<sub>0</sub>=1.0（纯相关性），位置 9 的 α<sub>9</sub>=0.23（大部分权重给公平性）。这就是为什么 Stage 2 在不损失准确率的前提下提升了公平性。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <h3>3.3 数据流全景</h3>
+  <pre>
+合成数据 (50 users × 286 items × 10 genres)
+    │
+    ├─→ train (每用户去掉最后2条) ──→ UserMemory.init_profile() ──→ LLM 生成画像
+    │                                                               │
+    ├─→ test  (每用户最后1条)      ──→ ground truth (评估用)       │
+    │                                                               │
+    └─→ item_meta                  ──→ ItemMemory.init_description()│
+         │                              │                           │
+         └─→ encode_items() ───────────→│item_embeddings            │
+              (sentence-transformers)    │                           │
+                                        ↓                           ↓
+                              ┌─────────────────────────────────────────────┐
+                              │         top_k_similar(user_emb, item_embs)  │
+                              │         → 50 candidates per user            │
+                              └──────────────────┬──────────────────────────┘
+                                                 │
+                              ┌──────────────────┴──────────────────┐
+                              │          Stage 1: Item ↔ User       │
+                              │  item_agent.generate_promotion()    │
+                              │  user_agent.evaluate_candidates()   │
+                              │  → {item_id: score} × 50           │
+                              └──────────────────┬──────────────────┘
+                                                 │
+                              ┌──────────────────┴──────────────────┐
+                              │    Stage 2: Platform Rerank         │
+                              │  platform.rerank(user_scores)       │
+                              │  → top-10 ranked list               │
+                              └──────────────────┬──────────────────┘
+                                                 │
+                              ┌──────────────────┴──────────────────┐
+                              │    Evaluate against test set         │
+                              │  NDCG, MRR, Hit, DGU, MGU, EIU     │
+                              └─────────────────────────────────────┘</pre>
+</div>
+
+<div class="sec">
+  <h3>3.4 关键设计决策</h3>
+  <table>
+    <tr><th>决策</th><th>选择</th><th>原因</th></tr>
+    <tr><td>LLM</td><td>GLM-4-flash (智谱)</td><td>免费 chat 额度，国内服务器可直连</td></tr>
+    <tr><td>Embedding</td><td>all-MiniLM-L6-v2 本地</td><td>GLM embedding 额度用完；本地 CPU 384 维够用</td></tr>
+    <tr><td>候选集大小</td><td>top-50</td><td>平衡覆盖率与 API 调用量</td></tr>
+    <tr><td>User 评估批大小</td><td>10 items/batch</td><td>LLM 单次能稳定评估的上限</td></tr>
+    <tr><td>Platform Rerank</td><td>纯算法 (非 LLM)</td><td>不需要 LLM 创造力，贪心算法更快更稳定</td></tr>
+    <tr><td>缓存策略</td><td>prompt_hash → JSON 文件</td><td>重跑接近免费，中断可续</td></tr>
+    <tr><td>HF 镜像</td><td>hf-mirror.com</td><td>腾讯云无法直连 huggingface.co</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. 实验结果 ==================== -->
+<h2 id="results">4. 实验结果与分析</h2>
+
+<div class="sec">
+  <h3>4.1 三组对照</h3>
+  <table>
+    <tr>
+      <th>指标</th>
+      <th>Baseline<br>(Embedding Only)</th>
+      <th>Stage1<br>(Item推广 + User评估)</th>
+      <th>Full TriRec<br>(+ Platform重排)</th>
+      <th>Baseline→TriRec</th>
+    </tr>
+    <tr>
+      <td><strong>NDCG@5</strong> ↑</td>
+      <td class="num">0.0412</td>
+      <td class="num">0.0536</td>
+      <td class="num"><strong>0.0545</strong></td>
+      <td class="num up">+32.2%</td>
+    </tr>
+    <tr>
+      <td><strong>MRR</strong> ↑</td>
+      <td class="num">0.0473</td>
+      <td class="num">0.0460</td>
+      <td class="num"><strong>0.0478</strong></td>
+      <td class="num up">+1.1%</td>
+    </tr>
+    <tr>
+      <td><strong>Hit@5</strong> ↑</td>
+      <td class="num">0.0600</td>
+      <td class="num"><strong>0.1000</strong></td>
+      <td class="num"><strong>0.1000</strong></td>
+      <td class="num up">+66.7%</td>
+    </tr>
+    <tr>
+      <td><strong>DGU@10</strong> ↓</td>
+      <td class="num">0.0294</td>
+      <td class="num">0.0220</td>
+      <td class="num"><strong>0.0193</strong></td>
+      <td class="num down">−34.4%</td>
+    </tr>
+    <tr>
+      <td><strong>MGU@10</strong> ↓</td>
+      <td class="num">0.0662</td>
+      <td class="num">0.0422</td>
+      <td class="num"><strong>0.0396</strong></td>
+      <td class="num down">−40.2%</td>
+    </tr>
+    <tr>
+      <td><strong>EIU@10</strong></td>
+      <td class="num">1.0666</td>
+      <td class="num">0.9626</td>
+      <td class="num">0.8172</td>
+      <td class="num down">−23.4%</td>
+    </tr>
+  </table>
+</div>
+
+<div class="sec">
+  <h3>4.2 关键发现</h3>
+
+  <div class="highlight">
+    <strong>发现 1：Item Promotion 是准确率提升的主要来源</strong><br>
+    Hit@5 从 6% → 10% (+66.7%)，NDCG@5 从 0.041 → 0.054 (+30%)。Item Agent 的个性化推广帮助 User Agent 更准确地识别匹配偏好的物品。Stage 2 没有进一步提升准确率——它的任务不是提升准确率，而是在保持准确率的前提下注入公平性。
+  </div>
+
+  <div class="highlight" style="border-left-color:var(--green);">
+    <strong>发现 2：Platform Rerank 主要贡献公平性</strong><br>
+    DGU 从 0.022 → 0.019 (额外 −12%)，MGU 从 0.042 → 0.040 (额外 −6%)。同时 NDCG/Hit 保持不变。这符合论文设计：Platform Agent 用位置权重衰减 (α<sub>k</sub>) 在不损害头部排位准确性的前提下，在尾部位置注入公平性。
+  </div>
+
+  <div class="highlight" style="border-left-color:var(--pink);">
+    <strong>发现 3：EIU 下降是预期行为</strong><br>
+    EIU 衡量"平均每个物品获得多少曝光"。TriRec 让更多物品出现在推荐列表中（曝光更分散），所以每个物品的平均曝光降低了。这是公平性提升的自然结果。
+  </div>
+
+  <div class="highlight" style="border-left-color:var(--purple);">
+    <strong>核心结论验证：精度和公平性可同时提升</strong><br>
+    Baseline → Full TriRec：NDCG +32%、Hit +67%、DGU −34%、MGU −40%。打破了传统"精度 vs 公平"的零和假设。三方 Agent 博弈让系统找到了帕累托改进。
+  </div>
+</div>
+
+<!-- ==================== 5. 踩坑 ==================== -->
+<h2 id="pitfalls">5. 踩坑记录</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>#</th><th>问题</th><th>症状</th><th>解决方案</th></tr>
+    <tr>
+      <td>1</td>
+      <td>SSH heredoc 引号冲突</td>
+      <td><code>NameError: name 'category' is not defined</code><br>(<code>meta['category']</code> 变成了 <code>meta[category]</code>)</td>
+      <td>本地写 .py 文件，用 <code>scp</code> 传到服务器</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>GLM Embedding 余额用完</td>
+      <td>429 错误码 1113 (余额不足，非限速)</td>
+      <td>改用本地 sentence-transformers；chat API 不受影响</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>腾讯云无法访问 HuggingFace</td>
+      <td>模型下载 Network is unreachable</td>
+      <td><code>os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"</code></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>200 用户太慢 (预计 50+ 小时)</td>
+      <td>每用户 ~55 次 API 调用 × 3-5 秒/次</td>
+      <td>缩减到 50 用户 + 磁盘缓存 + Stage 间共享缓存</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Python 3.9 f-string 限制</td>
+      <td>f-string 内不支持嵌套引号</td>
+      <td>提前赋值给变量或用 % 格式化</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>nohup 日志不实时输出</td>
+      <td>stdout 缓冲，日志看不到进度</td>
+      <td><code>python3 -u</code> + 所有 print 加 <code>flush=True</code></td>
+    </tr>
+  </table>
+</div>
+
+<!-- ==================== 6. 当前进度 ==================== -->
+<h2 id="progress">6. 当前进度</h2>
+
+<div class="sec">
+  <h3>6.1 完成度概览</h3>
+  <table>
+    <tr><th>阶段</th><th>状态</th><th>说明</th></tr>
+    <tr>
+      <td>代码实现</td>
+      <td><span class="status-ok">✓ 完成</span></td>
+      <td>925 行 Python，三方 Agent 全部实现</td>
+    </tr>
+    <tr>
+      <td>合成数据实验</td>
+      <td><span class="status-ok">✓ 完成</span></td>
+      <td>50 用户 / 286 物品，56 分钟跑完，结果已保存</td>
+    </tr>
+    <tr>
+      <td>三组对照 (Baseline / Stage1 / Full)</td>
+      <td><span class="status-ok">✓ 完成</span></td>
+      <td>核心结论验证成功：精度与公平性同时提升</td>
+    </tr>
+    <tr>
+      <td>REPORT.md 实验报告</td>
+      <td><span class="status-ok">✓ 完成</span></td>
+      <td>含结果表格、关键发现、踩坑记录</td>
+    </tr>
+    <tr>
+      <td>Git 提交</td>
+      <td><span class="status-ok">✓ 完成</span></td>
+      <td>main 分支 clean，2 commits</td>
+    </tr>
+    <tr>
+      <td>真实数据集 (Amazon CDs & Vinyl)</td>
+      <td><span class="status-wip">○ 未开始</span></td>
+      <td>当前用的是合成数据</td>
+    </tr>
+    <tr>
+      <td>异步并发加速</td>
+      <td><span class="status-wip">○ 未开始</span></td>
+      <td>当前串行调用 GLM，慢 5-10x</td>
+    </tr>
+    <tr>
+      <td>GLM-4-plus 模型对比</td>
+      <td><span class="status-wip">○ 未开始</span></td>
+      <td>更强模型的推广质量对比</td>
+    </tr>
+    <tr>
+      <td>消融实验</td>
+      <td><span class="status-wip">○ 未开始</span></td>
+      <td>关闭 Stage1 / 调 α 权重 / 变候选集大小</td>
+    </tr>
+    <tr>
+      <td>扩大规模 (200-2000 用户)</td>
+      <td><span class="status-wip">○ 未开始</span></td>
+      <td>需要先做异步并发</td>
+    </tr>
+  </table>
+
+  <h3 style="margin-top:16px;">6.2 当前数据的局限</h3>
+  <div class="warn">
+    <strong>核心局限：合成数据</strong><br>
+    当前实验用的是 <code>loader.py::_generate_demo_data()</code> 生成的合成数据：随机生成 300 个物品（10 个流派 × 30 专辑），50 个用户各有 1-3 个偏好流派。这意味着：
+    <ul style="margin:6px 0 0 20px;">
+      <li>物品描述是模板化的（"A jazz album by Artist_X. Features N tracks..."）</li>
+      <li>用户偏好是硬编码的（偏好流派内的物品一定高分）</li>
+      <li>绝对数值（NDCG=0.05）没有论文可比性，只有<strong>趋势</strong>（TriRec > Baseline）有效</li>
+    </ul>
+    要产出有说服力的结果，<strong>必须接入真实数据集</strong>。
+  </div>
+</div>
+
+<!-- ==================== 7. 路线图 ==================== -->
+<h2 id="roadmap">7. 后续路线图</h2>
+
+<div class="sec">
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">1</div>
+    <div class="roadmap-body">
+      <strong>接入真实数据集 — Amazon CDs & Vinyl</strong> <span class="badge-wip" style="font-size:0.8em; border:1px dashed var(--yellow); color:var(--yellow); padding:1px 6px; border-radius:4px;">优先级最高</span>
+      <p style="color:var(--dim); font-size:0.9em;">替换合成数据为真实评分数据。<code>loader.py</code> 已预留了 <code>download_amazon_cds()</code> 函数框架，需要：(1) 下载 Amazon CDs & Vinyl 数据集；(2) 解析 ratings + metadata；(3) 按用户交互数筛选活跃用户；(4) 重跑三组对照。这是从"demo 验证"到"可信实验"的关键一步。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">2</div>
+    <div class="roadmap-body">
+      <strong>异步并发 GLM 调用</strong>
+      <p style="color:var(--dim); font-size:0.9em;">当前串行调用：每个 API 3-5秒，50用户共 ~2750 次调用 ≈ 56 分钟。用 asyncio + aiohttp 改为并发 10 路，预计 5-10 分钟完成。这是扩大规模的前置条件。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">3</div>
+    <div class="roadmap-body">
+      <strong>消融实验</strong>
+      <p style="color:var(--dim); font-size:0.9em;">验证每个组件的独立贡献：(a) 只跑 Stage2 不跑 Stage1；(b) 调 α<sub>k</sub> 的衰减速率；(c) 候选集 20/50/100 对比；(d) 不同 batch_eval_size 对 User 打分的影响。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">4</div>
+    <div class="roadmap-body">
+      <strong>GLM-4-plus / 更强模型对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">用更强的模型看 Item promotion 质量和 User evaluation 准确度是否提升。可以和之前 AFL 实验中 GLM-4-flash vs GLM-4-plus 的结论做交叉对比。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">5</div>
+    <div class="roadmap-body">
+      <strong>扩大到 200-2000 用户</strong>
+      <p style="color:var(--dim); font-size:0.9em;">在异步并发 + 真实数据的基础上，扩大规模验证结论的统计显著性。50 用户的结果方差太大（Hit@5 每变 1 个用户就是 ±2%）。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">6</div>
+    <div class="roadmap-body">
+      <strong>与 AFL 实验结果对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">TriRec (三方博弈) vs AFL (双 Agent 反馈闭环) 在同数据集上的效果对比。两篇都是 Agent-based 推荐，但机制不同：TriRec 是单轮三方协作，AFL 是多轮双方反馈。</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
