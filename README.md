@@ -1,5 +1,5 @@
 # Generative Agents 研究文档库
-
+ 
 围绕 **Stanford Smallville**（Park et al. 2023, arXiv:2304.03442）展开的研究笔记与延伸阅读库。不含可执行代码，只有文档、概念图和论文深度解读。
 
 ## 入口
