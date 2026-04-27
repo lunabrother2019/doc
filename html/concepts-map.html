@@ -547,6 +547,7 @@ graph TB
     MG1["MetaGPT ★后加\nSOP 流水线 ICLR 2024"]
     CD1["ChatDev ★后加\nWaterfall 虚拟软件公司 ACL 2024"]
     MS1["Memory 综述 ★后加\n记忆分类三棱镜 arXiv 2025.12"]
+    TR1["TriRec ★后加\n三方Agent推荐 arXiv 2026.03"]
   end
   style EXT fill:#0f1117,stroke:#475569,stroke-dasharray:6,color:#94a3b8
   style X1 fill:#0f1117,stroke:#94a3b8,stroke-dasharray:4,color:#cbd5e1
@@ -558,6 +559,7 @@ graph TB
   style MG1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
   style CD1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
   style MS1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
+  style TR1 fill:#0f1117,stroke:#f472b6,stroke-dasharray:4,color:#f9a8d4
 
   subgraph COTGRP ["CoT 推理链系列 ★后加"]
     direction TB
@@ -609,6 +611,9 @@ graph TB
   CD1 -.->|"Memory Stream\n短期/长期分层"| MEM
   MS1 -.->|"记忆分类三棱镜\nForms/Functions/Dynamics"| MEM
   MS1 -.->|"综述边界划分\nvs RAG/LLM Memory"| REF
+  TR1 -.->|"三方博弈\nUser×Item×Platform"| MUL
+  TR1 -.->|"物品Agent记忆\n个性化推广策略"| MEM
+  TR1 -.->|"位置感知重排\n公平性调控"| PLN
 
   COT1 -.->|"推理基础"| PLN
   COT1 -.->|"反思推理"| REF
@@ -972,6 +977,14 @@ graph TB
     <div class="keywords"><span>10,000+ Agent</span><span>500万次交互</span><span>分层记忆</span><span>异步调度</span></div>
     <div class="note">小镇的直系后代：25→10,000+ Agent，500 万+交互。涌现社区形成、信息传播等宏观现象。从概念验证到实际应用的关键一步。</div>
     <a class="dd-link" href="deep-dive/17-agent-society.html">深度解读 →</a>
+  </div>
+
+  <div class="card" style="--cat:#f472b6; border-left-color:#f472b6; border-style:dashed;">
+    <span class="pillar-tag" style="background:rgba(244,114,182,.18);color:#f472b6;border:1px dashed #f472b6;">后加</span>
+    <span class="title"><a href="https://arxiv.org/abs/2603.10673" target="_blank">TriRec — 三方 Agent 推荐框架 (USTC, arXiv 2026)</a></span>
+    <div class="keywords"><span>Tri-Party Agent</span><span>Item Self-Promotion</span><span>Position-Aware α</span><span>Fairness Rerank</span></div>
+    <div class="note">首个三方 Agent 推荐框架：Item Agent 个性化推广 + User Agent 语义评估 + Platform Agent 位置感知重排。打破 relevance-fairness 零和假设，冷启动物品 8th→1st。</div>
+    <a class="dd-link" href="deep-dive/54-trirec.html">深度解读 →</a>
   </div>
 
   </div>

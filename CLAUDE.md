@@ -67,17 +67,18 @@ WebSearch is enabled (see `.claude/settings.local.json`). Use it freely to fetch
 - `html/deep-dive/51-langgraph.html` — "后加": LangGraph v1.0 (LangChain, 2025) — graph-based stateful agent runtime, 29.6k stars, Klarna/Replit production use
 - `html/deep-dive/52-google-a2a.html` — "后加": Google A2A (2025-2026) — Agent-to-Agent interop protocol (horizontal), complements MCP (vertical); Linux Foundation governance
 - `html/deep-dive/53-terminal-bench.html` — "后加": Terminal-Bench / DPAI Arena (JetBrains) — 89-task terminal/IDE agent benchmark for industrial validation
+- `html/deep-dive/54-trirec.html` — "后加": TriRec (arXiv:2603.10673, USTC 2026) — first tri-party Agent recommendation: Item self-promotion + User evaluation + Platform position-aware multi-objective rerank
 
 ## Paper Addition Workflow
 
 When the user mentions a paper (by name, link, or description), always perform these three steps:
 
-1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 53). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
+1. **Deep Dive** — Create a detailed analysis HTML file in `html/deep-dive/` (numbered sequentially, currently up to 54). Include full architecture breakdown, key findings, and connections to Generative Agents concepts. Mark with a pink dashed "后加" badge in the title.
 
 2. **Papers Reference** — Add the paper to `html/papers-reference.html` in all three views:
    - **分类手册**: Add under the "个人补充" section (`cat-personal`, `#cat-personal`), with `personal-badge` ("后加 · 待讨论") marker
    - **卡片浏览**: Add an `rl-card` with `data-cat="personal"` and `rl-personal-badge`
-   - Paper number continues from the current max (currently 96)
+   - Paper number continues from the current max (currently 97)
 
 3. **Concept Map** — Add a node to the "外围方法论启发" subgraph in `html/concepts-map.html` Tab 1's Mermaid diagram. Use pink style (`stroke:#f472b6, color:#f9a8d4`) and append `★后加` to the node label to distinguish from original nodes. Add edges to relevant existing concepts. Also add a paper card with pink dashed border in the cards section below the diagram.
 

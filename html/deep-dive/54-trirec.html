@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Deep Dive #54 — TriRec: 三方 Agent 推荐框架</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; --cyan:#22d3ee; --green:#4ade80; --pink:#f472b6; --orange:#fb923c; --yellow:#facc15; --purple:#a78bfa; --red:#f87171; --blue:#60a5fa; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font:15px/1.7 'SF Mono','Cascadia Code','Consolas',monospace; padding:24px; max-width:1080px; margin:0 auto; }
+    h1 { font-size:1.5em; color:var(--cyan); border-bottom:2px solid var(--cyan); padding-bottom:8px; margin-bottom:16px; }
+    h2 { font-size:1.25em; color:var(--green); margin:32px 0 12px; border-left:4px solid var(--green); padding-left:12px; }
+    h3 { font-size:1.05em; color:var(--orange); margin:20px 0 8px; }
+    h4 { font-size:0.95em; color:var(--purple); margin:14px 0 6px; }
+    .badge { display:inline-block; border:2px dashed var(--pink); color:var(--pink); padding:2px 10px; border-radius:6px; font-size:0.8em; margin-left:8px; }
+    .meta { color:var(--dim); font-size:0.9em; margin-bottom:20px; line-height:1.9; }
+    .meta a { color:var(--cyan); }
+    .sec { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0; }
+    table { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.88em; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; }
+    th { background:rgba(34,211,238,0.1); color:var(--cyan); }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .best { color:var(--green); font-weight:bold; }
+    .up { color:var(--green); }
+    .down { color:var(--pink); }
+    code { background:rgba(34,211,238,0.1); padding:2px 6px; border-radius:4px; font-size:0.9em; }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:14px; overflow-x:auto; font-size:0.85em; margin:10px 0; line-height:1.6; }
+    a { color:var(--cyan); }
+    .formula { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px 16px; margin:10px 0; font-size:0.9em; line-height:1.8; }
+    .highlight { background:rgba(34,211,238,0.06); border-left:3px solid var(--cyan); padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+    .warn { background:rgba(251,146,60,0.06); border-left:3px solid var(--orange); padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+    .insight { background:rgba(167,139,250,0.06); border-left:3px solid var(--purple); padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; }
+    .vs-table td:first-child { font-weight:bold; color:var(--cyan); white-space:nowrap; }
+    .toc { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 20px; margin:16px 0; }
+    .toc a { text-decoration:none; }
+    .toc li { margin:3px 0; }
+    .agent-box { border:1px solid var(--border); border-radius:8px; padding:14px; margin:10px 0; }
+    .agent-box.item { border-color:var(--orange); }
+    .agent-box.user { border-color:var(--cyan); }
+    .agent-box.platform { border-color:var(--green); }
+    .agent-label { font-size:0.85em; font-weight:bold; padding:2px 8px; border-radius:4px; display:inline-block; margin-bottom:8px; }
+    .agent-label.item { background:rgba(251,146,60,0.15); color:var(--orange); }
+    .agent-label.user { background:rgba(34,211,238,0.15); color:var(--cyan); }
+    .agent-label.platform { background:rgba(74,222,128,0.15); color:var(--green); }
+    .metric-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+    .metric-card { flex:1; min-width:140px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px; text-align:center; }
+    .metric-card .label { font-size:0.75em; color:var(--dim); }
+    .metric-card .value { font-size:1.2em; font-weight:bold; color:var(--cyan); }
+    .metric-card .delta { font-size:0.8em; }
+    .nav-links { display:flex; justify-content:space-between; margin-top:32px; padding-top:16px; border-top:1px solid var(--border); font-size:0.9em; }
+  </style>
+</head>
+<body>
+
+<h1>Deep Dive #54 — TriRec <span class="badge">后加</span></h1>
+<p class="meta">
+  <strong>论文</strong>: Breaking User-Centric Agency: A Tri-Party Framework for Agent-Based Recommendation<br>
+  <strong>作者</strong>: Yaxin Gong, Chongming Gao, Chenxiao Fan, Wenjie Wang, Fuli Feng, Xiangnan He<br>
+  <strong>机构</strong>: 中国科学技术大学 (USTC)<br>
+  <strong>发表</strong>: arXiv:2603.10673, 2026 年 3 月<br>
+  <strong>代码</strong>: <a href="https://github.com/Marfekey/TriRec" target="_blank">github.com/Marfekey/TriRec</a> · 骨干 LLM: GPT-4o-mini<br>
+  <strong>关联</strong>: <a href="../reproduction/trirec-reproduction-log.html">复现日志 (GLM-4-flash)</a> · 与 <a href="65-recsys-sim-new-wave.html">推荐新浪潮综述</a> 互补
+</p>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#core">核心命题：为什么推荐需要三方 Agent</a></li>
+    <li><a href="#arch">两阶段架构全解</a></li>
+    <li><a href="#math">数学形式化</a></li>
+    <li><a href="#exp">实验结果：四数据集全景</a></li>
+    <li><a href="#ablation">消融实验：每个组件贡献多少</a></li>
+    <li><a href="#alpha">位置权重 α 的精细调控</a></li>
+    <li><a href="#coldstart">冷启动案例：从第 8 名到第 1 名</a></li>
+    <li><a href="#compare">与相关工作的定位对比</a></li>
+    <li><a href="#smallville">与 Generative Agents 的映射</a></li>
+    <li><a href="#limits">局限与开放问题</a></li>
+    <li><a href="#verdict">总结评价</a></li>
+  </ol>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="core">1. 核心命题：为什么推荐需要三方 Agent</h2>
+
+<div class="sec">
+  <h3>传统推荐的单边困境</h3>
+  <p>几乎所有 Agent-based 推荐系统都是 <strong>user-centric</strong>——LLM 代理用户做推理、做评估，物品只是被检索的被动对象。这导致：</p>
+  <table>
+    <tr><th>问题</th><th>机制</th><th>后果</th></tr>
+    <tr><td>马太效应</td><td>热门物品获更多曝光→更多反馈→更高排名</td><td>长尾物品隐形</td></tr>
+    <tr><td>创作者激励崩塌</td><td>新内容/小众内容无法触达目标受众</td><td>供给侧多样性萎缩</td></tr>
+    <tr><td>冷启动恶性循环</td><td>缺交互数据→排名靠后→更缺交互数据</td><td>新物品永远出不了头</td></tr>
+    <tr><td>平台生态失衡</td><td>没有系统层面的公平调控</td><td>赢者通吃，生态不可持续</td></tr>
+  </table>
+
+  <h3 style="margin-top:16px;">TriRec 的答案：让三方都成为 Agent</h3>
+  <div class="highlight">
+    <strong>核心洞察</strong>：推荐是一个三方博弈（用户-物品-平台），不是单方优化。TriRec 赋予三方各自的"能动性"：
+    <ul style="margin:8px 0 0 20px;">
+      <li><strong>User Agent</strong> — 语义推理评估候选物品（已有工作）</li>
+      <li><strong>Item Agent</strong> — <em>主动</em>向目标用户自我推广，而非被动等待（<strong>本文首创</strong>）</li>
+      <li><strong>Platform Agent</strong> — 在保持用户满意度的前提下注入公平性（系统层调控）</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="arch">2. 两阶段架构全解</h2>
+
+<div class="sec">
+  <pre>
+┌──────────────────────────────────────────────────────────────────┐
+│  Input: 用户 u 的候选集 C_u (1 ground-truth + 9 random)         │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ╔════════════ Stage 1: Item ↔ User Agent 交互 ═══════════╗    │
+│  ║                                                         ║    │
+│  ║  Item Agent (GPT-4o-mini)                              ║    │
+│  ║  输入: 物品元数据 x_i + 记忆 M_i + 用户画像 z_u        ║    │
+│  ║  输出: 个性化推广文案 S_{i→u}                           ║    │
+│  ║         ↓                                               ║    │
+│  ║  User Agent (GPT-4o-mini)                              ║    │
+│  ║  输入: 用户画像 z_u + 推广文案 + 历史                   ║    │
+│  ║  输出: 排序列表 Y_u^(1)                                 ║    │
+│  ╚═════════════════════════════════════════════════════════╝    │
+│                           ↓                                      │
+│  ╔════════════ Stage 2: Platform Agent 重排 ══════════════╗    │
+│  ║                                                         ║    │
+│  ║  输入: Y_u^(1) + 历史曝光向量 e^t + item embeddings    ║    │
+│  ║  方法: 逐位贪心, 多目标加权                             ║    │
+│  ║  目标: relevance × fairness × item_utility              ║    │
+│  ║  输出: 最终推荐列表 Y_u^(2)                             ║    │
+│  ╚═════════════════════════════════════════════════════════╝    │
+│                           ↓                                      │
+│  输出: Top-K 推荐 + 更新全局曝光状态                             │
+└──────────────────────────────────────────────────────────────────┘</pre>
+</div>
+
+<div class="sec">
+  <h3>Stage 1 — Generative Personalized Self-Promotion</h3>
+
+  <div class="agent-box item">
+    <div class="agent-label item">Item Agent — 物品的"能动性"</div>
+    <p>这是 TriRec 最关键的创新。物品不再是被动的元数据集合，而是一个有"自我意识"的 Agent：</p>
+    <div class="formula">
+      S<sub>i→u</sub> = G<sub>θ</sub>(x<sub>i</sub>, z<sub>u</sub>, M<sub>i</sub>)
+    </div>
+    <p>其中 G<sub>θ</sub> 是冻结的 LLM (GPT-4o-mini)，x<sub>i</sub> = 物品元数据，z<sub>u</sub> = 用户画像，M<sub>i</sub> = 物品记忆。</p>
+    <p><strong>关键点</strong>：推广是<em>针对每个用户定制</em>的。同一张乡村音乐专辑：</p>
+    <ul style="margin:6px 0 0 20px;">
+      <li>对喜欢叙事性音乐的用户 → 强调 storytelling 和 emotional depth</li>
+      <li>对喜欢安静氛围的用户 → 强调 relaxing acoustic experience</li>
+    </ul>
+  </div>
+
+  <div class="agent-box user" style="margin-top:12px;">
+    <div class="agent-label user">User Agent — 带推广信号的语义评估</div>
+    <p>User Agent 基于用户画像 + Item Agent 的推广文案进行语义推理打分：</p>
+    <div class="formula">
+      Y<sub>u</sub><sup>(1)</sup> = argsort<sub>i∈C_u</sub> F<sub>φ</sub>(z<sub>u</sub>, S<sub>i→u</sub>)
+    </div>
+    <p>与传统 embedding 检索不同，这里的匹配发生在<strong>自然语言空间</strong>——Item Agent 的推广文案把物品属性翻译成了用户能理解的语言。</p>
+  </div>
+
+  <h3 style="margin-top:16px;">Stage 2 — Platform Multi-Objective Re-Ranking</h3>
+
+  <div class="agent-box platform">
+    <div class="agent-label platform">Platform Agent — 生态调控者</div>
+    <p>Platform Agent 是一个<strong>状态感知的决策系统</strong>，形式化为 ⟨S, A, T⟩：</p>
+    <ul style="margin:6px 0 0 20px;">
+      <li><strong>状态 S</strong>: 历史曝光向量 e<sup>t</sup> + Stage 1 排序 Y<sub>u</sub><sup>(1)</sup></li>
+      <li><strong>动作 A</strong>: 重排后的推荐列表 Y<sub>u</sub><sup>(2)</sup></li>
+      <li><strong>转移 T</strong>: 曝光状态更新（被推荐的物品获得位置加权曝光）</li>
+    </ul>
+    <p>不使用 LLM，纯算法实现（贪心 + 多目标加权）。</p>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="math">3. 数学形式化</h2>
+
+<div class="sec">
+  <h3>3.1 三方效用函数</h3>
+
+  <h4>用户效用 (User Utility)</h4>
+  <div class="formula">
+    U<sub>user</sub>(u, i) = r<sub>LLM</sub>(u, i) · exp(sim<sub>emb</sub>(z<sub>u</sub>, h<sub>i</sub>))
+  </div>
+  <p>LLM 打分 × embedding 相似度的指数加权。注意这里用的是<strong>乘法</strong>（不是加法），意味着两个信号缺一不可。</p>
+
+  <h4>物品效用 (Item Utility — EIU)</h4>
+  <div class="formula">
+    U<sub>item</sub>(u, i, k) = v(k) · CTR(u, i)<br>
+    v(k) = 1 / log<sub>2</sub>(k + 2) &nbsp;&nbsp;← 位置曝光衰减<br>
+    CTR(u, i) = σ(sim<sub>emb</sub>(z<sub>u</sub>, h<sub>i</sub>)) &nbsp;&nbsp;← 预估点击率
+  </div>
+  <p>物品在位置 k 获得的效用 = 位置能见度 × 预估点击概率。排在第 1 位的能见度是第 10 位的 3.5 倍。</p>
+
+  <h4>平台效用 (Platform Utility)</h4>
+  <div class="formula">
+    Ũ<sub>platform</sub>(i, e<sup>t</sup>) = λ<sub>1</sub> · Ũ<sub>DGU</sub>(i, e<sup>t</sup>) + λ<sub>2</sub> · Ũ<sub>MGU</sub>(i, e<sup>t</sup>)
+  </div>
+  <p>DGU 衡量类别间曝光分布的平均偏差，MGU 衡量最极端的那一个类别的偏差。λ<sub>1</sub>, λ<sub>2</sub> 控制两种公平性目标的权重。</p>
+
+  <h3>3.2 联合评分函数</h3>
+  <div class="formula">
+    U<sub>joint</sub>(u, i, k, e<sup>t</sup>) = g(u, i, k, e<sup>t</sup>) · U<sub>expo-item</sub>(u, i, k)<br><br>
+    g(u, i, k, e<sup>t</sup>) = α<sub>k</sub> · Ũ<sub>user</sub>(u, i) + (1 − α<sub>k</sub>) · Ũ<sub>platform</sub>(i, e<sup>t</sup>)
+  </div>
+  <p>核心在 α<sub>k</sub> — 一个<strong>位置感知的参与策略</strong>：</p>
+
+  <h3>3.3 位置感知参与策略 (Position-Aware Participation Policy)</h3>
+  <div class="formula">
+    α<sub>k</sub> = α<sub>min</sub> + (α<sub>max</sub> − α<sub>min</sub>) · (ω<sub>k</sub>)<sup>p</sup>
+  </div>
+  <table>
+    <tr><th>参数</th><th>含义</th><th>实验最优值</th></tr>
+    <tr><td>α<sub>max</sub></td><td>头部位置的用户效用权重上界</td><td>0.6–0.75</td></tr>
+    <tr><td>α<sub>min</sub></td><td>尾部位置的用户效用权重下界</td><td>0.1</td></tr>
+    <tr><td>p</td><td>衰减曲率控制</td><td>—</td></tr>
+    <tr><td>ω<sub>k</sub></td><td>位置 k 的曝光衰减系数</td><td>v(k)/v(1)</td></tr>
+  </table>
+  <div class="highlight">
+    <strong>直觉</strong>：位置 1-3（用户最先看到的）= 高 α → 几乎只看相关性，确保用户满意度；位置 7-10（用户注意力衰减的区域）= 低 α → 大部分权重给公平性，给少曝光类别机会。这是"<strong>在用户不太注意的地方做生态调控</strong>"的精巧设计。
+  </div>
+
+  <h3>3.4 逐位贪心算法</h3>
+  <div class="formula">
+    i<sub>k</sub>* = argmax<sub>i ∈ C_u \ Y<sub>&lt;k</sub></sub> U<sub>joint</sub>(u, i, k, e<sup>t</sup>)
+  </div>
+  <p>从位置 1 到 K，每个位置独立选当前最优物品。已选物品不参与后续位置竞争。不需要 LLM 调用，纯数值计算。</p>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="exp">4. 实验结果：四数据集全景</h2>
+
+<div class="sec">
+  <h3>4.1 数据集</h3>
+  <table>
+    <tr><th>数据集</th><th>用户</th><th>物品</th><th>交互</th><th>稀疏度</th><th>领域</th></tr>
+    <tr><td>CDs & Vinyl</td><td class="num">2,000</td><td class="num">33,042</td><td class="num">41,901</td><td class="num">99.93%</td><td>音乐</td></tr>
+    <tr><td>Movies & TV</td><td class="num">2,000</td><td class="num">27,407</td><td class="num">40,907</td><td class="num">99.92%</td><td>影视</td></tr>
+    <tr><td>Goodreads YA</td><td class="num">2,000</td><td class="num">10,786</td><td class="num">60,743</td><td class="num">99.71%</td><td>图书</td></tr>
+    <tr><td>Steam Games</td><td class="num">2,000</td><td class="num">6,635</td><td class="num">36,006</td><td class="num">99.72%</td><td>游戏</td></tr>
+  </table>
+  <p>候选集构造：1 ground-truth + 9 随机采样。Leave-one-out 评估。物品按流行度分成 8 组计算公平性。</p>
+
+  <h3>4.2 基线方法</h3>
+  <table>
+    <tr><th>方法</th><th>类型</th><th>核心机制</th></tr>
+    <tr><td>MACRec</td><td>Agent-based, user-centric</td><td>多 Agent 协作推荐</td></tr>
+    <tr><td>AgentCF++</td><td>Agent-based, user-centric</td><td>Agent 协同过滤增强版</td></tr>
+    <tr><td>Rec4AgentVerse</td><td>Agent-based, creator-side</td><td>多 Agent 创作者侧优化</td></tr>
+    <tr><td>DualRec</td><td>Dual-target</td><td>用户+物品双目标优化</td></tr>
+    <tr><td>SCRUF-D</td><td>Platform fairness</td><td>社会选择框架公平重排</td></tr>
+  </table>
+
+  <h3>4.3 CDs & Vinyl 完整结果</h3>
+  <table>
+    <tr><th>方法</th><th>NDCG@5 ↑</th><th>MRR ↑</th><th>DGU@10 ↓</th><th>MGU@10 ↓</th><th>EIU ↑</th></tr>
+    <tr><td>MACRec</td><td class="num">0.4450</td><td class="num">0.4185</td><td class="num">0.1694</td><td class="num">0.1597</td><td class="num">0.5347</td></tr>
+    <tr><td>DualRec</td><td class="num">0.2974</td><td class="num">0.2942</td><td class="num">0.1640</td><td class="num">0.1588</td><td class="num">0.4542</td></tr>
+    <tr><td>Rec4AgentVerse</td><td class="num">0.3878</td><td class="num">0.3546</td><td class="num">0.1705</td><td class="num">0.1588</td><td class="num">0.4998</td></tr>
+    <tr><td>AgentCF++</td><td class="num">0.3894</td><td class="num">0.3937</td><td class="num">0.1669</td><td class="num">0.1447</td><td class="num">0.5295</td></tr>
+    <tr><td>SCRUF-D</td><td class="num">0.2973</td><td class="num">0.2965</td><td class="num">0.1677</td><td class="num">0.1590</td><td class="num">0.4467</td></tr>
+    <tr style="background:rgba(34,211,238,0.06);"><td><strong>TriRec</strong></td><td class="num best">0.4743</td><td class="num best">0.4601</td><td class="num best">0.1646</td><td class="num">0.1525</td><td class="num best">0.5824</td></tr>
+  </table>
+
+  <h3>4.4 四数据集 TriRec 提升幅度</h3>
+  <table>
+    <tr><th>指标</th><th>CDs&Vinyl</th><th>Movies&TV</th><th>Goodreads</th><th>Steam</th></tr>
+    <tr><td>NDCG vs best baseline</td><td class="up">+6.6%</td><td class="up">+4.2%</td><td>−3.0%*</td><td class="up">+0.1%</td></tr>
+    <tr><td>MRR vs best baseline</td><td class="up">+9.9%</td><td class="up">+6.9%</td><td>−7.1%*</td><td class="up">+7.3%</td></tr>
+    <tr><td>DGU vs best baseline</td><td class="up">−2.9%</td><td class="up">−2.1%</td><td class="up best">−2.3%</td><td class="up best">−3.8%</td></tr>
+    <tr><td>MGU vs best baseline</td><td>+5.4%</td><td class="up best">−3.7%</td><td class="up best">−4.7%</td><td class="up best">−0.7%</td></tr>
+    <tr><td>EIU vs best baseline</td><td class="up best">+8.9%</td><td class="up">+3.2%</td><td class="up">+0.4%</td><td class="up">+3.1%</td></tr>
+  </table>
+  <p style="color:var(--dim); font-size:0.85em;">* Goodreads 上 Rec4AgentVerse 的 NDCG/MRR 高于 TriRec，但其公平性指标显著更差。TriRec 在该数据集上仍是最佳综合表现。</p>
+
+  <div class="highlight">
+    <strong>核心发现</strong>：在 4/4 数据集上，TriRec 同时实现了准确率和公平性的提升（或至少帕累托不劣），打破了传统 "relevance vs fairness" 的零和假设。这在 CDs&Vinyl 上最为突出：NDCG +6.6%、DGU −2.9%、EIU +8.9%。
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="ablation">5. 消融实验：每个组件贡献多少</h2>
+
+<div class="sec">
+  <p>以 CDs & Vinyl 数据集为例，系统性移除每个组件：</p>
+  <table>
+    <tr><th>变体</th><th>移除了什么</th><th>NDCG</th><th>MRR</th><th>DGU</th><th>MGU</th><th>EIU</th></tr>
+    <tr><td>(a) w/o Y<sup>(1)</sup></td><td>Stage 1 全部（只有 embedding 检索）</td><td class="num down">0.3249</td><td class="num down">0.3177</td><td class="num">0.1332</td><td class="num">0.1327</td><td class="num down">0.4720</td></tr>
+    <tr><td>(b) w/o {S, Y<sup>(2)</sup>}</td><td>自我推广 + 重排</td><td class="num down">0.3578</td><td class="num down">0.3664</td><td class="num">0.1681</td><td class="num">0.1495</td><td class="num down">0.5081</td></tr>
+    <tr><td>(c) w/o Y<sup>(2)</sup></td><td>Stage 2 重排</td><td class="num">0.4619</td><td class="num">0.4503</td><td class="num down">0.1717</td><td class="num down">0.1599</td><td class="num">0.5746</td></tr>
+    <tr><td>(d) w/o U<sub>platform</sub></td><td>平台效用</td><td class="num">0.4697</td><td class="num">0.4555</td><td class="num down">0.1705</td><td class="num down">0.1574</td><td class="num">0.5789</td></tr>
+    <tr><td>(e) w/o 动态 α</td><td>位置自适应（改固定 α）</td><td class="num down">0.4468</td><td class="num down">0.4219</td><td class="num up">0.1335</td><td class="num up">0.1314</td><td class="num down">0.5541</td></tr>
+    <tr><td>(f) w/o U<sub>user</sub></td><td>用户效用（只看公平）</td><td class="num down">0.2568</td><td class="num down">0.2784</td><td class="num up">0.0832</td><td class="num up">0.0831</td><td class="num down">0.4396</td></tr>
+    <tr><td>(g) w/o U<sub>item</sub></td><td>物品效用</td><td class="num">0.4679</td><td class="num">0.4521</td><td class="num">0.1557</td><td class="num">0.1478</td><td class="num">0.5762</td></tr>
+    <tr><td>(h) w/o sim<sub>emb</sub></td><td>语义 embedding</td><td class="num">0.4604</td><td class="num">0.4428</td><td class="num">0.1582</td><td class="num">0.1488</td><td class="num">0.5691</td></tr>
+    <tr><td>(i) random emb</td><td>用随机 embedding 替代</td><td class="num down">0.4459</td><td class="num down">0.4226</td><td class="num">0.1675</td><td class="num">0.1550</td><td class="num down">0.5539</td></tr>
+    <tr style="background:rgba(34,211,238,0.06);"><td><strong>TriRec</strong></td><td>完整模型</td><td class="num best">0.4743</td><td class="num best">0.4601</td><td class="num">0.1646</td><td class="num">0.1525</td><td class="num best">0.5824</td></tr>
+  </table>
+
+  <div class="insight">
+    <strong>消融关键洞察</strong>：
+    <ul style="margin:6px 0 0 20px;">
+      <li><strong>Stage 1 (行 a vs 完整)</strong>：移除后 NDCG 暴跌 31%。LLM 语义推理是准确率的核心来源。</li>
+      <li><strong>Stage 2 (行 c vs 完整)</strong>：移除后 NDCG 仅降 2.6%，但 DGU 恶化 4.3%。Stage 2 的贡献是公平性，不是准确率。</li>
+      <li><strong>动态 α (行 e vs 完整)</strong>：固定 α 会过度优化公平性、牺牲准确率。自适应策略实现更好的平衡。</li>
+      <li><strong>纯公平 (行 f)</strong>：完全不看用户偏好 → NDCG 暴跌 46%。证明用户效用是必要的锚点。</li>
+      <li><strong>Embedding 质量 (行 h vs i)</strong>：随机 embedding 比无 embedding 更差，说明噪声信号比没有信号更有害。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="alpha">6. 位置权重 α 的精细调控</h2>
+
+<div class="sec">
+  <p>论文系统分析了 α<sub>max</sub> 从 0.1 到 1.0 的影响（α<sub>min</sub> 固定 = 0.1）：</p>
+  <table>
+    <tr><th>α<sub>max</sub></th><th>NDCG@5</th><th>MRR</th><th>DGU@10</th><th>MGU@10</th><th>Target EIU</th></tr>
+    <tr><td class="num">0.10</td><td class="num">0.432</td><td class="num">0.403</td><td class="num best">0.119</td><td class="num best">0.118</td><td class="num">0.539</td></tr>
+    <tr><td class="num">0.25</td><td class="num">0.446</td><td class="num">0.422</td><td class="num">0.134</td><td class="num">0.131</td><td class="num">0.554</td></tr>
+    <tr><td class="num">0.50</td><td class="num">0.464</td><td class="num">0.445</td><td class="num">0.154</td><td class="num">0.148</td><td class="num">0.573</td></tr>
+    <tr style="background:rgba(74,222,128,0.06);"><td class="num">0.75</td><td class="num best">0.474</td><td class="num best">0.460</td><td class="num">0.165</td><td class="num">0.153</td><td class="num best">0.582</td></tr>
+    <tr><td class="num">1.00</td><td class="num">0.470</td><td class="num">0.455</td><td class="num">0.170</td><td class="num">0.157</td><td class="num">0.576</td></tr>
+  </table>
+
+  <div class="warn">
+    <strong>Pareto 前沿</strong>：α<sub>max</sub> = 0.75 是甜点——NDCG 达到峰值，EIU 最高，DGU/MGU 相比极端公平模式（α=0.1）只上升了 ~40%。论文推荐 α<sub>max</sub> ∈ [0.6, 0.75]。
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="coldstart">7. 冷启动案例：从第 8 名到第 1 名</h2>
+
+<div class="sec">
+  <h3>案例设置</h3>
+  <table class="vs-table">
+    <tr><td>目标物品</td><td>B072F27GQ8 — 乡村音乐合集 (Digital Music)</td></tr>
+    <tr><td>训练曝光</td><td>0 次（完全冷启动）</td></tr>
+    <tr><td>初始排名</td><td>10 个候选中第 8 位</td></tr>
+  </table>
+
+  <h3 style="margin-top:12px;">Item Agent 推广文案</h3>
+  <div class="highlight">
+    "Discover 'The Journey'—a digital music collection capturing country music's storytelling and emotional depth. While lacking physical formats, offers diverse selection resonating with true country enthusiasts, providing engaging experience aligning with your musical preferences."
+  </div>
+
+  <h3>User Agent 推理过程</h3>
+  <p>User 画像明确偏好乡村音乐的叙事性和情感深度 → Item Agent 的推广文案精准命中了这些关键词 → User Agent 给予高分。</p>
+
+  <h3>结果</h3>
+  <div class="metric-row">
+    <div class="metric-card">
+      <div class="label">初始排名</div>
+      <div class="value" style="color:var(--dim);">第 8 位</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Stage 1 后</div>
+      <div class="value" style="color:var(--green);">第 1 位</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">提升方式</div>
+      <div class="value" style="font-size:0.9em;">语义对齐</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>意义</strong>：不依赖任何历史交互数据，纯粹通过 Item Agent 的个性化推广在自然语言空间完成偏好匹配。这是对 collaborative filtering 冷启动问题的一种全新解法。
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="compare">8. 与相关工作的定位对比</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>维度</th><th>AgentCF++</th><th>Rec4AgentVerse</th><th>SCRUF-D</th><th>TriRec</th></tr>
+    <tr><td>User Agent</td><td>✓</td><td>✓</td><td>—</td><td>✓</td></tr>
+    <tr><td>Item Agent (主动推广)</td><td>—</td><td>部分</td><td>—</td><td class="best">✓ 个性化推广</td></tr>
+    <tr><td>Platform Agent</td><td>—</td><td>—</td><td>✓ 规则</td><td class="best">✓ 自适应 α</td></tr>
+    <tr><td>三方协调</td><td>—</td><td>—</td><td>—</td><td class="best">✓ 首创</td></tr>
+    <tr><td>公平性建模</td><td>—</td><td>隐式</td><td>DGU/MGU</td><td>DGU + MGU + EIU</td></tr>
+    <tr><td>冷启动处理</td><td>弱</td><td>中</td><td>弱</td><td class="best">强 (语义推广)</td></tr>
+    <tr><td>LLM 骨干</td><td>GPT</td><td>GPT</td><td>—</td><td>GPT-4o-mini</td></tr>
+  </table>
+
+  <h3 style="margin-top:16px;">与我们复现中其他推荐系统论文的关系</h3>
+  <table>
+    <tr><th>论文</th><th>Agent 方式</th><th>与 TriRec 的互补/对比</th></tr>
+    <tr><td>Agent4Rec</td><td>User Agent 模拟</td><td>只有 User 端，TriRec 加了 Item + Platform</td></tr>
+    <tr><td>AFL (AgentCF 反馈闭环)</td><td>双 Agent 多轮反馈</td><td>AFL 是多轮迭代，TriRec 是单轮三方博弈</td></tr>
+    <tr><td>InteRecAgent</td><td>Tool-augmented Agent</td><td>聚焦交互体验，不涉及公平性</td></tr>
+    <tr><td>RecAgent</td><td>User 行为模拟</td><td>模拟层面，TriRec 是系统层面</td></tr>
+  </table>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="smallville">9. 与 Generative Agents (Smallville) 的映射</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>Smallville 概念</th><th>TriRec 对应</th><th>异同</th></tr>
+    <tr><td>Memory Stream</td><td>Item Memory M<sub>i</sub> + User Profile z<sub>u</sub></td><td>Smallville 是统一时间流；TriRec 分 User/Item 两套</td></tr>
+    <tr><td>Reflection</td><td>User Agent 从历史交互生成偏好画像</td><td>Smallville 按 importance 触发；TriRec 在初始化时一次性生成</td></tr>
+    <tr><td>Planning</td><td>Item Agent 制定个性化推广策略</td><td>Smallville 是长期计划分解；TriRec 是单次推广生成</td></tr>
+    <tr><td>Action</td><td>User Agent 打分 + Platform Agent 重排</td><td>Smallville 在环境中行动；TriRec 在信息空间中决策</td></tr>
+    <tr><td>Multi-Agent</td><td>三方协调 (User × Item × Platform)</td><td>Smallville 是对等 Agent；TriRec 是异构角色层级</td></tr>
+    <tr><td>Environment</td><td>候选集 + 全局曝光状态 e<sup>t</sup></td><td>Smallville 是空间环境；TriRec 是抽象信息环境</td></tr>
+  </table>
+
+  <div class="insight">
+    <strong>关键区别</strong>：Smallville 的 Agent 是同质的（每个居民有相同的认知架构），而 TriRec 的三方 Agent 是<strong>异构</strong>的——User Agent 做推理评估，Item Agent 做内容生成，Platform Agent 做数值优化。这种异构设计更贴合推荐系统的实际利益结构。
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="limits">10. 局限与开放问题</h2>
+
+<div class="sec">
+  <table>
+    <tr><th>局限</th><th>影响</th><th>可能的改进方向</th></tr>
+    <tr>
+      <td>单轮博弈</td>
+      <td>Item Agent 不知道推广效果，无法学习调整策略</td>
+      <td>加入多轮反馈闭环（类似 AFL 的 epoch 迭代）</td>
+    </tr>
+    <tr>
+      <td>候选集构造</td>
+      <td>1 ground-truth + 9 random 偏乐观，真实场景候选集更大更难</td>
+      <td>扩大到 50-100 候选或全库排序</td>
+    </tr>
+    <tr>
+      <td>LLM 成本</td>
+      <td>每个 (user, item) 对需 1 次 Item Agent + 1 次 User Agent 调用</td>
+      <td>缓存 + 异步并发 + 蒸馏到小模型</td>
+    </tr>
+    <tr>
+      <td>公平性定义</td>
+      <td>仅按流行度分 8 组，未考虑更细粒度的创作者公平</td>
+      <td>引入个体公平 + 创作者生命周期建模</td>
+    </tr>
+    <tr>
+      <td>Platform Agent 无 LLM</td>
+      <td>Stage 2 是纯算法，没有利用 LLM 的推理能力</td>
+      <td>让 Platform Agent 也用 LLM 做策略推理（但会增加成本）</td>
+    </tr>
+    <tr>
+      <td>静态用户画像</td>
+      <td>用户偏好一次性生成，不会随交互动态更新</td>
+      <td>加入 Memory Stream 式的持续更新</td>
+    </tr>
+  </table>
+
+  <div class="warn">
+    <strong>论文自述的未来方向</strong>：探索更丰富的平台目标（创作者生命周期建模）和更高级的 Agent 机制（协商、联盟形成、长期战略规划），实现更自适应的多 Agent 合作行为。
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="verdict">11. 总结评价</h2>
+
+<div class="sec">
+  <div class="metric-row">
+    <div class="metric-card" style="border-color:var(--green);">
+      <div class="label">创新性</div>
+      <div class="value" style="color:var(--green);">★★★★☆</div>
+      <div class="delta" style="color:var(--dim);">首个三方 Agent 框架</div>
+    </div>
+    <div class="metric-card" style="border-color:var(--cyan);">
+      <div class="label">实验严谨度</div>
+      <div class="value" style="color:var(--cyan);">★★★★☆</div>
+      <div class="delta" style="color:var(--dim);">4 数据集 + 9 消融</div>
+    </div>
+    <div class="metric-card" style="border-color:var(--orange);">
+      <div class="label">实用性</div>
+      <div class="value" style="color:var(--orange);">★★★☆☆</div>
+      <div class="delta" style="color:var(--dim);">LLM 成本仍是瓶颈</div>
+    </div>
+    <div class="metric-card" style="border-color:var(--purple);">
+      <div class="label">与 Smallville 关联</div>
+      <div class="value" style="color:var(--purple);">★★★★☆</div>
+      <div class="delta" style="color:var(--dim);">异构 Agent + 记忆</div>
+    </div>
+  </div>
+
+  <div class="highlight" style="margin-top:16px;">
+    <strong>一句话</strong>：TriRec 的核心贡献不是某个算法的改进，而是<strong>问题建模的范式转换</strong>——把推荐从"帮用户找好物品"重新定义为"协调三方利益的博弈"。Item Agent 的个性化推广机制尤其精巧：它同时改善了准确率（更好的语义匹配）和公平性（冷门物品也能自我推销），打破了 relevance-fairness 的传统零和假设。
+  </div>
+
+  <div class="highlight" style="border-left-color:var(--orange);">
+    <strong>与我们复现实验的对照</strong>：我们用 GLM-4-flash（免费模型）+ 合成数据 50 用户复现了核心趋势 (NDCG +32%, Hit +67%, DGU −34%)。论文原版用 GPT-4o-mini + 真实数据 2000 用户，NDCG 绝对值在 0.47 级别（我们是 0.05）。差距来源：(1) 合成 vs 真实数据；(2) 模型能力差异；(3) 候选集大小 (50 vs 10)。趋势一致，验证了框架设计的有效性。
+  </div>
+</div>
+
+<div class="nav-links">
+  <a href="53-terminal-bench.html">← #53 Terminal-Bench</a>
+  <a href="../reproduction/trirec-reproduction-log.html">复现日志 →</a>
+</div>
+
+</body>
+</html>

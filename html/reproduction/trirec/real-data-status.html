@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>TriRec 真实数据实验 — 现状·问题·修复方向</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; --cyan:#22d3ee; --green:#4ade80; --pink:#f472b6; --orange:#fb923c; --yellow:#facc15; --purple:#a78bfa; --red:#f87171; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font:15px/1.7 'SF Mono','Cascadia Code','Consolas',monospace; padding:24px; max-width:1020px; margin:0 auto; }
+    h1 { font-size:1.5em; color:var(--cyan); border-bottom:2px solid var(--cyan); padding-bottom:8px; margin-bottom:16px; }
+    h2 { font-size:1.2em; color:var(--green); margin:28px 0 10px; }
+    h3 { font-size:1em; color:var(--orange); margin:16px 0 6px; }
+    .badge { display:inline-block; border:2px dashed var(--pink); color:var(--pink); padding:2px 10px; border-radius:6px; font-size:0.8em; margin-left:8px; }
+    .badge-red { border-color:var(--red); color:var(--red); }
+    .badge-yellow { border-color:var(--yellow); color:var(--yellow); }
+    .badge-green { border-color:var(--green); color:var(--green); }
+    .meta { color:var(--dim); font-size:0.9em; margin-bottom:16px; line-height:1.8; }
+    .sec { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0; }
+    table { width:100%; border-collapse:collapse; margin:8px 0; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; font-size:0.9em; }
+    th { background:rgba(34,211,238,0.1); color:var(--cyan); }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .zero { color:var(--red); font-weight:bold; }
+    .down { color:var(--green); }
+    code { background:rgba(34,211,238,0.1); padding:2px 6px; border-radius:4px; font-size:0.9em; }
+    pre { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto; font-size:0.85em; margin:8px 0; line-height:1.5; }
+    a { color:var(--cyan); }
+    .highlight { background:rgba(34,211,238,0.08); border-left:3px solid var(--cyan); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .warn { background:rgba(248,113,113,0.08); border-left:3px solid var(--red); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .fix { background:rgba(74,222,128,0.08); border-left:3px solid var(--green); padding:10px 14px; margin:10px 0; border-radius:0 6px 6px 0; }
+    .toc { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 20px; margin:12px 0; }
+    .toc a { text-decoration:none; }
+    .toc li { margin:3px 0; }
+    .roadmap-item { display:flex; gap:12px; align-items:flex-start; margin:10px 0; }
+    .roadmap-num { flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85em; font-weight:bold; }
+    .roadmap-num.block { background:var(--red); color:var(--bg); }
+    .roadmap-num.next { background:var(--yellow); color:var(--bg); }
+    .roadmap-num.future { background:var(--border); color:var(--dim); }
+    .roadmap-body { flex:1; }
+    .diagram { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:16px; margin:8px 0; font-size:0.85em; line-height:1.6; overflow-x:auto; }
+  </style>
+</head>
+<body>
+
+<h1>TriRec 真实数据实验 <span class="badge badge-red">准确率归零</span></h1>
+<p class="meta">
+  记录日期: 2026-04-27<br>
+  环境: 腾讯云 49.233.189.223 · <code>/opt/workspace/research/triRec</code><br>
+  数据: Amazon CDs &amp; Vinyl 2023 (5-core) · 50 用户 / 13,776 物品<br>
+  运行耗时: 203 分钟 (3.4 小时)
+</p>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#what-done">已完成的工作</a></li>
+    <li><a href="#results">实验结果</a></li>
+    <li><a href="#diagnosis">问题诊断</a></li>
+    <li><a href="#root-cause">根因分析</a></li>
+    <li><a href="#fix-plan">修复方向</a></li>
+    <li><a href="#todo">完整待做清单</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<h2 id="what-done">1. 已完成的工作（文档外新增）</h2>
+
+<div class="sec">
+  <p>以下工作在合成数据实验之后完成，但尚未更新到 <code>trirec-reproduction-log.html</code>：</p>
+  <table>
+    <tr><th>工作项</th><th>产出</th><th>说明</th></tr>
+    <tr>
+      <td>真实数据预处理脚本</td>
+      <td><code>data/preprocess_real.py</code> (135 行)</td>
+      <td>从 5-core 数据中筛选 top-200 活跃用户（≥10 条交互），解析 meta JSONL，提取二级类别</td>
+    </tr>
+    <tr>
+      <td>Amazon CDs 数据下载</td>
+      <td><code>data/amazon_real/</code></td>
+      <td>ratings_5core.csv (155 万行) → 处理后 ratings.csv (7.5 万行, 200 用户) + meta.json (34,852 物品)</td>
+    </tr>
+    <tr>
+      <td>config / loader 适配</td>
+      <td><code>config.py</code>, <code>data/loader.py</code></td>
+      <td>DATA_DIR 指向 amazon_real，loader 重写为通用 CSV/JSON 格式（不再有合成数据逻辑）</td>
+    </tr>
+    <tr>
+      <td>缓存隔离</td>
+      <td><code>cache_real/</code>, <code>output_real/</code></td>
+      <td>真实数据的 LLM 缓存和输出与合成数据隔离</td>
+    </tr>
+    <tr>
+      <td>真实数据实验完成</td>
+      <td><code>output_real/experiment_results.json</code></td>
+      <td>50 用户三组对照跑完，耗时 203 分钟，822 个物品被 lazy 初始化了 ItemMemory</td>
+    </tr>
+  </table>
+  <p style="margin-top:10px; color:var(--dim);">Git 状态：223 上只有 2 个 commit（初始 + 合成数据实现），真实数据相关改动疑似未提交。</p>
+</div>
+
+<!-- ==================== 2 ==================== -->
+<h2 id="results">2. 实验结果</h2>
+
+<div class="sec">
+  <h3>2.1 真实数据三组对照（全部准确率 = 0）</h3>
+  <table>
+    <tr>
+      <th>指标</th>
+      <th>Baseline<br>(Embedding Only)</th>
+      <th>Stage1<br>(Item推广 + User评估)</th>
+      <th>Full TriRec<br>(+ Platform重排)</th>
+    </tr>
+    <tr>
+      <td><strong>NDCG@5</strong> ↑</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+    </tr>
+    <tr>
+      <td><strong>MRR</strong> ↑</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+    </tr>
+    <tr>
+      <td><strong>Hit@5</strong> ↑</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+      <td class="num zero">0.0000</td>
+    </tr>
+    <tr>
+      <td><strong>DGU@10</strong> ↓</td>
+      <td class="num">0.0701</td>
+      <td class="num">0.0735</td>
+      <td class="num down">0.0642</td>
+    </tr>
+    <tr>
+      <td><strong>MGU@10</strong> ↓</td>
+      <td class="num">0.4364</td>
+      <td class="num">0.3668</td>
+      <td class="num down">0.3227</td>
+    </tr>
+    <tr>
+      <td><strong>EIU@10</strong></td>
+      <td class="num">0.9708</td>
+      <td class="num">0.8231</td>
+      <td class="num down">0.6190</td>
+    </tr>
+  </table>
+
+  <div class="warn">
+    <strong>公平性指标趋势正常</strong>（DGU/MGU 逐步下降，EIU 分散化），但<strong>所有准确率指标为零</strong>——三组实验中没有任何用户的 test item 出现在推荐列表里。公平性改善在准确率为零时没有意义。
+  </div>
+
+  <h3 style="margin-top:16px;">2.2 与合成数据对比</h3>
+  <table>
+    <tr><th>指标</th><th>合成 Full TriRec</th><th>真实 Full TriRec</th><th>差异</th></tr>
+    <tr><td>Hit@5</td><td class="num">0.1000</td><td class="num zero">0.0000</td><td>合成数据 286 物品能 work，真实 13,776 物品完全失效</td></tr>
+    <tr><td>NDCG@5</td><td class="num">0.0545</td><td class="num zero">0.0000</td><td>同上</td></tr>
+    <tr><td>物品数</td><td class="num">286</td><td class="num">13,776</td><td>×48 倍</td></tr>
+    <tr><td>候选池</td><td class="num">50</td><td class="num">50</td><td>未调整</td></tr>
+    <tr><td>召回率</td><td>50/286 = 17.5%</td><td>50/13776 = 0.36%</td><td>×0.02</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 3 ==================== -->
+<h2 id="diagnosis">3. 问题诊断</h2>
+
+<div class="sec">
+  <h3>3.1 直接证据：test item 从未被召回</h3>
+  <p>抽查 10 个用户，<strong>全部</strong>的 test item 不在 baseline 的 top-50 候选里：</p>
+  <pre>
+User AHL3TSH35X7273JH: test=B0BCGCYVLZ  test_in_baseline_top50=False
+User AFRDOQ4FWDVLDUY4: test=B07XW6QSZQ  test_in_baseline_top50=False
+User AEVTNOBAP2NTTNQU: test=B000SFJWLU  test_in_baseline_top50=False
+User AGTAOT4PPEOUACFK: test=B00001IVI6  test_in_baseline_top50=False
+User AFB7RVKJPUS7IRXR: test=B01N3AWWV8  test_in_baseline_top50=False
+User AG6C62VUXWBFJGLK: test=B0029VX276  test_in_baseline_top50=False
+User AESIWK2THAILH66I: test=B00005KB9X  test_in_baseline_top50=False
+User AHXNZ75VJUMZ34AS: test=B0B5KQN6TJ  test_in_baseline_top50=False
+User AF6UC5IH2Z33BO2O: test=B000000OPC  test_in_baseline_top50=False
+User AH2WY66XG7BGFTZV: test=B00N2D53AE  test_in_baseline_top50=False</pre>
+  <p>这意味着后续的 Stage1（LLM 推广+评估）和 Stage2（Platform 重排）都在一个<strong>不包含正确答案的候选池</strong>上操作——无论排序多好，结果都是零。</p>
+
+  <h3>3.2 排除 GLM 嫌疑</h3>
+  <p>候选召回流程中 <strong>GLM 没有参与</strong>：</p>
+  <div class="diagram">
+候选召回流程（问题出在这里）:
+┌─────────────────────────────────────────────────────────────┐
+│  user 历史 → <span style="color:var(--orange)">GLM 生成 profile 文本</span> → <span style="color:var(--cyan)">MiniLM 编码 (384d)</span>  │
+│                                              ↓               │
+│  item meta (title+cat+desc) ────→ <span style="color:var(--cyan)">MiniLM 编码 (384d)</span>        │
+│                                              ↓               │
+│              cosine_sim(user_emb, 13776 item_embs) → top-50  │
+│              ↑                                               │
+│              └── <span style="color:var(--red)">问题在这一步：50/13776 太稀疏</span>              │
+└─────────────────────────────────────────────────────────────┘
+
+GLM 的角色（在召回之后才参与）:
+┌─────────────────────────────────────────────────────────────┐
+│  Stage1: GLM 为候选物品写推广 → GLM 扮演用户打分 1-5       │
+│  Stage2: 纯算法重排（不用 GLM）                            │
+│                                                             │
+│  → 这些都发生在 top-50 之后，无法挽救召回率为零的问题       │
+└─────────────────────────────────────────────────────────────┘</div>
+</div>
+
+<!-- ==================== 4 ==================== -->
+<h2 id="root-cause">4. 根因分析</h2>
+
+<div class="sec">
+  <h3>原因一：候选池比例失调</h3>
+  <div class="highlight">
+    合成数据: top-50 / 286 物品 = <strong>17.5%</strong> 覆盖率 → 能 work<br>
+    真实数据: top-50 / 13,776 物品 = <strong>0.36%</strong> 覆盖率 → 必然失败
+  </div>
+  <p><code>TOP_K_CANDIDATES = 50</code> 是为 286 物品设计的，直接搬到 13,776 物品没有调整。</p>
+
+  <h3 style="margin-top:16px;">原因二：语义鸿沟（query-document mismatch）</h3>
+  <p><code>all-MiniLM-L6-v2</code> 是通用语义相似度模型，不是为 "用户画像 → 物品描述" 的跨模态匹配训练的。</p>
+  <table>
+    <tr><th>user profile embedding 的来源</th><th>item embedding 的来源</th></tr>
+    <tr>
+      <td>"This user enjoys jazz and classic rock, prefers relaxing evening music with smooth instrumentals..."</td>
+      <td>"Greatest Hits by Artist_X. Category: Rock. 12 tracks including..."</td>
+    </tr>
+  </table>
+  <p>这两种文本在 MiniLM 的语义空间中未必接近——一个是<strong>偏好描述</strong>，一个是<strong>物品事实描述</strong>。在 286 物品时空间小、碰巧能 work；13,776 物品时噪声淹没了信号。</p>
+
+  <h3 style="margin-top:16px;">原因三：无协同过滤信号</h3>
+  <p>当前候选召回完全基于<strong>内容相似度</strong>（content-based），没有利用协同过滤信号（"买了 A 的人也买了 B"）。真实推荐系统几乎都用协同过滤做召回，内容相似度做补充。</p>
+</div>
+
+<!-- ==================== 5 ==================== -->
+<h2 id="fix-plan">5. 修复方向</h2>
+
+<div class="sec">
+  <h3>方案 A：扩大候选池 <span class="badge badge-yellow">最简单</span></h3>
+  <div class="fix">
+    <strong>改动</strong>：<code>TOP_K_CANDIDATES = 50</code> → <code>500</code><br>
+    <strong>覆盖率</strong>：500/13776 = 3.6%（×10）<br>
+    <strong>代价</strong>：LLM 调用量 ×10（Item 推广 500次/用户），耗时可能 30+ 小时<br>
+    <strong>是否解决根因</strong>：缓解但不根治。3.6% 覆盖率仍然很低，且依赖 embedding 质量
+  </div>
+
+  <h3 style="margin-top:16px;">方案 B：协同过滤预筛选 <span class="badge badge-green">推荐</span></h3>
+  <div class="fix">
+    <strong>思路</strong>：利用用户历史交互的物品，找<strong>同类别 / 同艺人 / 被相似用户交互过</strong>的物品，优先放入候选池<br>
+    <strong>实现</strong>：
+    <pre>
+# 伪代码
+def hybrid_recall(user, item_embeddings, item_meta, train_data, k=200):
+    history_items = train_data[user]
+    history_categories = {item_meta[i]["category"] for i in history_items}
+
+    # 路径1: 同类别物品（协同过滤简化版）
+    same_cat = [iid for iid, m in item_meta.items()
+                if m["category"] in history_categories
+                and iid not in history_items]
+
+    # 路径2: embedding 相似度（保留原有逻辑）
+    emb_top = top_k_similar(user_emb, item_embeddings, k=k)
+
+    # 合并去重，优先保证 same_cat 覆盖
+    candidates = merge_and_dedup(same_cat[:100], emb_top[:150], k=200)
+    return candidates</pre>
+    <strong>覆盖率</strong>：用户历史类别内的物品通常数百~数千个，test item 大概率在其中<br>
+    <strong>代价</strong>：改动 ~30 行代码，无额外 LLM 调用<br>
+    <strong>是否解决根因</strong>：直接解决。协同过滤信号是推荐系统召回的核心
+  </div>
+
+  <h3 style="margin-top:16px;">方案 C：混合召回 <span class="badge badge-green">最稳健</span></h3>
+  <div class="fix">
+    <strong>思路</strong>：多路召回合并，确保覆盖率<br>
+    <pre>
+候选池 = 合并去重(
+    embedding_top_200,          # 语义相似
+    same_category_top_100,      # 类别协同
+    popular_in_category_top_50, # 类别热门
+    random_sample_50            # 随机负例（用于公平性评估）
+) → ~300-400 候选</pre>
+    <strong>优势</strong>：即使某一路召回失效，其他路仍能兜底<br>
+    <strong>代价</strong>：候选池扩大到 300-400，LLM 调用量 ×6-8，但配合异步并发仍可控
+  </div>
+
+  <h3 style="margin-top:16px;">方案对比</h3>
+  <table>
+    <tr><th>方案</th><th>改动量</th><th>能否解决</th><th>LLM 成本</th><th>推荐度</th></tr>
+    <tr><td>A. 扩大 top-K</td><td>改 1 个常量</td><td>缓解</td><td>×10</td><td>低</td></tr>
+    <tr><td>B. 协同过滤预筛选</td><td>~30 行</td><td>大概率解决</td><td>×2-4</td><td>中</td></tr>
+    <tr><td>C. 混合召回</td><td>~60 行</td><td>最稳健</td><td>×6-8</td><td>高（配合异步）</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 6 ==================== -->
+<h2 id="todo">6. 完整待做清单</h2>
+
+<div class="sec">
+
+  <div class="roadmap-item">
+    <div class="roadmap-num block">!</div>
+    <div class="roadmap-body">
+      <strong>修复候选召回率</strong> <span class="badge badge-red">BLOCKING</span>
+      <p style="color:var(--dim); font-size:0.9em;">实现方案 B 或 C，确保 test item 有合理概率出现在候选池中。不修这个，后续所有工作都无意义。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">2</div>
+    <div class="roadmap-body">
+      <strong>重跑真实数据实验</strong>
+      <p style="color:var(--dim); font-size:0.9em;">修复召回后重跑三组对照，验证 TriRec 在真实数据上准确率和公平性的趋势。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num next">3</div>
+    <div class="roadmap-body">
+      <strong>异步并发 GLM 调用</strong>
+      <p style="color:var(--dim); font-size:0.9em;">config 里已有 <code>MAX_CONCURRENT=10</code> 但代码未实现 asyncio。候选池扩大后更需要并发。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">4</div>
+    <div class="roadmap-body">
+      <strong>消融实验</strong>
+      <p style="color:var(--dim); font-size:0.9em;">关闭 Stage1 / 调 α 权重 / 变候选集大小。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">5</div>
+    <div class="roadmap-body">
+      <strong>GLM-4-plus 模型对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">更强模型对推广质量的影响。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">6</div>
+    <div class="roadmap-body">
+      <strong>扩大到 200+ 用户</strong>
+      <p style="color:var(--dim); font-size:0.9em;">需先做异步并发。50 用户统计方差太大。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">7</div>
+    <div class="roadmap-body">
+      <strong>与 AFL 实验对比</strong>
+      <p style="color:var(--dim); font-size:0.9em;">同数据集上 TriRec (三方博弈) vs AFL (双 Agent 反馈闭环)。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-num future">8</div>
+    <div class="roadmap-body">
+      <strong>Git 提交 + 文档更新</strong>
+      <p style="color:var(--dim); font-size:0.9em;">223 上真实数据代码未提交。修复召回后连同更新 trirec-reproduction-log.html。</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
